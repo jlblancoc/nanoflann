@@ -1,6 +1,6 @@
 # Set up basic variables:
 CC         = g++
-CFLAGS     = -c -Wall -O2
+CFLAGS     = -c -Wall -O2 -mtune=native
 LDFLAGS    =
 
 # List of sources:
