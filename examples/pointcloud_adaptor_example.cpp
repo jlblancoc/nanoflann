@@ -44,16 +44,29 @@ struct PointCloud
 	};
 
 	std::vector<Point>  pts;
+}; // end of PointCloud
+
+// And this is the "dataset to kd-tree" adaptor class:
+template <typename Derived>
+struct PointCloudAdaptor
+{
+	const Derived &obj; //!< A const ref to the data set origin
+
+	/// The constructor that sets the data set source
+	PointCloudAdaptor(const Derived &obj_) : obj(obj_) { }
+
+	/// CRTP helper method
+	inline const Derived& derived() const { return obj; }
 
 	// Must return the number of data points
-	inline size_t kdtree_get_point_count() const { return pts.size(); }
+	inline size_t kdtree_get_point_count() const { return derived().pts.size(); }
 
 	// Returns the distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
 	inline float kdtree_distance(const float *p1, const size_t idx_p2,size_t size) const
 	{
-		float d0=p1[0]-pts[idx_p2].x;
-		float d1=p1[1]-pts[idx_p2].y;
-		float d2=p1[2]-pts[idx_p2].z;
+		float d0=p1[0]-derived().pts[idx_p2].x;
+		float d1=p1[1]-derived().pts[idx_p2].y;
+		float d2=p1[2]-derived().pts[idx_p2].z;
 		return d0*d0+d1*d1+d2*d2;
 	}
 
@@ -62,9 +75,9 @@ struct PointCloud
 	//  "if/else's" are actually solved at compile time.
 	inline float kdtree_get_pt(const size_t idx, int dim) const
 	{
-		if (dim==0) return pts[idx].x;
-		else if (dim==1) return pts[idx].y;
-		else return pts[idx].z;
+		if (dim==0) return derived().pts[idx].x;
+		else if (dim==1) return derived().pts[idx].y;
+		else return derived().pts[idx].z;
 	}
 
 	// Optional bounding-box computation: return false to default to a standard bbox computation loop.
@@ -73,7 +86,8 @@ struct PointCloud
 	template <class BBOX>
 	bool kdtree_get_bbox(BBOX &bb) const { return false; }
 
-};
+}; // end of PointCloudAdaptor
+
 
 template <typename T>
 void generateRandomPointCloud(PointCloud<T> &point, const size_t N, const T max_range = 10)
@@ -100,15 +114,17 @@ void kdtree_demo(const size_t N)
 
 	num_t query_pt[3] = { 0.5, 0.5, 0.5};
 
+	typedef PointCloudAdaptor<PointCloud<num_t> > PC2KD;
+	const PC2KD  pc2kd(cloud); // The adaptor
 
 	// construct a kd-tree index:
 	typedef KDTreeSingleIndexAdaptor<
-		L2_Simple_Adaptor<num_t, PointCloud<num_t> > ,
-		PointCloud<num_t>,
+		L2_Simple_Adaptor<num_t, PC2KD > ,
+		PC2KD,
 		3 /* dim */
 		> my_kd_tree_t;
 
-	my_kd_tree_t   index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
+	my_kd_tree_t   index(3 /*dim*/, pc2kd, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
 	index.buildIndex();
 
 	// do a knn search

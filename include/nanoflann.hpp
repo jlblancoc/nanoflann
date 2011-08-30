@@ -570,9 +570,9 @@ namespace nanoflann
 		 *          params = parameters passed to the kdtree algorithm
 		 */
 		KDTreeSingleIndexAdaptor(const int dimensionality, const DatasetAdaptor& inputData, const KDTreeSingleIndexAdaptorParams& params = KDTreeSingleIndexAdaptorParams() ) :
-			dataset(inputData), index_params(params), distance(inputData.derived())
+			dataset(inputData), index_params(params), distance(inputData)
 		{
-			size_ = dataset.derived().kdtree_get_point_count();
+			size_ = dataset.kdtree_get_point_count();
 			dim = dimensionality;
 			if (DIM>0) dim=DIM;
 			else {
@@ -625,7 +625,7 @@ namespace nanoflann
 		 */
 		int usedMemory() const
 		{
-			return pool.usedMemory+pool.wastedMemory+dataset.derived().kdtree_get_point_count()*sizeof(int);  // pool memory and vind array memory
+			return pool.usedMemory+pool.wastedMemory+dataset.kdtree_get_point_count()*sizeof(int);  // pool memory and vind array memory
 		}
 
 		/** \name Query methods
@@ -709,7 +709,7 @@ namespace nanoflann
 
 		/// Helper accessor to the dataset points:
 		inline ElementType dataset_get(size_t idx, int component) const {
-			return dataset.derived().kdtree_get_pt(idx,component);
+			return dataset.kdtree_get_pt(idx,component);
 		}
 
 
@@ -741,7 +741,7 @@ namespace nanoflann
 		void computeBoundingBox(BoundingBox& bbox)
 		{
 			bbox.resize((DIM>0 ? DIM : dim));
-			if (dataset.derived().kdtree_get_bbox(bbox))
+			if (dataset.kdtree_get_bbox(bbox))
 			{
 				// Done! It was implemented in derived class
 			}
@@ -751,7 +751,7 @@ namespace nanoflann
 					bbox[i].low =
 						bbox[i].high = dataset_get(0,i);
 				}
-				const size_t N = dataset.derived().kdtree_get_point_count();
+				const size_t N = dataset.kdtree_get_point_count();
 				for (size_t k=1; k<N; ++k) {
 					for (size_t i=0; i<(DIM>0 ? DIM : dim); ++i) {
 						if (dataset_get(k,i)<bbox[i].low) bbox[i].low = dataset_get(k,i);
@@ -1055,6 +1055,19 @@ namespace nanoflann
 
 	/** A simple KD-tree adaptor for working with data directly stored in an Eigen Matrix, without duplicating the data storage.
 	  *  Each row in the matrix represents a point in the state space.
+	  *
+	  *  Example of usage:
+	  * \code
+	  * 	Eigen::Matrix<num_t,Dynamic,Dynamic>  mat;
+	  * 	// Fill out "mat"...
+	  *
+	  * 	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic> >  my_kd_tree_t;
+	  * 	const int max_leaf = 10;
+	  * 	my_kd_tree_t   mat_index(dimdim, mat, max_leaf );
+	  * 	mat_index.index->buildIndex();
+	  * 	mat_index.index->...
+	  * \endcode
+	  *
 	  */
 	template <class MatrixType>
 	struct KDTreeEigenMatrixAdaptor
