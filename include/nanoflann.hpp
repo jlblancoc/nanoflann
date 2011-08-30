@@ -51,6 +51,9 @@ namespace nanoflann
 {
 /** @addtogroup nanoflann_grp nanoflann C++ library for ANN
   *  @{ */
+  
+  	/** Library version: 0xMmP (M=Major,m=minor,P=path) */
+	#define NANOFLANN_VERSION 0x100
 
 	/** @addtogroup result_sets_grp Result set classes
 	  *  @{ */
@@ -1210,7 +1213,7 @@ namespace nanoflann
 		KDTreeEigenMatrixAdaptor(const int dimensionality, const MatrixType &mat, const int leaf_max_size = 10) : m_data_matrix(mat)
 		{
 			const size_t dims = mat.cols();
-			if (DIM>0 && dims!=DIM)
+			if (DIM>0 && static_cast<int>(dims)!=DIM)
 				throw std::runtime_error("Data set dimensionality does not match the 'DIM' template argument");
 			index = new index_t( dims, *this /* adaptor */, nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size, dims ) );
 			index->buildIndex();
@@ -1221,6 +1224,17 @@ namespace nanoflann
 		}
 
 		const MatrixType &m_data_matrix;
+
+		/** Query for the \a num_closest closest points to a given point (entered as query_point[0:dim-1]).
+		  *  Note that this is a short-cut method for index->findNeighbors().
+		  *  The user can also call index->... methods as desired.
+		  */
+		inline void query(const num_t *query_point, int num_closest, int *out_indices, num_t *out_distances_sq, const int nChecks = 10) const
+		{
+			nanoflann::KNNResultSet<typename MatrixType::Scalar> resultSet(num_closest);
+			resultSet.init(out_indices, out_distances_sq);
+			index->findNeighbors(resultSet, query_point, nanoflann::SearchParams(nChecks));
+		}
 
 		/** @name Interface expected by KDTreeSingleIndexAdaptor
 		  * @{ */
