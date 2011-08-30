@@ -2,6 +2,9 @@
 # example: "pointcloud_example"
 ADD_EXECUTABLE(pointcloud_example pointcloud_example.cpp)
 
+# example: "pointcloud_kdd_radius"
+ADD_EXECUTABLE(pointcloud_kdd_radius pointcloud_kdd_radius.cpp)
+
 # example: "pointcloud_adaptor_example"
 ADD_EXECUTABLE(pointcloud_adaptor_example pointcloud_adaptor_example.cpp)
 
