@@ -4,8 +4,6 @@
  * Copyright 2011 Jose Luis Blanco (joseluisblancoc@gmail.com).
  *   All rights reserved.
  *
- * THE BSD LICENSE
- *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -28,8 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *************************************************************************/
 
-#include <gtest/gtest.h>
-
 #include <nanoflann.hpp>
 
 #include <cstdlib>
@@ -37,15 +33,6 @@
 
 using namespace std;
 using namespace nanoflann;
-
-int main(int argc, char **argv)
-{
-	testing::InitGoogleTest(&argc, argv);
-
-	return RUN_ALL_TESTS();
-}
-
-
 
 // This is an exampleof a custom data set class
 template <typename T>
@@ -91,6 +78,7 @@ struct PointCloud
 template <typename T>
 void generateRandomPointCloud(PointCloud<T> &point, const size_t N, const T max_range = 10)
 {
+	std::cout << "Generating "<< N << " point cloud...";
 	point.pts.resize(N);
 	for (size_t i=0;i<N;i++)
 	{
@@ -98,10 +86,12 @@ void generateRandomPointCloud(PointCloud<T> &point, const size_t N, const T max_
 		point.pts[i].y = max_range * (rand() % 1000) / T(1000);
 		point.pts[i].z = max_range * (rand() % 1000) / T(1000);
 	}
+
+	std::cout << "done\n";
 }
 
 template <typename num_t>
-void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
+void kdtree_demo(const size_t N)
 {
 	PointCloud<num_t> cloud;
 
@@ -110,49 +100,35 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
 
 	num_t query_pt[3] = { 0.5, 0.5, 0.5};
 
+
 	// construct a kd-tree index:
 	typedef KDTreeSingleIndexAdaptor<
 		L2_Simple_Adaptor<num_t, PointCloud<num_t> > ,
 		PointCloud<num_t>,
 		3 /* dim */
-		> my_kd_tree_simple_t;
-
-	typedef KDTreeSingleIndexAdaptor<
-		L2_Adaptor<num_t, PointCloud<num_t> > ,
-		PointCloud<num_t>,
-		3 /* dim */
 		> my_kd_tree_t;
 
-	my_kd_tree_simple_t   index1(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
-	index1.buildIndex();
-
-	my_kd_tree_t   index2(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
-	index2.buildIndex();
+	my_kd_tree_t   index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
+	index.buildIndex();
 
 	// do a knn search
-	std::vector<int>   ret_index(num_results);
-	std::vector<num_t> out_dist_sqr(num_results);
+	const size_t num_results = 1;
+	int ret_index;
+	num_t out_dist_sqr;
 	nanoflann::KNNResultSet<num_t> resultSet(num_results);
-	resultSet.init(&ret_index[0], &out_dist_sqr[0] );
-	index1.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
+	resultSet.init(&ret_index, &out_dist_sqr );
+	index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
+	//index.knnSearch(query, indices, dists, num_results, mrpt_flann::SearchParams(10));
 
-	std::vector<int>   ret_index1 = ret_index;
-	std::vector<num_t> out_dist_sqr1 = out_dist_sqr;
+	std::cout << "knnSearch(nn="<<num_results<<"): \n";
+	std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr << endl;
 
-	resultSet.init(&ret_index[0], &out_dist_sqr[0] );
-
-	index2.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
-	
-	for (int i=0;i<num_results;i++)
-	{
-		EXPECT_EQ(ret_index1[i],ret_index[i]);
-		EXPECT_EQ(out_dist_sqr1[i],out_dist_sqr[i]);
-	}
 }
 
-TEST(kdtree,L2_vs_L2_simple)
+int main(int argc, char** argv)
 {
-	for (int nResults=1;nResults<10;nResults++)
-		L2_vs_L2_simple_test<float>(100, nResults);
+	kdtree_demo<float>(1e5);
+
+	return 0;
 }
 

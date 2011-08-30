@@ -14,7 +14,9 @@ ADD_CUSTOM_TARGET(test)
 # -----------------------------
 
 # If using system library, add C++ flags:
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_GTEST_CFLAGS}")
+IF (UNIX)
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+ENDIF (UNIX)
 
 # Test project:
 ADD_EXECUTABLE(unit_tests test_main.cpp)

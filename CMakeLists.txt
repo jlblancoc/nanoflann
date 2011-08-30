@@ -30,11 +30,8 @@ STRING(REGEX REPLACE "0x.(.).*" "\\1" NANOFLANN_VERSION_MINOR "${NANOFLANN_VERSI
 STRING(REGEX REPLACE "0x..(.).*" "\\1" NANOFLANN_VERSION_PATCH "${NANOFLANN_VERSION_HEX}" )
 
 MESSAGE(STATUS "nanoflann version: ${NANOFLANN_VERSION_MAJOR}.${NANOFLANN_VERSION_MINOR}.${NANOFLANN_VERSION_PATCH}")
-
-# Generate the pkg-config file:
-CONFIGURE_FILE(
-	"${nanoflann_SOURCE_DIR}/nanoflann.pc.in" 
-	"${nanoflann_BINARY_DIR}/nanoflann.pc" @ONLY IMMEDIATE )
+file(WRITE "${nanoflann_BINARY_DIR}/version" "${NANOFLANN_VERSION_MAJOR}.${NANOFLANN_VERSION_MINOR}.${NANOFLANN_VERSION_PATCH}")
+file(WRITE "${nanoflann_SOURCE_DIR}/version" "${NANOFLANN_VERSION_MAJOR}.${NANOFLANN_VERSION_MINOR}.${NANOFLANN_VERSION_PATCH}")
 
 # Compiler options:
 IF(CMAKE_COMPILER_IS_GNUCXX)
@@ -69,43 +66,66 @@ SET(HAVE_GTEST 0)
 
 IF( BUILD_TESTING)
 	# Try using libgtest (Google testing library) from the system, if available
-	IF(UNIX)
-		FIND_FILE(GTEST_CONFIG_FILE gtest-config)
-		IF(GTEST_CONFIG_FILE)
-			MARK_AS_ADVANCED(GTEST_CONFIG_FILE)
+	FIND_FILE(GTEST_HEADER_FILE gtest/gtest.h)
+	IF(GTEST_HEADER_FILE)
+		MARK_AS_ADVANCED(GTEST_HEADER_FILE)
 
-			SET(HAVE_GTEST 1)
-
-			# Get the config params:
-			EXECUTE_PROCESS(COMMAND ${GTEST_CONFIG_FILE} --libs
-				RESULT_VARIABLE CMAKE_GTEST_CONFIG_RES
-				OUTPUT_VARIABLE CMAKE_GTEST_LIBS
-				OUTPUT_STRIP_TRAILING_WHITESPACE
-				)
-			IF(${CMAKE_GTEST_CONFIG_RES})
-				MESSAGE("Error invoking GTEST config file:\n ${GTEST_CONFIG_FILE} --libs")
-			ENDIF(${CMAKE_GTEST_CONFIG_RES})
-
-			EXECUTE_PROCESS(COMMAND ${GTEST_CONFIG_FILE} --cxxflags
-				RESULT_VARIABLE CMAKE_GTEST_CONFIG_RES
-				OUTPUT_VARIABLE CMAKE_GTEST_CFLAGS
-				OUTPUT_STRIP_TRAILING_WHITESPACE
-				)
-			IF(${CMAKE_GTEST_CONFIG_RES})
-				MESSAGE("Error invoking GTEST config file:\n ${GTEST_CONFIG_FILE} --cxxflags")
-			ENDIF(${CMAKE_GTEST_CONFIG_RES})
-
-		ELSE(GTEST_CONFIG_FILE)
-			SET(HAVE_GTEST 0)
-		ENDIF(GTEST_CONFIG_FILE)
-	ENDIF(UNIX)
+		SET(HAVE_GTEST 1)
+	ENDIF(GTEST_HEADER_FILE)
 
 	IF(HAVE_GTEST)
 		add_subdirectory(tests)
 	ELSE(HAVE_GTEST)
-		MESSAGE(STATUS "Warning: Not building unit test since gtest-config was not found")
+		MESSAGE(STATUS "Warning: Not building unit test since gtest/gtest.h was not found")
 	ENDIF(HAVE_GTEST)
-
 ENDIF( BUILD_TESTING)
 
+# --------------------------------------------------------------------
+# Install/uninstall targets
+# --------------------------------------------------------------------
+
+#--------------------------------------------------------------
+# If we are building the final step of the Debian package,
+#  save each library files in the corresponding directories:
+#--------------------------------------------------------------
+IF(CMAKE_USE_DEB_POSTFIXS)
+	# Values when building a Debian package ---------------
+	MESSAGE(STATUS "** Using Debian post-fix for install directories **")
+	SET(libnanoflann_dev_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/libnanoflann-dev/usr/")
+	SET(nanoflann_pkgconfig_INSTALL_PREFIX "/usr")	# Values when building a Debian package
+ELSE(CMAKE_USE_DEB_POSTFIXS)
+	# Values under normal conditions -----------------------
+	SET(libnanoflann_dev_INSTALL_PREFIX "")
+	SET(nanoflann_pkgconfig_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}") 	# Values under normal conditions
+ENDIF(CMAKE_USE_DEB_POSTFIXS)
+
+# Generate the pkg-config file:
+CONFIGURE_FILE(
+	"${nanoflann_SOURCE_DIR}/nanoflann.pc.in" 
+	"${nanoflann_BINARY_DIR}/nanoflann.pc" @ONLY IMMEDIATE )
+
+
+# Uninstall target, for "make uninstall"
+CONFIGURE_FILE(
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+  @ONLY IMMEDIATE)
+
+ADD_CUSTOM_TARGET(uninstall
+  "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
+
+
+INSTALL(
+	FILES "${nanoflann_BINARY_DIR}/nanoflann.pc"
+	DESTINATION ${libnanoflann_dev_INSTALL_PREFIX}lib${LIB_SUFFIX}/pkgconfig )
+
+INSTALL(
+	FILES "${nanoflann_SOURCE_DIR}/include/nanoflann.hpp"
+	DESTINATION ${libnanoflann_dev_INSTALL_PREFIX}include/ )
+
+IF(CMAKE_USE_DEB_POSTFIXS)
+	INSTALL(
+		FILES "${nanoflann_SOURCE_DIR}/copyright"
+		DESTINATION ${libnanoflann_dev_INSTALL_PREFIX}share/doc/libnanoflann-dev/ )
+ENDIF(CMAKE_USE_DEB_POSTFIXS)
 

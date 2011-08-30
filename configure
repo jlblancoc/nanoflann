@@ -1,0 +1,87 @@
+#!/bin/bash
+# A very simple configure script, just to act as a "bridge" between the 
+#  standard expected behavior and the cmake build system.
+
+prefix=/usr/
+host=`uname -m`-`uname -o`
+build=`uname -m`-`uname -o`
+mandir='${prefix}/share/man'
+infodir='${prefix}/share/info'
+
+
+usage()
+{
+cat << EOF
+usage: $0 options
+
+This script configures the cmake build system, only for compatibility 
+with Debian packages tools. To compile manually, please use the CMake system.
+
+Please see README or the help online
+
+EOF
+}
+
+# Based on example in: /usr/share/doc/util-linux/examples
+# Note that we use `"$@"' to let each command-line parameter expand to a 
+# separate word. The quotes around `$@' are essential!
+# We need TEMP as the `eval set --' would nuke the return value of getopt.
+
+TEMP=`getopt -o h --long help,prefix:,host:,build:,mandir:,infodir:,target:,program-prefix:,exec-prefix:,bindir:,sbindir:,sysconfdir:,datadir:,includedir:,libdir:,libexecdir:,localstatedir:,sharedstatedir: \
+     -n 'configure' -- "$@"`
+
+
+if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
+
+# Note the quotes around `$TEMP': they are essential!
+eval set -- "$TEMP"
+
+while true ; do
+	case "$1" in
+		-h) usage; exit 0; ;;
+		--help) usage; exit 0; ;;
+		--prefix) prefix="$2" ; shift 2 ;;
+		--host) host="$2" ; shift 2 ;;
+		--build) build="$2" ; shift 2 ;;
+		--mandir) mandir="$2" ; shift 2 ;;
+		--infodir) infodir="$2" ; shift 2 ;;
+		--target) target="$2" ; shift 2 ;;
+	#	--program-prefix) program-prefix="$2" ; shift 2 ;; 
+	#	--exec-prefix) exec-prefix="$2" ; shift 2 ;;
+		--bindir) bindir="$2" ; shift 2 ;;
+		--sbindir) sbindir="$2" ; shift 2 ;;
+		--sysconfdir) sysconfdir="$2" ; shift 2 ;;
+		--datadir) datadir="$2" ; shift 2 ;;
+		--includedir) includedir="$2" ; shift 2 ;;
+		--libdir) libdir="$2" ; shift 2 ;;
+		--libexecdir) libexecdir="$2" ; shift 2 ;;
+		--localstatedir) localstatedir="$2" ; shift 2 ;;
+		--sharedstatedir) sharedstatedir="$2" ; shift 2 ;;
+		--) shift ; break ;;
+		*) shift 1; break ;;	# Ignore arg
+	esac
+done
+
+echo "nanoflann configure" 1>&2
+
+# Now, parse the remaining args, to create local variables (A=VALUE)
+for arg do
+	echo 'configure: Using: '"\`$arg'" ;  1>&2
+	declare "$arg"
+done
+
+# Only go on for Debian packages:
+if [ "${NANOFLANN_IS_DEB_PACKAGE}" != "1" ] && [ "${NANOFLANN_IS_RPM_PACKAGE}" != "1" ] ; then usage; exit 1 ; fi
+
+#echo "Running configure with:"
+#echo "   prefix: ${prefix}"
+#echo "   host: ${host}"
+#echo "   build: ${build}"
+#echo "   mandir: ${mandir}"
+#echo "   infodir: ${infodir}"
+#echo "   CFLAGS: ${CFLAGS}"
+#echo "   LDFLAGS: ${LDFLAGS}"
+
+cmake . -DCMAKE_INSTALL_PREFIX="${prefix}" -DCMAKE_HOST=${host} -DCMAKE_BUILD=${build} -DCMAKE_MANDIR="${MANDIR}" -DCMAKE_INFODIR="${INFODIR}" -DCMAKE_CONFIGURE_CFLAGS="${CFLAGS}" -DCMAKE_CONFIGURE_LDFLAGS="${LDFLAGS}" -DCMAKE_USE_DEB_POSTFIXS="${CMAKE_MRPT_USE_DEB_POSTFIXS}" -DCMAKE_IS_RPM_PACKAGE="${CMAKE_IS_RPM_PACKAGE}"
+
+
