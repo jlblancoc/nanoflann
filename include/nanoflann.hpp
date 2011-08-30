@@ -44,6 +44,7 @@
 #include <cassert>
 #include <cstring>
 #include <cstdio>
+#include <cmath>
 
 
 namespace nanoflann
@@ -219,8 +220,109 @@ namespace nanoflann
 	/** @addtogroup metric_grp Metric (distance) classes
 	  * @{ */
 
-	/** Squared Euclidean distance functor; modified not to assume data comes in a "T*", but
-	 *  relies on a generic "DataSource".
+	template<typename T> inline T abs(T x) { return (x<0) ? -x : x; }
+	template<> inline int abs<int>(int x) { return ::abs(x); }
+	template<> inline float abs<float>(float x) { return fabsf(x); }
+	template<> inline double abs<double>(double x) { return fabs(x); }
+	template<> inline long double abs<long double>(long double x) { return fabsl(x); }
+
+	/** Manhattan distance functor (generic version, optimized for high-dimensionality data sets).
+	  *  Corresponding distance traits: nanoflann::metric_L1
+	 */
+	template<class T, class DataSource>
+	struct L1_Adaptor
+	{
+		typedef T ElementType;
+		typedef T DistanceType;
+		typedef T ResultType;
+
+		const DataSource &data_source;
+
+		L1_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
+
+		inline T operator()(const T* a, const size_t b_idx, size_t size, ResultType worst_dist = -1) const
+		{
+			ResultType result = ResultType();
+			const T* last = a + size;
+			const T* lastgroup = last - 3;
+			size_t d = 0;
+
+			/* Process 4 items with each loop for efficiency. */
+			while (a < lastgroup) {
+				const ResultType diff0 = nanoflann::abs(a[0] - data_source.kdtree_get_pt(b_idx,d++));
+				const ResultType diff1 = nanoflann::abs(a[1] - data_source.kdtree_get_pt(b_idx,d++));
+				const ResultType diff2 = nanoflann::abs(a[2] - data_source.kdtree_get_pt(b_idx,d++));
+				const ResultType diff3 = nanoflann::abs(a[3] - data_source.kdtree_get_pt(b_idx,d++));
+				result += diff0 + diff1 + diff2 + diff3;
+				a += 4;
+				if ((worst_dist>0)&&(result>worst_dist)) {
+					return result;
+				}
+			}
+			/* Process last 0-3 components.  Not needed for standard vector lengths. */
+			while (a < last) {
+				result += nanoflann::abs( *a++ - data_source.kdtree_get_pt(b_idx,d++) );
+			}
+			return result;
+		}
+
+		template <typename U, typename V>
+		inline T accum_dist(const U a, const V b, int dim) const
+		{
+			return (a-b)*(a-b);
+		}
+	};
+
+	/** Squared Euclidean distance functor (generic version, optimized for high-dimensionality data sets).
+	  *  Corresponding distance traits: nanoflann::metric_L2
+	 */
+	template<class T, class DataSource>
+	struct L2_Adaptor
+	{
+		typedef T ElementType;
+		typedef T DistanceType;
+		typedef T ResultType;
+
+		const DataSource &data_source;
+
+		L2_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
+
+		inline T operator()(const T* a, const size_t b_idx, size_t size, ResultType worst_dist = -1) const
+		{
+			ResultType result = ResultType();
+			const T* last = a + size;
+			const T* lastgroup = last - 3;
+			size_t d = 0;
+
+			/* Process 4 items with each loop for efficiency. */
+			while (a < lastgroup) {
+				const ResultType diff0 = a[0] - data_source.kdtree_get_pt(b_idx,d++);
+				const ResultType diff1 = a[1] - data_source.kdtree_get_pt(b_idx,d++);
+				const ResultType diff2 = a[2] - data_source.kdtree_get_pt(b_idx,d++);
+				const ResultType diff3 = a[3] - data_source.kdtree_get_pt(b_idx,d++);
+				result += diff0 * diff0 + diff1 * diff1 + diff2 * diff2 + diff3 * diff3;
+				a += 4;
+				if ((worst_dist>0)&&(result>worst_dist)) {
+					return result;
+				}
+			}
+			/* Process last 0-3 components.  Not needed for standard vector lengths. */
+			while (a < last) {
+				const ResultType diff0 = *a++ - data_source.kdtree_get_pt(b_idx,d++);
+				result += diff0 * diff0;
+			}
+			return result;
+		}
+
+		template <typename U, typename V>
+		inline T accum_dist(const U a, const V b, int dim) const
+		{
+			return (a-b)*(a-b);
+		}
+	};
+
+	/** Squared Euclidean distance functor (suitable for low-dimensionality datasets, like 2D or 3D point clouds)
+	  *  Corresponding distance traits: nanoflann::metric_L2_Simple
 	 */
 	template<class T, class DataSource>
 	struct L2_Simple_Adaptor
@@ -243,6 +345,29 @@ namespace nanoflann
 			return (a-b)*(a-b);
 		}
 	};
+
+	/** Metaprogramming helper traits class for the L1 (Manhattan) metric */
+	struct metric_L1 {
+		template<class T, class DataSource>
+		struct traits {
+			typedef L1_Adaptor<T,DataSource> distance_t;
+		};
+	};
+	/** Metaprogramming helper traits class for the L2 (Euclidean) metric */
+	struct metric_L2 {
+		template<class T, class DataSource>
+		struct traits {
+			typedef L2_Adaptor<T,DataSource> distance_t;
+		};
+	};
+	/** Metaprogramming helper traits class for the L2_simple (Euclidean) metric */
+	struct metric_L2_Simple {
+		template<class T, class DataSource>
+		struct traits {
+			typedef L2_Simple_Adaptor<T,DataSource> distance_t;
+		};
+	};
+
 	/** @} */
 
 
@@ -1068,17 +1193,16 @@ namespace nanoflann
 	  * 	mat_index.index->...
 	  * \endcode
 	  *
+	  *  \tparam DIM If set to >0, it specifies a compile-time fixed dimensionality for the points in the data set, allowing more compiler optimizations.
+	  *  \tparam Distance The distance metric to use: nanoflann::metric_L1, nanoflann::metric_L2, nanoflann::metric_L2_Simple, etc.
 	  */
-	template <class MatrixType>
+	template <class MatrixType, int DIM = -1, class Distance = nanoflann::metric_L2>
 	struct KDTreeEigenMatrixAdaptor
 	{
-		typedef KDTreeEigenMatrixAdaptor<MatrixType> self_t;
-		typedef typename MatrixType::Scalar           num_t;
-
-		typedef nanoflann::KDTreeSingleIndexAdaptor<
-		nanoflann::L2_Simple_Adaptor<num_t,self_t>,  // Metric
-		KDTreeEigenMatrixAdaptor<MatrixType>  // Adaptor (myself)
-		>  index_t;
+		typedef KDTreeEigenMatrixAdaptor<MatrixType,DIM,Distance> self_t;
+		typedef typename MatrixType::Scalar              num_t;
+		typedef typename Distance::template traits<num_t,self_t>::distance_t metric_t;
+		typedef KDTreeSingleIndexAdaptor< metric_t,self_t,DIM>  index_t;
 
 		index_t* index; //! The kd-tree index for the user to call its methods as usual with any other FLANN index.
 
@@ -1086,6 +1210,8 @@ namespace nanoflann
 		KDTreeEigenMatrixAdaptor(const int dimensionality, const MatrixType &mat, const int leaf_max_size = 10) : m_data_matrix(mat)
 		{
 			const size_t dims = mat.cols();
+			if (DIM>0 && dims!=DIM)
+				throw std::runtime_error("Data set dimensionality does not match the 'DIM' template argument");
 			index = new index_t( dims, *this /* adaptor */, nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size, dims ) );
 			index->buildIndex();
 		}

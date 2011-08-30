@@ -37,6 +37,8 @@ using namespace Eigen;
 using namespace std;
 using namespace nanoflann;
 
+const int SAMPLES_DIM = 15;
+
 template <typename Der>
 void generateRandomPointCloud(Eigen::MatrixBase<Der> &mat, const size_t N,const size_t dim, const typename Der::Scalar max_range = 10)
 {
@@ -53,7 +55,7 @@ void kdtree_demo(const size_t nSamples,const size_t dim)
 {
 	Eigen::Matrix<num_t,Dynamic,Dynamic>  mat(nSamples,dim);
 
-	const num_t max_range = 10;
+	const num_t max_range = 20;
 
 	// Generate points:
 	generateRandomPointCloud(mat, nSamples,dim), max_range;
@@ -66,8 +68,24 @@ void kdtree_demo(const size_t nSamples,const size_t dim)
 		query_pt[d] = max_range * (rand() % 1000) / num_t(1000);
 
 
+	// ------------------------------------------------------------
 	// construct a kd-tree index:
+	//    Some of the different possibilities (uncomment just one)
+	// ------------------------------------------------------------
+	// Dimensionality set at run-time (default: L2)
 	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic> >  my_kd_tree_t;
+
+	// Dimensionality set at compile-time
+//	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic>, SAMPLES_DIM>  my_kd_tree_t;
+
+	// Dimensionality set at compile-time: Explicit selection of the distance metric: L2
+//	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic>, SAMPLES_DIM,nanoflann::metric_L2>  my_kd_tree_t;
+
+	// Dimensionality set at compile-time: Explicit selection of the distance metric: L2_simple
+//	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic>, SAMPLES_DIM,nanoflann::metric_L2_Simple>  my_kd_tree_t;
+
+	// Dimensionality set at compile-time: Explicit selection of the distance metric: L1
+//	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic>, SAMPLES_DIM,nanoflann::metric_L1>  my_kd_tree_t;
 
 	my_kd_tree_t   mat_index(dim /*dim*/, mat, 10 /* max leaf */ );
 	mat_index.index->buildIndex();
@@ -90,7 +108,7 @@ void kdtree_demo(const size_t nSamples,const size_t dim)
 
 int main(int argc, char** argv)
 {
-	kdtree_demo<float>(1e3 /* samples */, 10 /* dim */);
+	kdtree_demo<float>(1e3 /* samples */, SAMPLES_DIM /* dim */);
 
 	return 0;
 }
