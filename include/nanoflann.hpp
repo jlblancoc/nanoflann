@@ -533,7 +533,7 @@ namespace nanoflann
 		template <typename T>
 		T* allocate(size_t count = 1)
 		{
-			T* mem = (T*) this->malloc(sizeof(T)*count);
+			T* mem = (T*) this->malloc(static_cast<int>( sizeof(T)*count ));
 			return mem;
 		}
 
@@ -596,8 +596,8 @@ namespace nanoflann
 
 		const KDTreeSingleIndexAdaptorParams index_params;
 
-		size_t size_;
-		size_t dim;
+		int size_;
+		int dim;
 
 
 		/*--------------------- Internal Data Structures --------------------------*/
@@ -690,7 +690,7 @@ namespace nanoflann
 		KDTreeSingleIndexAdaptor(const int dimensionality, const DatasetAdaptor& inputData, const KDTreeSingleIndexAdaptorParams& params = KDTreeSingleIndexAdaptorParams() ) :
 			dataset(inputData), index_params(params), distance(inputData)
 		{
-			size_ = dataset.kdtree_get_point_count();
+			size_ = static_cast<int>(dataset.kdtree_get_point_count());
 			dim = dimensionality;
 			if (DIM>0) dim=DIM;
 			else {
@@ -700,7 +700,7 @@ namespace nanoflann
 
 			// Create a permutable array of indices to the input vectors.
 			vind.resize(size_);
-			for (size_t i = 0; i < size_; i++) {
+			for (int i = 0; i < size_; i++) {
 				vind[i] = i;
 			}
 		}
@@ -851,13 +851,13 @@ namespace nanoflann
 			}
 			else
 			{
-				for (size_t i=0; i<(DIM>0 ? DIM : dim); ++i) {
+				for (int i=0; i<(DIM>0 ? DIM : dim); ++i) {
 					bbox[i].low =
 						bbox[i].high = dataset_get(0,i);
 				}
 				const size_t N = dataset.kdtree_get_point_count();
 				for (size_t k=1; k<N; ++k) {
-					for (size_t i=0; i<(DIM>0 ? DIM : dim); ++i) {
+					for (int i=0; i<(DIM>0 ? DIM : dim); ++i) {
 						if (dataset_get(k,i)<bbox[i].low) bbox[i].low = dataset_get(k,i);
 						if (dataset_get(k,i)>bbox[i].high) bbox[i].high = dataset_get(k,i);
 					}
@@ -886,12 +886,12 @@ namespace nanoflann
 				node->lr.right = right;
 
 				// compute bounding-box of leaf points
-				for (size_t i=0; i<(DIM>0 ? DIM : dim); ++i) {
+				for (int i=0; i<(DIM>0 ? DIM : dim); ++i) {
 					bbox[i].low = dataset_get(vind[left],i);
 					bbox[i].high = dataset_get(vind[left],i);
 				}
 				for (int k=left+1; k<right; ++k) {
-					for (size_t i=0; i<(DIM>0 ? DIM : dim); ++i) {
+					for (int i=0; i<(DIM>0 ? DIM : dim); ++i) {
 						if (bbox[i].low>dataset_get(vind[k],i)) bbox[i].low=dataset_get(vind[k],i);
 						if (bbox[i].high<dataset_get(vind[k],i)) bbox[i].high=dataset_get(vind[k],i);
 					}
@@ -983,7 +983,7 @@ namespace nanoflann
 
 		void middleSplit_(int* ind, int count, int& index, int& cutfeat, DistanceType& cutval, const BoundingBox& bbox)
 		{
-			const float EPS=0.00001;
+			const DistanceType EPS=static_cast<DistanceType>(0.00001);
 			ElementType max_span = bbox[0].high-bbox[0].low;
 			for (size_t i=1; i<(DIM>0 ? DIM : dim); ++i) {
 				ElementType span = bbox[i].high-bbox[i].low;
@@ -993,7 +993,7 @@ namespace nanoflann
 			}
 			ElementType max_spread = -1;
 			cutfeat = 0;
-			for (size_t i=0; i<(DIM>0 ? DIM : dim); ++i) {
+			for (int i=0; i<(DIM>0 ? DIM : dim); ++i) {
 				ElementType span = bbox[i].high-bbox[i].low;
 				if (span>(1-EPS)*max_span) {
 					ElementType min_elem, max_elem;
@@ -1065,7 +1065,7 @@ namespace nanoflann
 		{
 			DistanceType distsq = 0.0;
 
-			for (size_t i = 0; i < (DIM>0 ? DIM : dim); ++i) {
+			for (int i = 0; i < (DIM>0 ? DIM : dim); ++i) {
 				if (vec[i] < root_bbox[i].low) {
 					dists[i] = distance.accum_dist(vec[i], root_bbox[i].low, i);
 					distsq += dists[i];

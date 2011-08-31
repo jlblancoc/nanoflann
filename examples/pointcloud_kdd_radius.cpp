@@ -147,7 +147,7 @@ void kdtree_demo(const size_t N)
 
 int main(int argc, char** argv)
 {
-	kdtree_demo<float>(1e5);
+	kdtree_demo<float>(100000);
 
 	return 0;
 }
