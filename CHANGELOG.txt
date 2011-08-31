@@ -1,5 +1,5 @@
 nanoflann 1.0.1: (In svn/trunk)
-  * Fixed warnings for MSVC.
+  * Fixed warnings for MSVC and for GCC with "-Wall -pedantic"
   * Updated performance tests to work with the final nanoflann code (they were 
      written for a very early version).
 

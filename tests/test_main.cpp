@@ -142,8 +142,8 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
 	resultSet.init(&ret_index[0], &out_dist_sqr[0] );
 
 	index2.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
-	
-	for (int i=0;i<num_results;i++)
+
+	for (size_t i=0;i<num_results;i++)
 	{
 		EXPECT_EQ(ret_index1[i],ret_index[i]);
 		EXPECT_EQ(out_dist_sqr1[i],out_dist_sqr[i]);

@@ -916,7 +916,7 @@ namespace nanoflann
 				node->sub.divlow = left_bbox[cutfeat].high;
 				node->sub.divhigh = right_bbox[cutfeat].low;
 
-				for (size_t i=0; i<(DIM>0 ? DIM : dim); ++i) {
+				for (int i=0; i<(DIM>0 ? DIM : dim); ++i) {
 					bbox[i].low = std::min(left_bbox[i].low, right_bbox[i].low);
 					bbox[i].high = std::max(left_bbox[i].high, right_bbox[i].high);
 				}
@@ -985,7 +985,7 @@ namespace nanoflann
 		{
 			const DistanceType EPS=static_cast<DistanceType>(0.00001);
 			ElementType max_span = bbox[0].high-bbox[0].low;
-			for (size_t i=1; i<(DIM>0 ? DIM : dim); ++i) {
+			for (int i=1; i<(DIM>0 ? DIM : dim); ++i) {
 				ElementType span = bbox[i].high-bbox[i].low;
 				if (span>max_span) {
 					max_span = span;

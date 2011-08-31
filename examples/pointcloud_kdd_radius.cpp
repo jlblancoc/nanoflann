@@ -138,7 +138,7 @@ void kdtree_demo(const size_t N)
 		const size_t nMatches = index.radiusSearch(&query_pt[0],search_radius, ret_matches, params);
 
 		cout << "radiusSearch(): radius=" << search_radius << " -> " << nMatches << " matches\n";
-		for (int i=0;i<nMatches;i++)
+		for (size_t i=0;i<nMatches;i++)
 			cout << "idx["<< i << "]=" << ret_matches[i].first << " dist["<< i << "]=" << ret_matches[i].second << endl;
 		cout << "\n";
 	}

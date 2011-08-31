@@ -58,7 +58,7 @@ void kdtree_demo(const size_t nSamples,const size_t dim)
 	const num_t max_range = 20;
 
 	// Generate points:
-	generateRandomPointCloud(mat, nSamples,dim), max_range;
+	generateRandomPointCloud(mat, nSamples,dim, max_range);
 
 //	cout << mat << endl;
 
