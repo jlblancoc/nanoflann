@@ -53,7 +53,7 @@ namespace nanoflann
   *  @{ */
 
   	/** Library version: 0xMmP (M=Major,m=minor,P=path) */
-	#define NANOFLANN_VERSION 0x100
+	#define NANOFLANN_VERSION 0x101
 
 	/** @addtogroup result_sets_grp Result set classes
 	  *  @{ */
