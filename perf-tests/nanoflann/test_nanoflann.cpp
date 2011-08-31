@@ -26,16 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *************************************************************************/
 
-//#include <flann/flann.hpp>
-#include <mrpt/otherlibs/flann/flann.hpp>
-#include <mrpt/otherlibs/flann/algorithms/kdtree_single_index_mrpt.h>
+#include "../../include/nanoflann.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <sys/time.h>
 
 using namespace std;
-//using namespace nanoflann;
-using namespace mrpt_flann;
+using namespace nanoflann;
 
 //#define VERBOSE_OUTPUT
 
@@ -150,10 +147,10 @@ void perf_test(const size_t N)
 	const size_t num_results = 1;
 	int ret_index;
 	num_t out_dist_sqr;
-	mrpt_flann::KNNResultSet<num_t> resultSet(num_results);
+	nanoflann::KNNResultSet<num_t> resultSet(num_results);
 	resultSet.init(&ret_index, &out_dist_sqr );
-	index.findNeighbors(resultSet, &query_pt[0], mrpt_flann::SearchParams(10));
-	//index.knnSearch(query, indices, dists, num_results, mrpt_flann::SearchParams(10));
+	index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
+	//index.knnSearch(query, indices, dists, num_results, nanoflann::SearchParams(10));
 
 	t1=get_time();
 	const double At_search = t1-t0;

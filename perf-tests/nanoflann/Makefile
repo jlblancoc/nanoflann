@@ -16,8 +16,6 @@ EXECUTABLE = test_nanoflann
 #   with "pkg-config --list-all | grep mrpt").
 #
 #CFLAGS     += `pkg-config --cflags mrpt-base`
-CFLAGS     += -I/home/jlblanco/code/mrpt-src/libs/base/include -I/home/jlblanco/code/mrpt-release/include/mrpt-config/unix/
-LDFLAGS    += -L/home/jlblanco/code/mrpt-release/lib/ -lmrpt-base
 
 
 all: $(SOURCES) $(EXECUTABLE)
