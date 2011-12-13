@@ -92,7 +92,7 @@ void kdtree_demo(const size_t nSamples,const size_t dim)
 
 	// do a knn search
 	const size_t num_results = 3;
-	vector<int>   ret_indexes(num_results);
+	vector<size_t>   ret_indexes(num_results);
 	vector<num_t> out_dists_sqr(num_results);
 
 	nanoflann::KNNResultSet<num_t> resultSet(num_results);

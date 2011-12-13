@@ -130,13 +130,13 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
 	index2.buildIndex();
 
 	// do a knn search
-	std::vector<int>   ret_index(num_results);
+	std::vector<size_t>   ret_index(num_results);
 	std::vector<num_t> out_dist_sqr(num_results);
 	nanoflann::KNNResultSet<num_t> resultSet(num_results);
 	resultSet.init(&ret_index[0], &out_dist_sqr[0] );
 	index1.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
 
-	std::vector<int>   ret_index1 = ret_index;
+	std::vector<size_t>   ret_index1 = ret_index;
 	std::vector<num_t> out_dist_sqr1 = out_dist_sqr;
 
 	resultSet.init(&ret_index[0], &out_dist_sqr[0] );

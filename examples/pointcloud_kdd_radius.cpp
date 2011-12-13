@@ -114,13 +114,13 @@ void kdtree_demo(const size_t N)
 	// knnSearch():  Perform a search for the N closest points
 	// ----------------------------------------------------------------
 	{
-		const int num_results = 5;
-		std::vector<int>   ret_index(num_results);
+		const size_t num_results = 5;
+		std::vector<size_t>   ret_index(num_results);
 		std::vector<num_t> out_dist_sqr(num_results);
 		index.knnSearch(&query_pt[0], num_results, &ret_index[0], &out_dist_sqr[0]);
 
 		cout << "knnSearch(): num_results=" << num_results << "\n";
-		for (int i=0;i<num_results;i++)
+		for (size_t i=0;i<num_results;i++)
 			cout << "idx["<< i << "]=" << ret_index[i] << " dist["<< i << "]=" << out_dist_sqr[i] << endl;
 		cout << "\n";
 	}
@@ -130,7 +130,7 @@ void kdtree_demo(const size_t N)
 	// ----------------------------------------------------------------
 	{
 		const num_t search_radius = static_cast<num_t>(0.1);
-		std::vector<std::pair<int,num_t> >   ret_matches;
+		std::vector<std::pair<size_t,num_t> >   ret_matches;
 
 		nanoflann::SearchParams params;
 		//params.sorted = false;

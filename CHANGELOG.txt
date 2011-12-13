@@ -1,7 +1,11 @@
-nanoflann 1.0.1: (In svn/trunk)
+nanoflann 1.1.0: (In svn/trunk)
   * Fixed warnings for MSVC and for GCC with "-Wall -pedantic"
   * Updated performance tests to work with the final nanoflann code (they were 
      written for a very early version).
+  * All main classes now have new template arguments for the type of indice, 
+     which now defaults to "size_t" instead of "int". In case this breaks 
+     backward compatibility in user code, especify "int" to override the default 
+     template arguments, although "size_t" it's recommended.
 
 nanoflann 1.0.0: Released Aug 30, 2011
   * Initial version
