@@ -52,37 +52,29 @@ install: build
 	# Build all
 	$(MAKE) VERBOSE=1
 	# Run tests
-	make test || echo "*** Ignoring failed tests! ***"
+	make test
 
 	# Install
 	$(MAKE) install
 	
 # Build architecture-independent files here.
 binary-indep: build install
-# We have nothing to do by default.
-
-# Build architecture-dependent files here.
-binary-arch: build install
 	dh_testdir
 	dh_testroot
 	dh_installchangelogs 
-#	dh_installdocs
-#	dh_installmenu
-#	dh_installmime -p mrpt-core
-#	dh_installman -p mrpt-apps $(CURDIR)/man-pages/*.1*
 	# Register .desktop files with a MIME type:
-#	dh_desktop -p mrpt-apps
 	dh_link
-#	dh_strip --dbg-package=libmrpt-core-dbg
-	dh_strip
 	dh_compress
 	dh_fixperms
-	dh_makeshlibs -a
 	dh_installdeb
-	dh_shlibdeps
 	dh_gencontrol
 	dh_md5sums
 	dh_builddeb
+
+
+# Build architecture-dependent files here.
+binary-arch:
+	# Nothing to do
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install 

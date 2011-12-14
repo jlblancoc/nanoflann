@@ -9,6 +9,8 @@ Build-Depends: debhelper (>= 5),
                libgtest-dev,
                libeigen3-dev | perl
 Standards-Version: 3.9.2
+Vcs-Svn: http://nanoflann.googlecode.com/svn/trunk/
+Vcs-Browser: http://code.google.com/p/nanoflann/source/browse/
 Homepage: http://code.google.com/p/nanoflann/
 
 Package: libnanoflann-dev
@@ -21,10 +23,10 @@ Description: C++ header-only fork of the FLANN library for KD-trees
  in space can then be solved quickly and efficiently using Approximate Nearest 
  Neighbor (ANN) algorithms.
  .
- nanoflann does not require compiling or installing, just 
+ nanoflann does not require compiling or installing any binary library, just 
  an #include <nanoflann.hpp> in your code.
  .
  This library is a fork (and a subset) of the `flann` library, by Marius Muja 
- and David G. Lowe. Following the original license terms, nanoflann is 
- distributed under the BSD license.
+ and David G. Lowe, which was started by Jose Luis Blanco Claraco. Following 
+ the original license terms, nanoflann is distributed under the BSD license.
 
