@@ -38,6 +38,8 @@ using namespace nanoflann;
 template <typename T>
 struct PointCloud
 {
+	typedef T coord_t; //!< The type of each coordinate
+
 	struct Point
 	{
 		T  x,y,z;
@@ -50,6 +52,8 @@ struct PointCloud
 template <typename Derived>
 struct PointCloudAdaptor
 {
+	typedef typename Derived::coord_t coord_t;
+
 	const Derived &obj; //!< A const ref to the data set origin
 
 	/// The constructor that sets the data set source
@@ -62,18 +66,18 @@ struct PointCloudAdaptor
 	inline size_t kdtree_get_point_count() const { return derived().pts.size(); }
 
 	// Returns the distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
-	inline float kdtree_distance(const float *p1, const size_t idx_p2,size_t size) const
+	inline coord_t kdtree_distance(const coord_t *p1, const size_t idx_p2,size_t size) const
 	{
-		float d0=p1[0]-derived().pts[idx_p2].x;
-		float d1=p1[1]-derived().pts[idx_p2].y;
-		float d2=p1[2]-derived().pts[idx_p2].z;
+		const coord_t d0=p1[0]-derived().pts[idx_p2].x;
+		const coord_t d1=p1[1]-derived().pts[idx_p2].y;
+		const coord_t d2=p1[2]-derived().pts[idx_p2].z;
 		return d0*d0+d1*d1+d2*d2;
 	}
 
 	// Returns the dim'th component of the idx'th point in the class:
 	// Since this is inlined and the "dim" argument is typically an immediate value, the
 	//  "if/else's" are actually solved at compile time.
-	inline float kdtree_get_pt(const size_t idx, int dim) const
+	inline coord_t kdtree_get_pt(const size_t idx, int dim) const
 	{
 		if (dim==0) return derived().pts[idx].x;
 		else if (dim==1) return derived().pts[idx].y;
@@ -144,6 +148,7 @@ void kdtree_demo(const size_t N)
 int main(int argc, char** argv)
 {
 	kdtree_demo<float>(100000);
+	kdtree_demo<double>(100000);
 
 	return 0;
 }

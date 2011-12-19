@@ -1,4 +1,9 @@
-nanoflann 1.1.0: (In svn/trunk)
+nanoflann 1.1.1: (In svn/trunk)
+  * Examples and unit tests have been corrected to use template arguments 
+     instead of being hard-wired to "float" data types (Thanks Thomas Vincent 
+	 for noticing!).
+
+nanoflann 1.1.0: Released Dec 15, 2011
   * Fixed warnings for MSVC and for GCC with "-Wall -pedantic"
   * Updated performance tests to work with the final nanoflann code (they were 
      written for a very early version).

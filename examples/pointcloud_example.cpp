@@ -49,18 +49,18 @@ struct PointCloud
 	inline size_t kdtree_get_point_count() const { return pts.size(); }
 
 	// Returns the distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
-	inline float kdtree_distance(const float *p1, const size_t idx_p2,size_t size) const
+	inline T kdtree_distance(const T *p1, const size_t idx_p2,size_t size) const
 	{
-		float d0=p1[0]-pts[idx_p2].x;
-		float d1=p1[1]-pts[idx_p2].y;
-		float d2=p1[2]-pts[idx_p2].z;
+		const T d0=p1[0]-pts[idx_p2].x;
+		const T d1=p1[1]-pts[idx_p2].y;
+		const T d2=p1[2]-pts[idx_p2].z;
 		return d0*d0+d1*d1+d2*d2;
 	}
 
 	// Returns the dim'th component of the idx'th point in the class:
 	// Since this is inlined and the "dim" argument is typically an immediate value, the
 	//  "if/else's" are actually solved at compile time.
-	inline float kdtree_get_pt(const size_t idx, int dim) const
+	inline T kdtree_get_pt(const size_t idx, int dim) const
 	{
 		if (dim==0) return pts[idx].x;
 		else if (dim==1) return pts[idx].y;
@@ -118,7 +118,6 @@ void kdtree_demo(const size_t N)
 	nanoflann::KNNResultSet<num_t> resultSet(num_results);
 	resultSet.init(&ret_index, &out_dist_sqr );
 	index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
-	//index.knnSearch(query, indices, dists, num_results, mrpt_flann::SearchParams(10));
 
 	std::cout << "knnSearch(nn="<<num_results<<"): \n";
 	std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr << endl;
@@ -128,6 +127,7 @@ void kdtree_demo(const size_t N)
 int main(int argc, char** argv)
 {
 	kdtree_demo<float>(100000);
+	kdtree_demo<double>(100000);
 
 	return 0;
 }
