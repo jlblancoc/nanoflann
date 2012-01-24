@@ -219,31 +219,32 @@ namespace nanoflann
 
 	/** Manhattan distance functor (generic version, optimized for high-dimensionality data sets).
 	  *  Corresponding distance traits: nanoflann::metric_L1
-	 */
-	template<class T, class DataSource>
+	  * \tparam T Type of the elements (e.g. double, float, uint8_t)
+	  * \tparam DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
+	  */
+	template<class T, class DataSource, typename DistanceType = T>
 	struct L1_Adaptor
 	{
 		typedef T ElementType;
-		typedef T DistanceType;
-		typedef T ResultType;
+		typedef DistanceType DistanceType;
 
 		const DataSource &data_source;
 
 		L1_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
-		inline T operator()(const T* a, const size_t b_idx, size_t size, ResultType worst_dist = -1) const
+		inline DistanceType operator()(const T* a, const size_t b_idx, size_t size, DistanceType worst_dist = -1) const
 		{
-			ResultType result = ResultType();
+			DistanceType result = DistanceType();
 			const T* last = a + size;
 			const T* lastgroup = last - 3;
 			size_t d = 0;
 
 			/* Process 4 items with each loop for efficiency. */
 			while (a < lastgroup) {
-				const ResultType diff0 = nanoflann::abs(a[0] - data_source.kdtree_get_pt(b_idx,d++));
-				const ResultType diff1 = nanoflann::abs(a[1] - data_source.kdtree_get_pt(b_idx,d++));
-				const ResultType diff2 = nanoflann::abs(a[2] - data_source.kdtree_get_pt(b_idx,d++));
-				const ResultType diff3 = nanoflann::abs(a[3] - data_source.kdtree_get_pt(b_idx,d++));
+				const DistanceType diff0 = nanoflann::abs(a[0] - data_source.kdtree_get_pt(b_idx,d++));
+				const DistanceType diff1 = nanoflann::abs(a[1] - data_source.kdtree_get_pt(b_idx,d++));
+				const DistanceType diff2 = nanoflann::abs(a[2] - data_source.kdtree_get_pt(b_idx,d++));
+				const DistanceType diff3 = nanoflann::abs(a[3] - data_source.kdtree_get_pt(b_idx,d++));
 				result += diff0 + diff1 + diff2 + diff3;
 				a += 4;
 				if ((worst_dist>0)&&(result>worst_dist)) {
@@ -258,7 +259,7 @@ namespace nanoflann
 		}
 
 		template <typename U, typename V>
-		inline T accum_dist(const U a, const V b, int dim) const
+		inline DistanceType accum_dist(const U a, const V b, int dim) const
 		{
 			return (a-b)*(a-b);
 		}
@@ -266,31 +267,32 @@ namespace nanoflann
 
 	/** Squared Euclidean distance functor (generic version, optimized for high-dimensionality data sets).
 	  *  Corresponding distance traits: nanoflann::metric_L2
-	 */
-	template<class T, class DataSource>
+	  * \tparam T Type of the elements (e.g. double, float, uint8_t)
+	  * \tparam DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
+	  */
+	template<class T, class DataSource, typename DistanceType = T>
 	struct L2_Adaptor
 	{
 		typedef T ElementType;
-		typedef T DistanceType;
-		typedef T ResultType;
+		typedef DistanceType DistanceType;
 
 		const DataSource &data_source;
 
 		L2_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
-		inline T operator()(const T* a, const size_t b_idx, size_t size, ResultType worst_dist = -1) const
+		inline DistanceType operator()(const T* a, const size_t b_idx, size_t size, DistanceType worst_dist = -1) const
 		{
-			ResultType result = ResultType();
+			DistanceType result = DistanceType();
 			const T* last = a + size;
 			const T* lastgroup = last - 3;
 			size_t d = 0;
 
 			/* Process 4 items with each loop for efficiency. */
 			while (a < lastgroup) {
-				const ResultType diff0 = a[0] - data_source.kdtree_get_pt(b_idx,d++);
-				const ResultType diff1 = a[1] - data_source.kdtree_get_pt(b_idx,d++);
-				const ResultType diff2 = a[2] - data_source.kdtree_get_pt(b_idx,d++);
-				const ResultType diff3 = a[3] - data_source.kdtree_get_pt(b_idx,d++);
+				const DistanceType diff0 = a[0] - data_source.kdtree_get_pt(b_idx,d++);
+				const DistanceType diff1 = a[1] - data_source.kdtree_get_pt(b_idx,d++);
+				const DistanceType diff2 = a[2] - data_source.kdtree_get_pt(b_idx,d++);
+				const DistanceType diff3 = a[3] - data_source.kdtree_get_pt(b_idx,d++);
 				result += diff0 * diff0 + diff1 * diff1 + diff2 * diff2 + diff3 * diff3;
 				a += 4;
 				if ((worst_dist>0)&&(result>worst_dist)) {
@@ -299,14 +301,14 @@ namespace nanoflann
 			}
 			/* Process last 0-3 components.  Not needed for standard vector lengths. */
 			while (a < last) {
-				const ResultType diff0 = *a++ - data_source.kdtree_get_pt(b_idx,d++);
+				const DistanceType diff0 = *a++ - data_source.kdtree_get_pt(b_idx,d++);
 				result += diff0 * diff0;
 			}
 			return result;
 		}
 
 		template <typename U, typename V>
-		inline T accum_dist(const U a, const V b, int dim) const
+		inline DistanceType accum_dist(const U a, const V b, int dim) const
 		{
 			return (a-b)*(a-b);
 		}
@@ -314,24 +316,25 @@ namespace nanoflann
 
 	/** Squared Euclidean distance functor (suitable for low-dimensionality datasets, like 2D or 3D point clouds)
 	  *  Corresponding distance traits: nanoflann::metric_L2_Simple
-	 */
-	template<class T, class DataSource>
+	  * \tparam T Type of the elements (e.g. double, float, uint8_t)
+	  * \tparam DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
+	  */
+	template<class T, class DataSource, typename DistanceType = T>
 	struct L2_Simple_Adaptor
 	{
 		typedef T ElementType;
-		typedef T DistanceType;
-		typedef T ResultType;
+		typedef DistanceType DistanceType;
 
 		const DataSource &data_source;
 
 		L2_Simple_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
-		inline T operator()(const T* a, const size_t b_idx, size_t size) const {
+		inline DistanceType operator()(const T* a, const size_t b_idx, size_t size) const {
 			return data_source.kdtree_distance(a,b_idx,size);
 		}
 
 		template <typename U, typename V>
-		inline T accum_dist(const U a, const V b, int dim) const
+		inline DistanceType accum_dist(const U a, const V b, int dim) const
 		{
 			return (a-b)*(a-b);
 		}
@@ -552,10 +555,10 @@ namespace nanoflann
 	 *   inline size_t kdtree_get_point_count() const { ... }
 	 *
 	 *   // Must return the Euclidean (L2) distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
-	 *   inline float kdtree_distance(const float *p1, const size_t idx_p2,size_t size) const { ... }
+	 *   inline DistanceType kdtree_distance(const T *p1, const size_t idx_p2,size_t size) const { ... }
 	 *
 	 *   // Must return the dim'th component of the idx'th point in the class:
-	 *   inline num_t kdtree_get_pt(const size_t idx, int dim) const { ... }
+	 *   inline T kdtree_get_pt(const size_t idx, int dim) const { ... }
 	 *
 	 *   // Optional bounding-box computation: return false to default to a standard bbox computation loop.
 	 *   //   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
@@ -576,8 +579,8 @@ namespace nanoflann
 	template <typename Distance, class DatasetAdaptor,int DIM = -1, typename IndexType = size_t>
 	class KDTreeSingleIndexAdaptor
 	{
-		typedef typename Distance::ElementType ElementType;
-		typedef typename Distance::ResultType DistanceType;
+		typedef typename Distance::ElementType  ElementType;
+		typedef typename Distance::DistanceType DistanceType;
 
 		/**
 		 *  Array of indices to vectors in the dataset.
@@ -773,9 +776,9 @@ namespace nanoflann
 		 * the result object.
 		 *  \sa radiusSearch, findNeighbors
 		 */
-		inline void knnSearch(const ElementType *query_point, const size_t num_closest, IndexType *out_indices, ElementType *out_distances_sq, const int nChecks = 10) const
+		inline void knnSearch(const ElementType *query_point, const size_t num_closest, IndexType *out_indices, DistanceType *out_distances_sq, const int nChecks = 10) const
 		{
-			nanoflann::KNNResultSet<ElementType,IndexType> resultSet(num_closest);
+			nanoflann::KNNResultSet<DistanceType,IndexType> resultSet(num_closest);
 			resultSet.init(out_indices, out_distances_sq);
 			this->findNeighbors(resultSet, query_point, nanoflann::SearchParams(nChecks));
 		}

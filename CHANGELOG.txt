@@ -1,4 +1,7 @@
 nanoflann 1.1.1: (In svn/trunk)
+  * Some fixes to kd_tree index and L1/L2 metrics to allow distinct types 
+     in data elements and in the distances. This is mainly to permit elements 
+	 being vectors of integers (e.g. uint8_t) but distances being real numbers.
   * Examples and unit tests have been corrected to use template arguments 
      instead of being hard-wired to "float" data types (Thanks Thomas Vincent 
 	 for noticing!).
