@@ -222,11 +222,11 @@ namespace nanoflann
 	  * \tparam T Type of the elements (e.g. double, float, uint8_t)
 	  * \tparam DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
 	  */
-	template<class T, class DataSource, typename DistanceType = T>
+	template<class T, class DataSource, typename _DistanceType = T>
 	struct L1_Adaptor
 	{
 		typedef T ElementType;
-		typedef DistanceType DistanceType;
+		typedef _DistanceType DistanceType;
 
 		const DataSource &data_source;
 
@@ -270,11 +270,11 @@ namespace nanoflann
 	  * \tparam T Type of the elements (e.g. double, float, uint8_t)
 	  * \tparam DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
 	  */
-	template<class T, class DataSource, typename DistanceType = T>
+	template<class T, class DataSource, typename _DistanceType = T>
 	struct L2_Adaptor
 	{
 		typedef T ElementType;
-		typedef DistanceType DistanceType;
+		typedef _DistanceType DistanceType;
 
 		const DataSource &data_source;
 
@@ -319,11 +319,11 @@ namespace nanoflann
 	  * \tparam T Type of the elements (e.g. double, float, uint8_t)
 	  * \tparam DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
 	  */
-	template<class T, class DataSource, typename DistanceType = T>
+	template<class T, class DataSource, typename _DistanceType = T>
 	struct L2_Simple_Adaptor
 	{
 		typedef T ElementType;
-		typedef DistanceType DistanceType;
+		typedef _DistanceType DistanceType;
 
 		const DataSource &data_source;
 
