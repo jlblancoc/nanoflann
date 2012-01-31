@@ -1,4 +1,4 @@
-nanoflann 1.1.1: (In svn/trunk)
+nanoflann 1.1.1: Released Feb 1, 2012
   * Some fixes to kd_tree index and L1/L2 metrics to allow distinct types 
      in data elements and in the distances. This is mainly to permit elements 
 	 being vectors of integers (e.g. uint8_t) but distances being real numbers.
