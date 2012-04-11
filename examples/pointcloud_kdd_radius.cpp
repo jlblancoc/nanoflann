@@ -108,6 +108,12 @@ void kdtree_demo(const size_t N)
 	my_kd_tree_t   index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
 	index.buildIndex();
 
+#if 0
+	// Test resize of dataset and rebuild of index:
+	cloud.pts.resize(cloud.pts.size()*0.5);
+	index.buildIndex();
+#endif
+
 	const num_t query_pt[3] = { 0.5, 0.5, 0.5};
 
 	// ----------------------------------------------------------------

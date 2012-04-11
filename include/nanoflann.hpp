@@ -53,7 +53,7 @@ namespace nanoflann
   *  @{ */
 
   	/** Library version: 0xMmP (M=Major,m=minor,P=path) */
-	#define NANOFLANN_VERSION 0x111
+	#define NANOFLANN_VERSION 0x112
 
 	/** @addtogroup result_sets_grp Result set classes
 	  *  @{ */
@@ -702,9 +702,7 @@ namespace nanoflann
 			m_leaf_max_size = params.leaf_max_size;
 
 			// Create a permutable array of indices to the input vectors.
-			vind.resize(m_size);
-			for (size_t i = 0; i < m_size; i++)
-				vind[i] = i;
+			init_vind();
 		}
 
 		/**
@@ -719,6 +717,7 @@ namespace nanoflann
 		 */
 		void buildIndex()
 		{
+			init_vind();
 			computeBoundingBox(root_bbox);
 			root_node = divideTree(0, m_size, root_bbox );   // construct the tree
 		}
@@ -811,6 +810,17 @@ namespace nanoflann
 		/** @} */
 
 	private:
+		/** Make sure the auxiliary list \a vind has the same size than the current dataset, and re-generate if size has changed. */
+		void init_vind()
+		{
+			// Create a permutable array of indices to the input vectors.
+			m_size = dataset.kdtree_get_point_count();
+			if (vind.size()!=m_size) 
+			{
+				vind.resize(m_size);
+				for (size_t i = 0; i < m_size; i++) vind[i] = i;
+			}
+		}
 
 		/// Helper accessor to the dataset points:
 		inline ElementType dataset_get(size_t idx, int component) const {

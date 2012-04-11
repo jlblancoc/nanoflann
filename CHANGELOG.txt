@@ -1,3 +1,7 @@
+nanoflann 1.1.2: SVN trunk version
+  * Now KDTreeSingleIndexAdaptor::buildIndex() can be called several times 
+     even when the dataset size changes (Thanks to Rob McDonald for reporting!)
+
 nanoflann 1.1.1: Released Feb 1, 2012
   * Some fixes to kd_tree index and L1/L2 metrics to allow distinct types 
      in data elements and in the distances. This is mainly to permit elements 
