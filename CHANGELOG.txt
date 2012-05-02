@@ -1,4 +1,5 @@
-nanoflann 1.1.2: SVN trunk version
+nanoflann 1.1.2: Released May 2, 2012
+  * Better documentation and added graphs of a benchmarking for helping choosing "leaf_max_size".
   * Now KDTreeSingleIndexAdaptor::buildIndex() can be called several times 
      even when the dataset size changes (Thanks to Rob McDonald for reporting!)
 
