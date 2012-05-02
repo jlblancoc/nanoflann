@@ -369,7 +369,7 @@ namespace nanoflann
 	/** @addtogroup param_grp Parameter structs
 	  * @{ */
 
-	/**  Parameters
+	/**  Parameters (see http://code.google.com/p/nanoflann/ for help choosing the parameters)
 	  */
 	struct KDTreeSingleIndexAdaptorParams
 	{
@@ -384,10 +384,11 @@ namespace nanoflann
 	/** Search options for KDTreeSingleIndexAdaptor::findNeighbors() */
 	struct SearchParams
 	{
-		SearchParams(int checks_ = 32, float eps_ = 0, bool sorted_ = true ) :
-			checks(checks_), eps(eps_), sorted(sorted_) {}
+		/** Note: The first argument (checks_IGNORED_) is ignored, but kept for compatibility with the FLANN interface */
+		SearchParams(int checks_IGNORED_ = 32, float eps_ = 0, bool sorted_ = true ) :
+			eps(eps_), sorted(sorted_) {}
 
-		int checks;  //!< how many leafs to visit when searching for neighbours (-1 for unlimited)
+		int   checks;  //!< Ignored parameter (Kept for compatibility with the FLANN interface).
 		float eps;  //!< search for eps-approximate neighbours (default: 0)
 		bool sorted; //!< only for radius search, require neighbours sorted by distance (default: true)
 	};
@@ -688,7 +689,7 @@ namespace nanoflann
 		 *
 		 * Params:
 		 *          inputData = dataset with the input features
-		 *          params = parameters passed to the kdtree algorithm
+		 *          params = parameters passed to the kdtree algorithm (see http://code.google.com/p/nanoflann/ for help choosing the parameters)
 		 */
 		KDTreeSingleIndexAdaptor(const int dimensionality, const DatasetAdaptor& inputData, const KDTreeSingleIndexAdaptorParams& params = KDTreeSingleIndexAdaptorParams() ) :
 			dataset(inputData), index_params(params), distance(inputData)
@@ -757,7 +758,6 @@ namespace nanoflann
 		 * Params:
 		 *     result = the result object in which the indices of the nearest-neighbors are stored
 		 *     vec = the vector for which to search the nearest neighbors
-		 *     maxCheck = the maximum number of restarts (in a best-bin-first manner)
 		 *
 		 * \tparam RESULTSET Should be any ResultSet<DistanceType>
 		 * \sa knnSearch, radiusSearch
@@ -776,12 +776,13 @@ namespace nanoflann
 		 * Find the "num_closest" nearest neighbors to the \a query_point[0:dim-1]. Their indices are stored inside
 		 * the result object.
 		 *  \sa radiusSearch, findNeighbors
+		 * \note nChecks_IGNORED is ignored but kept for compatibility with the original FLANN interface.
 		 */
-		inline void knnSearch(const ElementType *query_point, const size_t num_closest, IndexType *out_indices, DistanceType *out_distances_sq, const int nChecks = 10) const
+		inline void knnSearch(const ElementType *query_point, const size_t num_closest, IndexType *out_indices, DistanceType *out_distances_sq, const int nChecks_IGNORED = 10) const
 		{
 			nanoflann::KNNResultSet<DistanceType,IndexType> resultSet(num_closest);
 			resultSet.init(out_indices, out_distances_sq);
-			this->findNeighbors(resultSet, query_point, nanoflann::SearchParams(nChecks));
+			this->findNeighbors(resultSet, query_point, nanoflann::SearchParams());
 		}
 
 		/**
@@ -1216,12 +1217,13 @@ namespace nanoflann
 		/** Query for the \a num_closest closest points to a given point (entered as query_point[0:dim-1]).
 		  *  Note that this is a short-cut method for index->findNeighbors().
 		  *  The user can also call index->... methods as desired.
+		  * \note nChecks_IGNORED is ignored but kept for compatibility with the original FLANN interface.
 		  */
-		inline void query(const num_t *query_point, const size_t num_closest, IndexType *out_indices, num_t *out_distances_sq, const int nChecks = 10) const
+		inline void query(const num_t *query_point, const size_t num_closest, IndexType *out_indices, num_t *out_distances_sq, const int nChecks_IGNORED = 10) const
 		{
 			nanoflann::KNNResultSet<typename MatrixType::Scalar,IndexType> resultSet(num_closest);
 			resultSet.init(out_indices, out_distances_sq);
-			index->findNeighbors(resultSet, query_point, nanoflann::SearchParams(nChecks));
+			index->findNeighbors(resultSet, query_point, nanoflann::SearchParams());
 		}
 
 		/** @name Interface expected by KDTreeSingleIndexAdaptor
