@@ -160,6 +160,7 @@ void perf_test(const size_t N, const size_t max_leaf_elements)
 	// Output for stats generation:
 	cout
 		<< N << "\t "
+		<< max_leaf_elements << "\t "
 		<< At_build << "\t "
 		<< At_search << "\n";
 
