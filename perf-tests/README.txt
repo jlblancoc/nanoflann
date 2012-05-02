@@ -21,3 +21,13 @@ want to reproduce the experiments but want to generate the graphs yourself.
 Jose Luis Blanco
 Aug 26, 2011
 
+
+=== ADDED ON May, 2012 ===
+
+More performance tests: 
+
+$ nanoflann/test_leaf_max_size > LEAF_STATS.txt
+
+And visualize the results with the MATLAB/Octave "analyze_leafsize_stats.m". 
+Graphs online have been generated with these tools.
+

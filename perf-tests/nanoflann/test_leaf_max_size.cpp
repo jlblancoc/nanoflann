@@ -34,6 +34,9 @@
 using namespace std;
 using namespace nanoflann;
 
+// Comment-out for using random points:
+#define REAL_DATASET_FILE "scan_071_points.dat"
+
 //#define VERBOSE_OUTPUT
 
 #ifdef VERBOSE_OUTPUT
@@ -64,18 +67,18 @@ struct PointCloud
 	inline size_t kdtree_get_point_count() const { return pts.size(); }
 
 	// Returns the distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
-	inline float kdtree_distance(const float *p1, const size_t idx_p2,size_t size) const
+	inline T kdtree_distance(const T *p1, const size_t idx_p2,size_t size) const
 	{
-		float d0=p1[0]-pts[idx_p2].x;
-		float d1=p1[1]-pts[idx_p2].y;
-		float d2=p1[2]-pts[idx_p2].z;
+		T d0=p1[0]-pts[idx_p2].x;
+		T d1=p1[1]-pts[idx_p2].y;
+		T d2=p1[2]-pts[idx_p2].z;
 		return d0*d0+d1*d1+d2*d2;
 	}
 
 	// Returns the dim'th component of the idx'th point in the class:
 	// Since this is inlined and the "dim" argument is typically an immediate value, the
 	//  "if/else's" are actually solved at compile time.
-	inline float kdtree_get_pt(const size_t idx, int dim) const
+	inline T kdtree_get_pt(const size_t idx, int dim) const
 	{
 		if (dim==0) return pts[idx].x;
 		else if (dim==1) return pts[idx].y;
@@ -88,6 +91,32 @@ struct PointCloud
 	template <class BBOX>
 	bool kdtree_get_bbox(BBOX &bb) const { return false; }
 
+	// Default ctor.
+	PointCloud() {} 
+
+	// load dataset in Freiburg 3D scans format:
+	PointCloud(const char* sFil)
+	{
+		FILE *f = fopen(sFil,"rt");
+		if (!f) throw std::runtime_error("can't open dataset file!");
+		pts.clear();
+
+		char str[300];
+		while (fgets(str,sizeof(str),f))
+		{
+			float x,y,z;
+			if (sscanf(str,"%*f %*f %*f %f %f %f\n",&x,&y,&z)==3) 
+			{
+				pts.resize(pts.size()+1);
+				pts.rbegin()->x=x;
+				pts.rbegin()->y=y;
+				pts.rbegin()->z=z;
+			}
+		}
+		fprintf(stderr,"Read dataset: %u points\n", static_cast<unsigned int>(pts.size()));
+
+		fclose(f);
+	} 
 };
 
 double get_time()
@@ -95,6 +124,11 @@ double get_time()
 	struct timeval tv;
 	gettimeofday(&tv,NULL);
 	return tv.tv_sec+tv.tv_usec/1000000.0;
+}
+
+double my_random(const double min,const double max) 
+{
+	return min+(max-min)*(rand() % 1000) / 1000.0;
 }
 
 template <typename T>
@@ -115,16 +149,23 @@ void generateRandomPointCloud(PointCloud<T> &point, const size_t N, const T max_
 	VERB_COUT << "done in "<< (t1-t0)*1e3 << " ms\n";
 }
 
+// Load dataset only once:
+#ifdef REAL_DATASET_FILE
+PointCloud<float> cloud(REAL_DATASET_FILE);
+#endif
+
 template <typename num_t>
 void perf_test(const size_t N, const size_t max_leaf_elements)
 {
+#ifndef REAL_DATASET_FILE
+	// Generate random points:
 	PointCloud<num_t> cloud;
-
-	// Generate points:
 	generateRandomPointCloud(cloud, N);
-
 	num_t query_pt[3] = { 0.5, 0.5, 0.5};
-
+#else
+	// Sample dataset is [-40,40]x[-40,40]x[0,15]: Query at random:
+	num_t query_pt[3] = { my_random(-40.0,40.0), my_random(-40.0,40.0), my_random(0,10)};
+#endif
 
 	// construct an randomized kd-tree index using 4 kd-trees
 	double t0=get_time();
@@ -159,7 +200,7 @@ void perf_test(const size_t N, const size_t max_leaf_elements)
 
 	// Output for stats generation:
 	cout
-		<< N << "\t "
+		<< cloud.pts.size() << "\t "
 		<< max_leaf_elements << "\t "
 		<< At_build << "\t "
 		<< At_search << "\n";
