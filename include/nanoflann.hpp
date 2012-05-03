@@ -34,17 +34,10 @@
 #define  NANOFLANN_HPP_
 
 #include <vector>
-#include <string>
 #include <cassert>
-#include <map>
 #include <algorithm>
 #include <stdexcept>
 #include <limits>
-
-#include <cassert>
-#include <cstring>
-#include <cstdio>
-#include <cmath>
 
 // Avoid conflicting declaration of min/max macros in windows headers
 #if !defined(NOMINMAX) && (defined(_WIN32) || defined(_WIN32_)  || defined(WIN32) || defined(_WIN64)) 
