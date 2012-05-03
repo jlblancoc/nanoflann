@@ -46,6 +46,14 @@
 #include <cstdio>
 #include <cmath>
 
+// Avoid conflicting declaration of min/max macros in windows headers
+#if !defined(NOMINMAX) && (defined(_WIN32) || defined(_WIN32_)  || defined(WIN32) || defined(_WIN64)) 
+# define NOMINMAX
+# ifdef max
+#  undef   max
+#  undef   min
+# endif
+#endif
 
 namespace nanoflann
 {
@@ -53,7 +61,7 @@ namespace nanoflann
   *  @{ */
 
   	/** Library version: 0xMmP (M=Major,m=minor,P=path) */
-	#define NANOFLANN_VERSION 0x112
+	#define NANOFLANN_VERSION 0x113
 
 	/** @addtogroup result_sets_grp Result set classes
 	  *  @{ */
