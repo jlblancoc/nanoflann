@@ -37,10 +37,12 @@
 #include <cassert>
 #include <algorithm>
 #include <stdexcept>
+#include <cstdio>  // for fwrite()
+#include <cmath>   // for fabs(),...
 #include <limits>
 
 // Avoid conflicting declaration of min/max macros in windows headers
-#if !defined(NOMINMAX) && (defined(_WIN32) || defined(_WIN32_)  || defined(WIN32) || defined(_WIN64)) 
+#if !defined(NOMINMAX) && (defined(_WIN32) || defined(_WIN32_)  || defined(WIN32) || defined(_WIN64))
 # define NOMINMAX
 # ifdef max
 #  undef   max
@@ -817,7 +819,7 @@ namespace nanoflann
 		{
 			// Create a permutable array of indices to the input vectors.
 			m_size = dataset.kdtree_get_point_count();
-			if (vind.size()!=m_size) 
+			if (vind.size()!=m_size)
 			{
 				vind.resize(m_size);
 				for (size_t i = 0; i < m_size; i++) vind[i] = i;
