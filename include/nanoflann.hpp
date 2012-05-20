@@ -96,7 +96,7 @@ namespace nanoflann
 		{
 			CountType i;
 			for (i=count; i>0; --i) {
-#ifdef NANOFLANN_FIRST_MATCH
+#ifdef NANOFLANN_FIRST_MATCH   // If defined and two poins have the same distance, the one with the lowest-index will be returned first.
 				if ( (dists[i-1]>dist) || ((dist==dists[i-1])&&(indices[i-1]>index)) ) {
 #else
 				if (dists[i-1]>dist) {
@@ -140,7 +140,8 @@ namespace nanoflann
 
 		inline ~RadiusResultSet() { }
 
-		inline void init() { m_indices_dists.clear(); }
+		inline void init() { clear(); }
+		inline void clear() { m_indices_dists.clear(); }
 
 		inline size_t size() const { return m_indices_dists.size(); }
 
@@ -153,6 +154,13 @@ namespace nanoflann
 		}
 
 		inline DistanceType worstDist() const { return radius; }
+
+		/** Clears the result set and adjusts the search radius. */
+		inline void set_radius_and_clear( const DistanceType r )
+		{
+			radius = r;
+			clear();
+		}
 	};
 
 	/** operator "<" for std::sort() */
