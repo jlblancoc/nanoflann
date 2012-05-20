@@ -788,6 +788,7 @@ namespace nanoflann
 		template <typename RESULTSET>
 		void findNeighbors(RESULTSET& result, const ElementType* vec, const SearchParams& searchParams) const
 		{
+			assert(vec);
 			float epsError = 1+searchParams.eps;
 
 			std::vector<DistanceType> dists( (DIM>0 ? DIM : dim) ,0);
@@ -1098,6 +1099,7 @@ namespace nanoflann
 
 		DistanceType computeInitialDistances(const ElementType* vec, std::vector<DistanceType>& dists) const
 		{
+			assert(vec);
 			DistanceType distsq = 0.0;
 
 			for (int i = 0; i < (DIM>0 ? DIM : dim); ++i) {
