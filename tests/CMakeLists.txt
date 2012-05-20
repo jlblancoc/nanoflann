@@ -3,6 +3,9 @@
 # ----------------------------------------------------------------------------
 PROJECT(tests)
 
+# Compile gtest from sources:
+add_subdirectory(gtest-1.6.0)
+
 SET(EXECUTABLE_OUTPUT_PATH "${${PROJECT_NAME}_BINARY_DIR}")
 
 # -----------------------------

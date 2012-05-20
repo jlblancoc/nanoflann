@@ -62,22 +62,9 @@ add_subdirectory(examples)
 
 # Tests
 SET( BUILD_TESTING ON CACHE BOOL "Build unit tests")
-SET(HAVE_GTEST 0)
 
 IF( BUILD_TESTING)
-	# Try using libgtest (Google testing library) from the system, if available
-	FIND_FILE(GTEST_HEADER_FILE gtest/gtest.h)
-	IF(GTEST_HEADER_FILE)
-		MARK_AS_ADVANCED(GTEST_HEADER_FILE)
-
-		SET(HAVE_GTEST 1)
-	ENDIF(GTEST_HEADER_FILE)
-
-	IF(HAVE_GTEST)
-		add_subdirectory(tests)
-	ELSE(HAVE_GTEST)
-		MESSAGE(STATUS "Warning: Not building unit test since gtest/gtest.h was not found")
-	ENDIF(HAVE_GTEST)
+	add_subdirectory(tests)
 ENDIF( BUILD_TESTING)
 
 # --------------------------------------------------------------------

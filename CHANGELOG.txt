@@ -1,4 +1,5 @@
 nanoflann 1.1.3: In SVN trunk
+  * GTest sources are now embedded, due to the changes in newer Ubuntu packages which don't carry the precompiled libs.
   * Added asserts to detect whether the user passes NULL as query points.
   * New method RadiusResultSet::worst_item()
   * New method RadiusResultSet::set_radius_and_clear()
