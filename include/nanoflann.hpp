@@ -161,6 +161,18 @@ namespace nanoflann
 			radius = r;
 			clear();
 		}
+
+		/**
+		 * Find the worst result (furtherest neighbor) without copying or sorting
+		 * Pre-conditions: size() > 0
+		 */
+		std::pair<IndexType,DistanceType> worst_item() const
+		{
+		   if (m_indices_dists.empty()) throw std::runtime_error("Cannot invoke RadiusResultSet::worst_item() on an empty list of results.");
+		   typedef typename std::vector<std::pair<IndexType,DistanceType> >::const_iterator DistIt;
+		   DistIt it = std::max_element(m_indices_dists.begin(), m_indices_dists.end());
+		   return *it;
+		}
 	};
 
 	/** operator "<" for std::sort() */
