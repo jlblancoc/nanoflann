@@ -5,6 +5,8 @@ PROJECT(tests)
 
 # Compile gtest from sources:
 add_subdirectory(gtest-1.6.0)
+INCLUDE_DIRECTORIES("gtest-1.6.0/fused-src")
+
 
 SET(EXECUTABLE_OUTPUT_PATH "${${PROJECT_NAME}_BINARY_DIR}")
 
