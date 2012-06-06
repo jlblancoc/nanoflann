@@ -92,6 +92,11 @@ cd ..
 echo "Creating orig tarball: nanoflann-${NANOFLANN_VERSION_STR}.tar.gz"
 tar czf nanoflann-${NANOFLANN_VERSION_STR}.tar.gz nanoflann-${NANOFLANN_VERSION_STR}
 
+# Create zip with Windows line feeds:
+find nanoflann-${NANOFLANN_VERSION_STR} -name '*.hpp' | xargs -I FIL todos FIL
+find nanoflann-${NANOFLANN_VERSION_STR} -name '*.txt' | xargs -I FIL todos FIL
+
+zip -r nanoflann-${NANOFLANN_VERSION_STR}.zip nanoflann-${NANOFLANN_VERSION_STR}
 
 exit 0
 
