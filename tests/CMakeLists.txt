@@ -3,10 +3,14 @@
 # ----------------------------------------------------------------------------
 PROJECT(tests)
 
+# Fix a "bug" in VS11 (MSVC 2012):
+if(MSVC)
+	add_definitions(-D_VARIADIC_MAX=10)
+endif(MSVC)
+
 # Compile gtest from sources:
 add_subdirectory(gtest-1.6.0)
 INCLUDE_DIRECTORIES("gtest-1.6.0/fused-src")
-
 
 SET(EXECUTABLE_OUTPUT_PATH "${${PROJECT_NAME}_BINARY_DIR}")
 

@@ -1,5 +1,6 @@
 nanoflann 1.1.4: (Development branck in SVN trunk)
-  * (No changes yet)
+  * Fixed compilation with Visual Studio 11 (MSVC 2012). 
+  * Fixed compilation of gtest with VS11 and its _VARIADIC_MAX "bug".
 
 nanoflann 1.1.3: Released Jun 6, 2012
   * GTest sources are now embedded, due to the changes in newer Ubuntu packages which don't carry the precompiled libs.
