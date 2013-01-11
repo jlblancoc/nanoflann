@@ -1,6 +1,9 @@
-nanoflann 1.1.4: (Development branck in SVN trunk)
+nanoflann 1.1.4: Released Jan 11, 2013
   * Fixed compilation with Visual Studio 11 (MSVC 2012). 
   * Fixed compilation of gtest with VS11 and its _VARIADIC_MAX "bug".
+  * Added a security check to launch an exception if searches are attempted before buildIndex().
+  * New example to demonstrate save/load the index to files. 
+  * save/load methods exposed as public.
 
 nanoflann 1.1.3: Released Jun 6, 2012
   * GTest sources are now embedded, due to the changes in newer Ubuntu packages which don't carry the precompiled libs.

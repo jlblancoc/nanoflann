@@ -3,7 +3,7 @@
  *
  * Copyright 2008-2009  Marius Muja (mariusm@cs.ubc.ca). All rights reserved.
  * Copyright 2008-2009  David G. Lowe (lowe@cs.ubc.ca). All rights reserved.
- * Copyright 2011 Jose Luis Blanco (joseluisblancoc@gmail.com).
+ * Copyright 2011-2013  Jose Luis Blanco (joseluisblancoc@gmail.com).
  *   All rights reserved.
  *
  * THE BSD LICENSE
@@ -715,7 +715,7 @@ namespace nanoflann
 		 *          params = parameters passed to the kdtree algorithm (see http://code.google.com/p/nanoflann/ for help choosing the parameters)
 		 */
 		KDTreeSingleIndexAdaptor(const int dimensionality, const DatasetAdaptor& inputData, const KDTreeSingleIndexAdaptorParams& params = KDTreeSingleIndexAdaptorParams() ) :
-			dataset(inputData), index_params(params), distance(inputData)
+			dataset(inputData), index_params(params), root_node(NULL), distance(inputData)
 		{
 			m_size = dataset.kdtree_get_point_count();
 			dim = dimensionality;
@@ -789,6 +789,7 @@ namespace nanoflann
 		void findNeighbors(RESULTSET& result, const ElementType* vec, const SearchParams& searchParams) const
 		{
 			assert(vec);
+			if (!root_node) throw std::runtime_error("[nanoflann] findNeighbors() called before building the index.");
 			float epsError = 1+searchParams.eps;
 
 			std::vector<DistanceType> dists( (DIM>0 ? DIM : dim) ,0);
@@ -1170,7 +1171,11 @@ namespace nanoflann
 			dists[idx] = dst;
 		}
 
-
+	public:
+		/**  Stores the index in a binary file.
+		  *   IMPORTANT NOTE: The set of data points is NOT stored in the file, so when loading the index object it must be constructed associated to the same source of data points used while building it.
+		  * See the example: examples/saveload_example.cpp
+		  * \sa loadIndex  */
 		void saveIndex(FILE* stream)
 		{
 			save_value(stream, m_size);
@@ -1181,6 +1186,10 @@ namespace nanoflann
 			save_tree(stream, root_node);
 		}
 
+		/**  Loads a previous index from a binary file.
+		  *   IMPORTANT NOTE: The set of data points is NOT stored in the file, so the index object must be constructed associated to the same source of data points used while building the index.
+		  * See the example: examples/saveload_example.cpp
+		  * \sa loadIndex  */
 		void loadIndex(FILE* stream)
 		{
 			load_value(stream, m_size);
