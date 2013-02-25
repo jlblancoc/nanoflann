@@ -8,7 +8,7 @@ Build-Depends: debhelper (>= 5),
                perl,
                libgtest-dev,
                libeigen3-dev | perl
-Standards-Version: 3.9.2
+Standards-Version: 3.9.3
 Vcs-Svn: http://nanoflann.googlecode.com/svn/trunk/
 Vcs-Browser: http://code.google.com/p/nanoflann/source/browse/
 Homepage: http://code.google.com/p/nanoflann/
