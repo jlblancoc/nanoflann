@@ -1,5 +1,6 @@
-nanoflann 1.1.5: (Under development, SVN version)
+nanoflann 1.1.5: Released Mar 25, 2013
   * Fixed: Memory pool wasn't freed after each call to buildIndex()
+  * GCC: Added -isystem flag to gtest headers to avoid pedantic warnings.
 
 nanoflann 1.1.4: Released Jan 11, 2013
   * Fixed compilation with Visual Studio 11 (MSVC 2012). 
