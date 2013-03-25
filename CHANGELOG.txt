@@ -1,5 +1,5 @@
 nanoflann 1.1.5: (Under development, SVN version)
-  * (no changes yet)
+  * Fixed: Memory pool wasn't freed after each call to buildIndex()
 
 nanoflann 1.1.4: Released Jan 11, 2013
   * Fixed compilation with Visual Studio 11 (MSVC 2012). 

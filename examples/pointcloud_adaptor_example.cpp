@@ -34,6 +34,16 @@
 using namespace std;
 using namespace nanoflann;
 
+	void dump_mem_usage()
+	{
+		FILE* f=fopen("/proc/self/statm","rt");
+		char str[300];
+		size_t n=fread(str,1,200,f);
+		str[n]=0;
+		printf("MEM: %s\n",str);
+		fclose(f);
+	}
+
 // This is an exampleof a custom data set class
 template <typename T>
 struct PointCloud
@@ -128,8 +138,11 @@ void kdtree_demo(const size_t N)
 		3 /* dim */
 		> my_kd_tree_t;
 
+	dump_mem_usage();
+
 	my_kd_tree_t   index(3 /*dim*/, pc2kd, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
 	index.buildIndex();
+	dump_mem_usage();
 
 	// do a knn search
 	const size_t num_results = 1;
@@ -147,8 +160,8 @@ void kdtree_demo(const size_t N)
 
 int main(int argc, char** argv)
 {
-	kdtree_demo<float>(100000);
-	kdtree_demo<double>(100000);
+	kdtree_demo<float>(1000000);
+	kdtree_demo<double>(1000000);
 
 	return 0;
 }

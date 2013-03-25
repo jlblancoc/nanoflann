@@ -467,6 +467,13 @@ namespace nanoflann
 		void*   loc;      /* Current location in block to next allocate memory. */
 		size_t  blocksize;
 
+		void internal_init()
+		{
+			remaining = 0;
+			base = NULL;
+			usedMemory = 0;
+			wastedMemory = 0;
+		}
 
 	public:
 		size_t  usedMemory;
@@ -475,26 +482,26 @@ namespace nanoflann
 		/**
 		    Default constructor. Initializes a new pool.
 		 */
-		PooledAllocator(const size_t blocksize = BLOCKSIZE)
-		{
-			this->blocksize = blocksize;
-			remaining = 0;
-			base = NULL;
-
-			usedMemory = 0;
-			wastedMemory = 0;
+		PooledAllocator(const size_t blocksize_ = BLOCKSIZE) : blocksize(blocksize_) {
+			internal_init();
 		}
 
 		/**
 		 * Destructor. Frees all the memory allocated in this pool.
 		 */
-		~PooledAllocator()
+		~PooledAllocator() {
+			free_all();
+		}
+
+		/** Frees all allocated memory chunks */
+		void free_all()
 		{
 			while (base != NULL) {
 				void *prev = *((void**) base); /* Get pointer to prev block. */
 				::free(base);
 				base = prev;
 			}
+			internal_init();
 		}
 
 		/**
@@ -736,6 +743,13 @@ namespace nanoflann
 		{
 		}
 
+		/** Frees the previously-built index. Automatically called within buildIndex(). */
+		void freeIndex()
+		{
+			pool.free_all();
+			root_node=NULL;
+		}
+
 		/**
 		 * Builds the index
 		 */
@@ -743,6 +757,7 @@ namespace nanoflann
 		{
 			init_vind();
 			computeBoundingBox(root_bbox);
+			freeIndex();
 			root_node = divideTree(0, m_size, root_bbox );   // construct the tree
 		}
 
@@ -841,11 +856,8 @@ namespace nanoflann
 		{
 			// Create a permutable array of indices to the input vectors.
 			m_size = dataset.kdtree_get_point_count();
-			if (vind.size()!=m_size)
-			{
-				vind.resize(m_size);
-				for (size_t i = 0; i < m_size; i++) vind[i] = i;
-			}
+			if (vind.size()!=m_size) vind.resize(m_size);
+			for (size_t i = 0; i < m_size; i++) vind[i] = i;
 		}
 
 		/// Helper accessor to the dataset points:
