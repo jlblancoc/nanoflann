@@ -331,7 +331,7 @@ namespace nanoflann
 		}
 
 		template <typename U, typename V>
-		inline DistanceType accum_dist(const U a, const V b, int dim) const
+		inline DistanceType accum_dist(const U a, const V b, int ) const
 		{
 			return (a-b)*(a-b);
 		}
@@ -357,7 +357,7 @@ namespace nanoflann
 		}
 
 		template <typename U, typename V>
-		inline DistanceType accum_dist(const U a, const V b, int dim) const
+		inline DistanceType accum_dist(const U a, const V b, int ) const
 		{
 			return (a-b)*(a-b);
 		}
@@ -409,7 +409,7 @@ namespace nanoflann
 	{
 		/** Note: The first argument (checks_IGNORED_) is ignored, but kept for compatibility with the FLANN interface */
 		SearchParams(int checks_IGNORED_ = 32, float eps_ = 0, bool sorted_ = true ) :
-			eps(eps_), sorted(sorted_) {}
+			checks(checks_IGNORED_), eps(eps_), sorted(sorted_) {}
 
 		int   checks;  //!< Ignored parameter (Kept for compatibility with the FLANN interface).
 		float eps;  //!< search for eps-approximate neighbours (default: 0)

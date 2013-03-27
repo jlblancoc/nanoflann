@@ -1,5 +1,5 @@
 nanoflann 1.1.6: (Under development)
-  * (no changes yet)
+  * Fixed warnings about unused parameters.
 
 nanoflann 1.1.5: Released Mar 25, 2013
   * Fixed: Memory pool wasn't freed after each call to buildIndex()
