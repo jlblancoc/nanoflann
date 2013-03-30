@@ -38,30 +38,24 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
 	 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -mtune=native -Wall -pedantic")
 ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 
-
-# Use eigen3 for examples?
-SET(HAS_EIGEN3 0)
-
-INCLUDE(FindPkgConfig OPTIONAL)
+# Try to find Eigen3 for use in the examples
+FIND_PACKAGE(PkgConfig QUIET)
+MESSAGE(STATUS "Check for Eigen3")
 IF(PKG_CONFIG_FOUND)
-	INCLUDE(FindPkgConfig)
-	PKG_CHECK_MODULES(PKG_EIGEN3 eigen3)	# Find eigen3 with pkg-config
-	IF(PKG_EIGEN3_FOUND)
-		MESSAGE(STATUS "Using eigen3 in: ${PKG_EIGEN3_INCLUDE_DIRS}")
-		INCLUDE_DIRECTORIES(${PKG_EIGEN3_INCLUDE_DIRS})		
-		SET(HAS_EIGEN3 1)
-	ENDIF(PKG_EIGEN3_FOUND)
-ENDIF(PKG_CONFIG_FOUND)
-
-# Allow manual setting Eigen3 include path (e.g. for Windows)
-IF(NOT HAS_EIGEN3)
-	SET(EIGEN3_INCLUDE_PATH "" CACHE PATH "Set the include path to Eigen (such that <Eigen/Dense> exists there)" )
-	IF (EXISTS "${EIGEN3_INCLUDE_PATH}/Eigen/Dense")
-		MESSAGE(STATUS "Using eigen3 in: ${EIGEN3_INCLUDE_PATH}")
-		INCLUDE_DIRECTORIES("${EIGEN3_INCLUDE_PATH}")
-		SET(HAS_EIGEN3 1)
-	ENDIF (EXISTS "${EIGEN3_INCLUDE_PATH}/Eigen/Dense")
-ENDIF(NOT HAS_EIGEN3)
+  PKG_CHECK_MODULES(PKG_EIGEN3 QUIET eigen3) # Try to find eigen3 with pkg-config
+ENDIF()
+SET(EIGEN3_FOUND FALSE)
+FIND_PATH(EIGEN3_INCLUDE NAMES signature_of_eigen3_matrix_library
+  PATHS ${CMAKE_INSTALL_PREFIX}/include ${PKG_EIGEN3_INCLUDE_DIRS}
+  PATH_SUFFIXES eigen3
+)
+IF (NOT EXISTS ${EIGEN3_INCLUDE})
+  MESSAGE(STATUS "Eigen3 not found in standard location. Try passing -DEIGEN3_INCLUDE=/path/to/eigen3")
+ELSE()
+  MESSAGE(STATUS "Using Eigen3 in: ${EIGEN3_INCLUDE}")
+  INCLUDE_DIRECTORIES("${EIGEN3_INCLUDE}")
+  SET(EIGEN3_FOUND TRUE)
+ENDIF()
 
 # Include dir:
 INCLUDE_DIRECTORIES(${nanoflann_SOURCE_DIR}/include)
