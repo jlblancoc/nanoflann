@@ -1,4 +1,4 @@
-nanoflann 1.1.6: (Under development)
+nanoflann 1.1.6: Released May 14, 2013
   * Fixed warnings about unused parameters.
   * Fixed L1_adaptor.accum_dist(), which implemented L2 instead (Closes #1)
   * Fixed wrong typedef in KDTreeEigenMatrixAdaptor<> for IndexType!=size_t (Closes: #2)

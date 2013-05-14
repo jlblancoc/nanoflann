@@ -37,7 +37,7 @@ rm -fr $NANOFLANN_UBUNTU_OUT_DIR/
 # -------------------------------------------------------------------
 # And now create the custom packages for each Ubuntu distribution
 # -------------------------------------------------------------------
-LST_DISTROS=(raring quantal precise oneiric natty lucid maverick)
+LST_DISTROS=(saucy raring quantal precise oneiric natty lucid maverick)
 
 count=${#LST_DISTROS[@]}
 IDXS=$(seq 0 $(expr $count - 1))
