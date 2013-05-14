@@ -282,7 +282,7 @@ namespace nanoflann
 		}
 
 		template <typename U, typename V>
-		inline DistanceType accum_dist(const U a, const V b, int dim) const
+		inline DistanceType accum_dist(const U a, const V b, int ) const
 		{
 			return nanoflann::abs(a-b);
 		}
@@ -1237,7 +1237,7 @@ namespace nanoflann
 	template <class MatrixType, int DIM = -1, class Distance = nanoflann::metric_L2, typename IndexType = size_t>
 	struct KDTreeEigenMatrixAdaptor
 	{
-		typedef KDTreeEigenMatrixAdaptor<MatrixType,DIM,Distance> self_t;
+		typedef KDTreeEigenMatrixAdaptor<MatrixType,DIM,Distance,IndexType> self_t;
 		typedef typename MatrixType::Scalar              num_t;
 		typedef typename Distance::template traits<num_t,self_t>::distance_t metric_t;
 		typedef KDTreeSingleIndexAdaptor< metric_t,self_t,DIM,IndexType>  index_t;

@@ -1,6 +1,7 @@
 nanoflann 1.1.6: (Under development)
   * Fixed warnings about unused parameters.
   * Fixed L1_adaptor.accum_dist(), which implemented L2 instead (Closes #1)
+  * Fixed wrong typedef in KDTreeEigenMatrixAdaptor<> for IndexType!=size_t (Closes: #2)
 
 nanoflann 1.1.5: Released Mar 25, 2013
   * Fixed: Memory pool wasn't freed after each call to buildIndex()
