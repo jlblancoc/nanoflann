@@ -1,5 +1,7 @@
 nanoflann 1.1.7: (Under development)
-  * (No changes yet!)
+  * Two internal containers are now automatically defined as fixed-size arrays if the 
+    problem dimension is known at compile time, improving efficiency. 
+    The new/modified datatypes are: KDTreeSingleIndexAdaptor::BoundingBox, KDTreeSingleIndexAdaptor::distance_vector_t
 
 nanoflann 1.1.6: Released May 14, 2013
   * Fixed warnings about unused parameters.
