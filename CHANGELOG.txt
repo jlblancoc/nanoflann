@@ -1,7 +1,8 @@
-nanoflann 1.1.7: (Under development)
+nanoflann 1.1.7: Released Aug 24, 2013
   * Two internal containers are now automatically defined as fixed-size arrays if the 
     problem dimension is known at compile time, improving efficiency. 
     The new/modified datatypes are: KDTreeSingleIndexAdaptor::BoundingBox, KDTreeSingleIndexAdaptor::distance_vector_t
+  * Fixed compilation with GCC 4.8 and C++11 enabled (Thanks to Simon Praetorius). 
 
 nanoflann 1.1.6: Released May 14, 2013
   * Fixed warnings about unused parameters.
