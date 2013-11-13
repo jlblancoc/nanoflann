@@ -732,6 +732,9 @@ namespace nanoflann
 	template <typename Distance, class DatasetAdaptor,int DIM = -1, typename IndexType = size_t>
 	class KDTreeSingleIndexAdaptor
 	{
+	private:
+		/** Hidden copy constructor, to disallow copying indices (Not implemented) */
+		KDTreeSingleIndexAdaptor(const KDTreeSingleIndexAdaptor<Distance,DatasetAdaptor,DIM,IndexType>&);
 	public:
 		typedef typename Distance::ElementType  ElementType;
 		typedef typename Distance::DistanceType DistanceType;
@@ -1379,6 +1382,10 @@ namespace nanoflann
 			index = new index_t( dims, *this /* adaptor */, nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size, dims ) );
 			index->buildIndex();
 		}
+	private:
+		/** Hidden copy constructor, to disallow copying this class (Not implemented) */
+		KDTreeEigenMatrixAdaptor(const self_t&);
+	public:
 
 		~KDTreeEigenMatrixAdaptor() {
 			delete index;
