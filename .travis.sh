@@ -16,7 +16,7 @@ function build ()
 function test ()
 {
   mkdir $BUILD_DIR && cd $BUILD_DIR
-  cmake $MRPT_DIR
+  cmake $SRC_DIR
   make test
 }
 
