@@ -14,9 +14,14 @@ This library is a *fork (and a subset)* of the [flann library](http://people.cs.
 ### 1.1. Obtaining the code
 
   * Clone this GIT repository.
-
   * List of [**stable releases**](https://github.com/jlblancoc/nanoflann/releases). Check out the [CHANGELOG](https://raw.githubusercontent.com/jlblancoc/nanoflann/master/CHANGELOG.txt)
 
+Although nanoflann itself has not to be compiled, you can build some examples and tests with:
+
+    sudo apt-get install build-essential cmake libgtest-dev libeigen3-dev
+    mkdir build && cd build && cmake .. 
+    make && make test
+    
 
 ### 1.2. C++ API reference
 
