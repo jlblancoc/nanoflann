@@ -91,13 +91,13 @@ ENDIF(CMAKE_USE_DEB_POSTFIXS)
 
 # Generate the pkg-config file:
 CONFIGURE_FILE(
-	"${nanoflann_SOURCE_DIR}/nanoflann.pc.in" 
+	"${nanoflann_SOURCE_DIR}/scripts/nanoflann.pc.in" 
 	"${nanoflann_BINARY_DIR}/nanoflann.pc" @ONLY IMMEDIATE )
 
 
 # Uninstall target, for "make uninstall"
 CONFIGURE_FILE(
-  "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
+  "${CMAKE_CURRENT_SOURCE_DIR}/scripts/cmake_uninstall.cmake.in"
   "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
   @ONLY IMMEDIATE)
 
