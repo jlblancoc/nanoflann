@@ -1,6 +1,7 @@
-nanoflann 1.1.8: Under development
+nanoflann 1.1.8: Released May 2, 2014
   * Created hidden constructors in nanoflann class, to disallow unintentional copies which will corrupt 
     the internal pointers.
+  * Fixed crash if trying to build an index of an empty dataset.
 
 nanoflann 1.1.7: Released Aug 24, 2013
   * Two internal containers are now automatically defined as fixed-size arrays if the 

@@ -3,7 +3,7 @@
  *
  * Copyright 2008-2009  Marius Muja (mariusm@cs.ubc.ca). All rights reserved.
  * Copyright 2008-2009  David G. Lowe (lowe@cs.ubc.ca). All rights reserved.
- * Copyright 2011-2013  Jose Luis Blanco (joseluisblancoc@gmail.com).
+ * Copyright 2011-2014  Jose Luis Blanco (joseluisblancoc@gmail.com).
  *   All rights reserved.
  *
  * THE BSD LICENSE
@@ -884,8 +884,9 @@ namespace nanoflann
 		void buildIndex()
 		{
 			init_vind();
-			computeBoundingBox(root_bbox);
 			freeIndex();
+			if(m_size == 0) return;
+			computeBoundingBox(root_bbox);
 			root_node = divideTree(0, m_size, root_bbox );   // construct the tree
 		}
 
@@ -932,7 +933,7 @@ namespace nanoflann
 		void findNeighbors(RESULTSET& result, const ElementType* vec, const SearchParams& searchParams) const
 		{
 			assert(vec);
-			if (!root_node) throw std::runtime_error("[nanoflann] findNeighbors() called before building the index.");
+			if (!root_node) throw std::runtime_error("[nanoflann] findNeighbors() called before building the index or no data points.");
 			float epsError = 1+searchParams.eps;
 
 			distance_vector_t dists; // fixed or variable-sized container (depending on DIM)
@@ -1029,11 +1030,12 @@ namespace nanoflann
 			}
 			else
 			{
+				const size_t N = dataset.kdtree_get_point_count();
+				if (!N) throw std::runtime_error("[nanoflann] computeBoundingBox() called but no data points found.");
 				for (int i=0; i<(DIM>0 ? DIM : dim); ++i) {
 					bbox[i].low =
-						bbox[i].high = dataset_get(0,i);
+					bbox[i].high = dataset_get(0,i);
 				}
-				const size_t N = dataset.kdtree_get_point_count();
 				for (size_t k=1; k<N; ++k) {
 					for (int i=0; i<(DIM>0 ? DIM : dim); ++i) {
 						if (dataset_get(k,i)<bbox[i].low) bbox[i].low = dataset_get(k,i);

@@ -1,7 +1,7 @@
 /***********************************************************************
  * Software License Agreement (BSD License)
  *
- * Copyright 2011 Jose Luis Blanco (joseluisblancoc@gmail.com).
+ * Copyright 2011-2014 Jose Luis Blanco (joseluisblancoc@gmail.com).
  *   All rights reserved.
  *
  * THE BSD LICENSE
@@ -157,5 +157,45 @@ TEST(kdtree,L2_vs_L2_simple)
 		L2_vs_L2_simple_test<float>(100, nResults);
 		L2_vs_L2_simple_test<double>(100, nResults);
 	}
+}
+
+
+TEST(kdtree,robust_empty_tree)
+{
+	// Try to build a tree with 0 data points, to test
+	// robustness against this situation:
+	PointCloud<double> cloud;
+
+	double query_pt[3] = { 0.5, 0.5, 0.5};
+
+	// construct a kd-tree index:
+	typedef KDTreeSingleIndexAdaptor<
+		L2_Simple_Adaptor<double, PointCloud<double> > ,
+		PointCloud<double>,
+		3 /* dim */
+		> my_kd_tree_simple_t;
+
+	my_kd_tree_simple_t   index1(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
+	index1.buildIndex();
+
+
+	// Now we will try to search in the tree, and WE EXPECT an exception if
+	// the error detection works fine:
+	const size_t num_results = 1;
+	std::vector<size_t>   ret_index(num_results);
+	std::vector<double> out_dist_sqr(num_results);
+	nanoflann::KNNResultSet<double> resultSet(num_results);
+	resultSet.init(&ret_index[0], &out_dist_sqr[0] );
+	try
+	{
+		index1.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
+		// We shoudn't reach here!!
+		EXPECT_TRUE(false) << "Exception was not launched and it was expected!";
+	}
+	catch (std::exception &)
+	{
+		// Exception catched, OK.
+	}
+
 }
 
