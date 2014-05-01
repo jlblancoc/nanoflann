@@ -13,6 +13,15 @@ function build ()
   make -j2
 }
 
+function test ()
+{
+  mkdir $BUILD_DIR && cd $BUILD_DIR
+  cmake $MRPT_DIR
+  make test
+}
+
+
 case $TASK in
   build ) build;;
+  test ) test;;
 esac

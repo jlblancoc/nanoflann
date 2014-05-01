@@ -8,11 +8,12 @@ before_install:
   - sudo apt-get update -d
 
 install:
-  - sudo apt-get install build-essential pkg-config cmake 
+  - sudo apt-get install build-essential pkg-config cmake libgtest-dev
 
 script:
   - bash .travis.sh
 
 env:
   - TASK="build"
+  - TASK="test"
 
