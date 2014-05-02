@@ -55,7 +55,7 @@ namespace nanoflann
 /** @addtogroup nanoflann_grp nanoflann C++ library for ANN
   *  @{ */
 
-  	/** Library version: 0xMmP (M=Major,m=minor,P=path) */
+  	/** Library version: 0xMmP (M=Major,m=minor,P=patch) */
 	#define NANOFLANN_VERSION 0x118
 
 	/** @addtogroup result_sets_grp Result set classes
@@ -1400,7 +1400,7 @@ namespace nanoflann
 		  *  The user can also call index->... methods as desired.
 		  * \note nChecks_IGNORED is ignored but kept for compatibility with the original FLANN interface.
 		  */
-		inline void query(const num_t *query_point, const size_t num_closest, IndexType *out_indices, num_t *out_distances_sq, const int nChecks_IGNORED = 10) const
+		inline void query(const num_t *query_point, const size_t num_closest, IndexType *out_indices, num_t *out_distances_sq, const int /* nChecks_IGNORED */ = 10) const
 		{
 			nanoflann::KNNResultSet<typename MatrixType::Scalar,IndexType> resultSet(num_closest);
 			resultSet.init(out_indices, out_distances_sq);
