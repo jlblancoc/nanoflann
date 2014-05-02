@@ -337,7 +337,7 @@ namespace nanoflann
 		}
 	};
 
-	/** Squared Euclidean distance functor (suitable for low-dimensionality datasets, like 2D or 3D point clouds)
+	/** Squared Euclidean (L2) distance functor (suitable for low-dimensionality datasets, like 2D or 3D point clouds)
 	  *  Corresponding distance traits: nanoflann::metric_L2_Simple
 	  * \tparam T Type of the elements (e.g. double, float, uint8_t)
 	  * \tparam DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
@@ -707,7 +707,7 @@ namespace nanoflann
 	 *   // Must return the number of data points
 	 *   inline size_t kdtree_get_point_count() const { ... }
 	 *
-	 *   // Must return the Euclidean (L2) distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
+	 *   // [Only if using the metric_L2_Simple type] Must return the Euclidean (L2) distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
 	 *   inline DistanceType kdtree_distance(const T *p1, const size_t idx_p2,size_t size) const { ... }
 	 *
 	 *   // Must return the dim'th component of the idx'th point in the class:
@@ -726,7 +726,9 @@ namespace nanoflann
 	 *   }
 	 *
 	 *  \endcode
-	 *
+	 * 
+	 * \tparam DatasetAdaptor The user-provided adaptor (see comments above).
+	 * \tparam Distance The distance metric to use: nanoflann::metric_L1, nanoflann::metric_L2, nanoflann::metric_L2_Simple, etc.
 	 * \tparam IndexType Will be typically size_t or int
 	 */
 	template <typename Distance, class DatasetAdaptor,int DIM = -1, typename IndexType = size_t>
@@ -1346,7 +1348,7 @@ namespace nanoflann
 	};   // class KDTree
 
 
-	/** A simple KD-tree adaptor for working with data directly stored in an Eigen Matrix, without duplicating the data storage.
+	/** An L2-metric KD-tree adaptor for working with data directly stored in an Eigen Matrix, without duplicating the data storage.
 	  *  Each row in the matrix represents a point in the state space.
 	  *
 	  *  Example of usage:
@@ -1422,7 +1424,7 @@ namespace nanoflann
 			return m_data_matrix.rows();
 		}
 
-		// Returns the distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
+		// Returns the L2 distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
 		inline num_t kdtree_distance(const num_t *p1, const size_t idx_p2,size_t size) const
 		{
 			num_t s=0;

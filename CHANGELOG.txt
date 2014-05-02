@@ -1,5 +1,5 @@
 nanoflann 1.1.9: Under development
-  * (no changes yet)
+  * Better documentation in class headers.
 
 nanoflann 1.1.8: Released May 2, 2014
   * Created hidden constructors in nanoflann class, to disallow unintentional copies which will corrupt 
