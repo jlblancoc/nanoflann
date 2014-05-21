@@ -31,15 +31,13 @@ Although nanoflann itself has not to be compiled, you can build some examples an
 
 ### 1.3. Code examples
 
-  * KD-tree look-up with `kdd_search()` and `radius_search()`: [pointcloud_kdd_radius.cpp](http://nanoflann.googlecode.com/svn/trunk/examples/pointcloud_kdd_radius.cpp)
-  * KD-tree look-up on a point cloud dataset: [pointcloud_example.cpp](http://nanoflann.googlecode.com/svn/trunk/examples/pointcloud_example.cpp)
-  * KD-tree look-up on a point cloud dataset with an external adaptor class: [pointcloud_adaptor_example.cpp](http://nanoflann.googlecode.com/svn/trunk/examples/pointcloud_adaptor_example.cpp)
-  * KD-tree look-up directly on an `Eigen::Matrix<>`: [matrix_example.cpp](http://nanoflann.googlecode.com/svn/trunk/examples/matrix_example.cpp)
-  * KD-tree look-up directly on `std::vector<std::vector<T> >` or `std::vector<Eigen::VectorXd>`: [vector_of_vectors_example.cpp](http://nanoflann.googlecode.com/svn/trunk/examples/vector_of_vectors_example.cpp)
-
-  * Example with a `Makefile` for usage through `pkg-config` (for example, after doing a "make install" or after installing from Ubuntu repositories): [example_with_pkgconfig/](http://nanoflann.googlecode.com/svn/trunk/examples/example_with_pkgconfig/)
-
-  * Example of how to build an index and save it to disk for posterior usage: [saveload_example.cpp](http://nanoflann.googlecode.com/svn/trunk/examples/saveload_example.cpp)
+  * KD-tree look-up with `kdd_search()` and `radius_search()`: [pointcloud_kdd_radius.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_kdd_radius.cpp)
+  * KD-tree look-up on a point cloud dataset: [pointcloud_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_example.cpp)
+  * KD-tree look-up on a point cloud dataset with an external adaptor class: [pointcloud_adaptor_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_adaptor_example.cpp)
+  * KD-tree look-up directly on an `Eigen::Matrix<>`: [matrix_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/matrix_example.cpp)
+  * KD-tree look-up directly on `std::vector<std::vector<T> >` or `std::vector<Eigen::VectorXd>`: [vector_of_vectors_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/vector_of_vectors_example.cpp)
+  * Example with a `Makefile` for usage through `pkg-config` (for example, after doing a "make install" or after installing from Ubuntu repositories): [example_with_pkgconfig/](https://github.com/jlblancoc/nanoflann/blob/master/examples/example_with_pkgconfig/)
+  * Example of how to build an index and save it to disk for posterior usage: [saveload_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/saveload_example.cpp)
 
 
 ### 1.4. Why a fork?
