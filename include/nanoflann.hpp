@@ -1118,51 +1118,6 @@ namespace nanoflann
 			}
 		}
 
-		void middleSplit(IndexType* ind, IndexType count, IndexType& index, int& cutfeat, DistanceType& cutval, const BoundingBox& bbox)
-		{
-			// find the largest span from the approximate bounding box
-			ElementType max_span = bbox[0].high-bbox[0].low;
-			cutfeat = 0;
-			cutval = (bbox[0].high+bbox[0].low)/2;
-			for (int i=1; i<(DIM>0 ? DIM : dim); ++i) {
-				ElementType span = bbox[i].low-bbox[i].low;
-				if (span>max_span) {
-					max_span = span;
-					cutfeat = i;
-					cutval = (bbox[i].high+bbox[i].low)/2;
-				}
-			}
-
-			// compute exact span on the found dimension
-			ElementType min_elem, max_elem;
-			computeMinMax(ind, count, cutfeat, min_elem, max_elem);
-			cutval = (min_elem+max_elem)/2;
-			max_span = max_elem - min_elem;
-
-			// check if a dimension of a largest span exists
-			size_t k = cutfeat;
-			for (size_t i=0; i<(DIM>0 ? DIM : dim); ++i) {
-				if (i==k) continue;
-				ElementType span = bbox[i].high-bbox[i].low;
-				if (span>max_span) {
-					computeMinMax(ind, count, i, min_elem, max_elem);
-					span = max_elem - min_elem;
-					if (span>max_span) {
-						max_span = span;
-						cutfeat = i;
-						cutval = (min_elem+max_elem)/2;
-					}
-				}
-			}
-			IndexType lim1, lim2;
-			planeSplit(ind, count, cutfeat, cutval, lim1, lim2);
-
-			if (lim1>count/2) index = lim1;
-			else if (lim2<count/2) index = lim2;
-			else index = count/2;
-		}
-
-
 		void middleSplit_(IndexType* ind, IndexType count, IndexType& index, int& cutfeat, DistanceType& cutval, const BoundingBox& bbox)
 		{
 			const DistanceType EPS=static_cast<DistanceType>(0.00001);
