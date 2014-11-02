@@ -59,7 +59,9 @@ Refer to the examples below or to the C++ API of [nanoflann::KDTreeSingleIndexAd
   * Building KD-trees with a single index (no randomized KD-trees).
   * Fast querying for neighbors on KD-trees. The two main entry points are:
     * [nanoflann::KDTreeSingleIndexAdaptor<>](http://nanoflann-reference.mrpt.org/svn/classnanoflann_1_1KDTreeSingleIndexAdaptor.html)`::knnSearch()`
+      * Finds the `num_closest` nearest neighbors to `query_point[0:dim-1]`. Their indices are stored inside the result object. See an [example usage code](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_kdd_radius.cpp#L119).
     * [nanoflann::KDTreeSingleIndexAdaptor<>](http://nanoflann-reference.mrpt.org/svn/classnanoflann_1_1KDTreeSingleIndexAdaptor.html)`::radiusSearch()`
+      * Finds all the neighbors to `query_point[0:dim-1]` within a maximum radius. The output is given as a vector of pairs, of which the first element is a point index and the second the corresponding distance. See an [example usage code](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_kdd_radius.cpp#L134).
   * Define the dimensionality of the data at compile time, easing the generation of optimized code by the compiler.
   * Work with 2D and 3D point clouds or N-dimensional data sets.
   * Directly work with `Eigen::Matrix<>` classes (matrices and vectors-of-vectors).
