@@ -1201,7 +1201,7 @@ namespace nanoflann
 		DistanceType computeInitialDistances(const ElementType* vec, distance_vector_t& dists) const
 		{
 			assert(vec);
-			DistanceType distsq = 0.0;
+			DistanceType distsq = DistanceType();
 
 			for (int i = 0; i < (DIM>0 ? DIM : dim); ++i) {
 				if (vec[i] < root_bbox[i].low) {
