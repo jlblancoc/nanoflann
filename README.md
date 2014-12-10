@@ -62,7 +62,8 @@ Refer to the examples below or to the C++ API of [nanoflann::KDTreeSingleIndexAd
       * Finds the `num_closest` nearest neighbors to `query_point[0:dim-1]`. Their indices are stored inside the result object. See an [example usage code](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_kdd_radius.cpp#L119).
     * [nanoflann::KDTreeSingleIndexAdaptor<>](http://nanoflann-reference.mrpt.org/svn/classnanoflann_1_1KDTreeSingleIndexAdaptor.html)`::radiusSearch()`
       * Finds all the neighbors to `query_point[0:dim-1]` within a maximum radius. The output is given as a vector of pairs, of which the first element is a point index and the second the corresponding distance. See an [example usage code](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_kdd_radius.cpp#L134).
-  * Define the dimensionality of the data at compile time, easing the generation of optimized code by the compiler.
+    * [nanoflann::KDTreeSingleIndexAdaptor<>](http://nanoflann-reference.mrpt.org/svn/classnanoflann_1_1KDTreeSingleIndexAdaptor.html)`::radiusSearchCustomCallback()`
+	  * Can be used to receive a callback for each point found in range. May be more efficient in some situations instead of building a huge vector of pais with the results.
   * Work with 2D and 3D point clouds or N-dimensional data sets.
   * Directly work with `Eigen::Matrix<>` classes (matrices and vectors-of-vectors).
   * Work with the distance metrics: 

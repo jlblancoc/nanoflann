@@ -1,4 +1,5 @@
 nanoflann 1.1.9: Under development
+  * Added KDTreeSingleIndexAdaptor::radiusSearchCustomCallback() (Based on a suggestion by Yannick Morin-Rivest)
   * Better documentation in class headers.
   * Cleanup of unused code.
 

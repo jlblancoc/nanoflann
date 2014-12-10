@@ -966,17 +966,27 @@ namespace nanoflann
 		 *
 		 *  For a better performance, it is advisable to do a .reserve() on the vector if you have any wild guess about the number of expected matches.
 		 *
-		 *  \sa knnSearch, findNeighbors
+		 *  \sa knnSearch, findNeighbors, radiusSearchCustomCallback
 		 * \return The number of points within the given radius (i.e. indices.size() or dists.size() )
 		 */
-		size_t radiusSearch(const ElementType *query_point,const DistanceType radius, std::vector<std::pair<IndexType,DistanceType> >& IndicesDists, const SearchParams& searchParams) const
+		size_t radiusSearch(const ElementType *query_point,const DistanceType radius, std::vector<std::pair<IndexType,DistanceType> >& IndicesDists, const SearchParams& searchParams) const 
 		{
 			RadiusResultSet<DistanceType,IndexType> resultSet(radius,IndicesDists);
-			this->findNeighbors(resultSet, query_point, searchParams);
-
+			const size_t nFound = radiusSearchCustomCallback(query_point,resultSet,searchParams);
 			if (searchParams.sorted)
 				std::sort(IndicesDists.begin(),IndicesDists.end(), IndexDist_Sorter() );
+			return nFound;
+		}
 
+		/** 
+		 * Just like radiusSearch() but with a custom callback class for each point found in the radius of the query.
+		 * See the source of RadiusResultSet<> as a start point for your own classes.
+		 * \sa radiusSearch
+		 */
+		template <class SEARCH_CALLBACK>
+		size_t radiusSearchCustomCallback(const ElementType *query_point,SEARCH_CALLBACK &resultSet, const SearchParams& searchParams = SearchParams() ) const
+		{
+			this->findNeighbors(resultSet, query_point, searchParams);
 			return resultSet.size();
 		}
 
