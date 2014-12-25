@@ -145,7 +145,7 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
 
 	for (size_t i=0;i<num_results;i++)
 	{
-		EXPECT_FLOAT_EQ(ret_index1[i],ret_index[i]);
+		EXPECT_EQ(ret_index1[i],ret_index[i]);
 		EXPECT_FLOAT_EQ(out_dist_sqr1[i],out_dist_sqr[i]);
 	}
 }
