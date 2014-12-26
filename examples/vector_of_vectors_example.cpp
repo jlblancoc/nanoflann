@@ -67,7 +67,7 @@ struct KDTreeVectorOfVectorsAdaptor
 		const size_t dims = mat[0].size();
 		if (DIM>0 && static_cast<int>(dims)!=DIM)
 			throw std::runtime_error("Data set dimensionality does not match the 'DIM' template argument");
-		index = new index_t( dims, *this /* adaptor */, nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size, dims ) );
+		index = new index_t( dims, *this /* adaptor */, nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size ) );
 		index->buildIndex();
 	}
 

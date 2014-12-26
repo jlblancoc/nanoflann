@@ -387,21 +387,17 @@ namespace nanoflann
 
 	/** @} */
 
-
-
 	/** @addtogroup param_grp Parameter structs
 	  * @{ */
 
-	/**  Parameters (see http://code.google.com/p/nanoflann/ for help choosing the parameters)
-	  */
+	/**  Parameters (see README.md) */
 	struct KDTreeSingleIndexAdaptorParams
 	{
-		KDTreeSingleIndexAdaptorParams(size_t _leaf_max_size = 10, int dim_ = -1) :
-			leaf_max_size(_leaf_max_size), dim(dim_)
+		KDTreeSingleIndexAdaptorParams(size_t _leaf_max_size = 10) :
+			leaf_max_size(_leaf_max_size)
 		{}
 
 		size_t leaf_max_size;
-		int dim;
 	};
 
 	/** Search options for KDTreeSingleIndexAdaptor::findNeighbors() */
@@ -729,6 +725,7 @@ namespace nanoflann
 	 * 
 	 * \tparam DatasetAdaptor The user-provided adaptor (see comments above).
 	 * \tparam Distance The distance metric to use: nanoflann::metric_L1, nanoflann::metric_L2, nanoflann::metric_L2_Simple, etc.
+	 * \tparam DIM Dimensionality of data points (e.g. 3 for 3D points)
 	 * \tparam IndexType Will be typically size_t or int
 	 */
 	template <typename Distance, class DatasetAdaptor,int DIM = -1, typename IndexType = size_t>
@@ -757,37 +754,25 @@ namespace nanoflann
 
 		const KDTreeSingleIndexAdaptorParams index_params;
 
-		size_t m_size;
+		size_t m_size; //!< Number of current points in the dataset
+		size_t m_size_at_index_build; //!< Number of points in the dataset when the index was built
 		int dim;  //!< Dimensionality of each data point
 
 
 		/*--------------------- Internal Data Structures --------------------------*/
 		struct Node
 		{
+			/** Union used because a node can be either a LEAF node or a non-leaf node, so both data fields are never used simultaneously */
 			union {
-				struct
-				{
-					/**
-					 * Indices of points in leaf node
-					 */
-					IndexType left, right;
+				struct {
+					IndexType    left, right;  //!< Indices of points in leaf node
 				} lr;
-				struct
-				{
-					/**
-					 * Dimension used for subdivision.
-					 */
-					int divfeat;
-					/**
-					 * The values used for subdivision.
-					 */
-					DistanceType divlow, divhigh;
+				struct {
+					int          divfeat; //!< Dimension used for subdivision.
+					DistanceType divlow, divhigh; //!< The values used for subdivision.
 				} sub;
 			};
-			/**
-			 * The child nodes.
-			 */
-			Node* child1, * child2;
+			Node* child1, * child2;  //!< Child nodes (both=NULL mean its a leaf node)
 		};
 		typedef Node* NodePtr;
 
@@ -803,32 +788,8 @@ namespace nanoflann
 		/** Define "distance_vector_t" as a fixed-size or variable-size container depending on "DIM" */
 		typedef typename array_or_vector_selector<DIM,DistanceType>::container_t distance_vector_t;
 
-		/** This record represents a branch point when finding neighbors in
-			the tree.  It contains a record of the minimum distance to the query
-			point, as well as the node at which the search resumes.
-		 */
-		template <typename T, typename DistanceType>
-		struct BranchStruct
-		{
-			T node;           /* Tree node at which search resumes */
-			DistanceType mindist;     /* Minimum distance to query for all nodes below. */
-
-			BranchStruct() {}
-			BranchStruct(const T& aNode, DistanceType dist) : node(aNode), mindist(dist) {}
-
-			inline bool operator<(const BranchStruct<T, DistanceType>& rhs) const
-			{
-				return mindist<rhs.mindist;
-			}
-		};
-
-		/**
-		 * Array of k-d trees used to find neighbours.
-		 */
+		/** The KD-tree used to find neighbours */
 		NodePtr root_node;
-		typedef BranchStruct<NodePtr, DistanceType> BranchSt;
-		typedef BranchSt* Branch;
-
 		BoundingBox root_bbox;
 
 		/**
@@ -847,37 +808,38 @@ namespace nanoflann
 		/**
 		 * KDTree constructor
 		 *
-		 * Params:
-		 *          inputData = dataset with the input features
-		 *          params = parameters passed to the kdtree algorithm (see http://code.google.com/p/nanoflann/ for help choosing the parameters)
+		 * Refer to docs in README.md or online in https://github.com/jlblancoc/nanoflann
+		 *
+		 * The KD-Tree point dimension (the length of each point in the datase, e.g. 3 for 3D points)
+		 * is determined by means of:
+		 *  - The \a DIM template parameter if >0 (highest priority)
+		 *  - Otherwise, the \a dimensionality parameter of this constructor.
+		 *
+		 * @param inputData Dataset with the input features
+		 * @param params Basically, the maximum leaf node size
 		 */
 		KDTreeSingleIndexAdaptor(const int dimensionality, const DatasetAdaptor& inputData, const KDTreeSingleIndexAdaptorParams& params = KDTreeSingleIndexAdaptorParams() ) :
 			dataset(inputData), index_params(params), root_node(NULL), distance(inputData)
 		{
 			m_size = dataset.kdtree_get_point_count();
+			m_size_at_index_build = m_size;
 			dim = dimensionality;
 			if (DIM>0) dim=DIM;
-			else {
-				if (params.dim>0) dim = params.dim;
-			}
 			m_leaf_max_size = params.leaf_max_size;
 
 			// Create a permutable array of indices to the input vectors.
 			init_vind();
 		}
 
-		/**
-		 * Standard destructor
-		 */
-		~KDTreeSingleIndexAdaptor()
-		{
-		}
+		/** Standard destructor */
+		~KDTreeSingleIndexAdaptor() { }
 
 		/** Frees the previously-built index. Automatically called within buildIndex(). */
 		void freeIndex()
 		{
 			pool.free_all();
 			root_node=NULL;
+			m_size_at_index_build = 0;
 		}
 
 		/**
@@ -887,24 +849,17 @@ namespace nanoflann
 		{
 			init_vind();
 			freeIndex();
+			m_size_at_index_build = m_size;
 			if(m_size == 0) return;
 			computeBoundingBox(root_bbox);
 			root_node = divideTree(0, m_size, root_bbox );   // construct the tree
 		}
 
-		/**
-		 *  Returns size of index.
-		 */
-		size_t size() const
-		{
-			return m_size;
-		}
+		/** Returns number of points in dataset  */
+		size_t size() const { return m_size; }
 
-		/**
-		 * Returns the length of an index feature.
-		 */
-		size_t veclen() const
-		{
+		/** Returns the length of each point in the dataset */
+		size_t veclen() const {
 			return static_cast<size_t>(DIM>0 ? DIM : dim);
 		}
 
@@ -1061,11 +1016,9 @@ namespace nanoflann
 		/**
 		 * Create a tree node that subdivides the list of vecs from vind[first]
 		 * to vind[last].  The routine is called recursively on each sublist.
-		 * Place a pointer to this new tree node in the location pTree.
 		 *
-		 * Params: pTree = the new node to create
-		 *                  first = index of the first vector
-		 *                  last = index of the last vector
+		 * @param left index of the first vector
+		 * @param right index of the last vector
 		 */
 		NodePtr divideTree(const IndexType left, const IndexType right, BoundingBox& bbox)
 		{
@@ -1116,6 +1069,7 @@ namespace nanoflann
 
 			return node;
 		}
+
 
 		void computeMinMax(IndexType* ind, IndexType count, int element, ElementType& min_elem, ElementType& max_elem)
 		{
@@ -1346,9 +1300,10 @@ namespace nanoflann
 		KDTreeEigenMatrixAdaptor(const int dimensionality, const MatrixType &mat, const int leaf_max_size = 10) : m_data_matrix(mat)
 		{
 			const size_t dims = mat.cols();
+			if (dims!=dimensionality) throw std::runtime_error("Error: 'dimensionality' must match column count in data matrix");
 			if (DIM>0 && static_cast<int>(dims)!=DIM)
 				throw std::runtime_error("Data set dimensionality does not match the 'DIM' template argument");
-			index = new index_t( dims, *this /* adaptor */, nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size, dims ) );
+			index = new index_t( dims, *this /* adaptor */, nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size ) );
 			index->buildIndex();
 		}
 	private:

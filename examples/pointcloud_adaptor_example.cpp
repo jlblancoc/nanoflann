@@ -34,16 +34,16 @@
 using namespace std;
 using namespace nanoflann;
 
-	void dump_mem_usage()
-	{
-		FILE* f=fopen("/proc/self/statm","rt");
-		if (!f) return;
-		char str[300];
-		size_t n=fread(str,1,200,f);
-		str[n]=0;
-		printf("MEM: %s\n",str);
-		fclose(f);
-	}
+void dump_mem_usage()
+{
+	FILE* f=fopen("/proc/self/statm","rt");
+	if (!f) return;
+	char str[300];
+	size_t n=fread(str,1,200,f);
+	str[n]=0;
+	printf("MEM: %s\n",str);
+	fclose(f);
+}
 
 // This is an exampleof a custom data set class
 template <typename T>
