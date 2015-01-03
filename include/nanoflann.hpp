@@ -30,6 +30,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *************************************************************************/
 
+/** \mainpage nanoflann C++ API documentation 
+  *  nanoflann is a C++ header-only library for building KD-Trees, mostly 
+  *  optimized for 2D or 3D point clouds. 
+  *  
+  *  nanoflann does not require compiling or installing, just an 
+  *  #include <nanoflann.hpp> in your code.  
+  *  
+  *  See: 
+  *   - <a href="modules.html" >C++ API organized by modules</a>
+  *   - <a href="https://github.com/jlblancoc/nanoflann" >Online README</a>
+  */
+
 #ifndef  NANOFLANN_HPP_
 #define  NANOFLANN_HPP_
 
