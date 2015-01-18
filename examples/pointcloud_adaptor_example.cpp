@@ -34,16 +34,7 @@
 using namespace std;
 using namespace nanoflann;
 
-void dump_mem_usage()
-{
-	FILE* f=fopen("/proc/self/statm","rt");
-	if (!f) return;
-	char str[300];
-	size_t n=fread(str,1,200,f);
-	str[n]=0;
-	printf("MEM: %s\n",str);
-	fclose(f);
-}
+void dump_mem_usage();
 
 // This is an exampleof a custom data set class
 template <typename T>
@@ -77,7 +68,7 @@ struct PointCloudAdaptor
 	inline size_t kdtree_get_point_count() const { return derived().pts.size(); }
 
 	// Returns the distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
-	inline coord_t kdtree_distance(const coord_t *p1, const size_t idx_p2,size_t size) const
+	inline coord_t kdtree_distance(const coord_t *p1, const size_t idx_p2,size_t /*size*/) const
 	{
 		const coord_t d0=p1[0]-derived().pts[idx_p2].x;
 		const coord_t d1=p1[1]-derived().pts[idx_p2].y;
@@ -99,7 +90,7 @@ struct PointCloudAdaptor
 	//   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
 	//   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3 for point clouds)
 	template <class BBOX>
-	bool kdtree_get_bbox(BBOX &bb) const { return false; }
+	bool kdtree_get_bbox(BBOX& /*bb*/) const { return false; }
 
 }; // end of PointCloudAdaptor
 
@@ -159,11 +150,20 @@ void kdtree_demo(const size_t N)
 
 }
 
-int main(int argc, char** argv)
+int main()
 {
 	kdtree_demo<float>(1000000);
 	kdtree_demo<double>(1000000);
-
 	return 0;
+}
+void dump_mem_usage()
+{
+	FILE* f=fopen("/proc/self/statm","rt");
+	if (!f) return;
+	char str[300];
+	size_t n=fread(str,1,200,f);
+	str[n]=0;
+	printf("MEM: %s\n",str);
+	fclose(f);
 }
 

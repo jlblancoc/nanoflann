@@ -124,7 +124,7 @@ struct KDTreeVectorOfVectorsAdaptor
 	//   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
 	//   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3 for point clouds)
 	template <class BBOX>
-	bool kdtree_get_bbox(BBOX &bb) const {
+	bool kdtree_get_bbox(BBOX & /*bb*/) const {
 		return false;
 	}
 
@@ -183,10 +183,8 @@ void kdtree_demo(const size_t nSamples,const size_t dim)
 		std::cout << "ret_index["<<i<<"]=" << ret_indexes[i] << " out_dist_sqr=" << out_dists_sqr[i] << std::endl;
 }
 
-int main(int argc, char** argv)
+int main()
 {
 	kdtree_demo(1e3 /* samples */, SAMPLES_DIM /* dim */);
-
-	return 0;
 }
 
