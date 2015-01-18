@@ -34,6 +34,8 @@
 using namespace std;
 using namespace nanoflann;
 
+void dump_mem_usage();
+
 // This is an exampleof a custom data set class
 template <typename T>
 struct PointCloud
@@ -49,7 +51,7 @@ struct PointCloud
 	inline size_t kdtree_get_point_count() const { return pts.size(); }
 
 	// Returns the distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
-	inline T kdtree_distance(const T *p1, const size_t idx_p2,size_t size) const
+	inline T kdtree_distance(const T *p1, const size_t idx_p2,size_t /*size*/) const
 	{
 		const T d0=p1[0]-pts[idx_p2].x;
 		const T d1=p1[1]-pts[idx_p2].y;
@@ -71,7 +73,7 @@ struct PointCloud
 	//   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
 	//   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3 for point clouds)
 	template <class BBOX>
-	bool kdtree_get_bbox(BBOX &bb) const { return false; }
+	bool kdtree_get_bbox(BBOX& /* bb */) const { return false; }
 
 };
 
@@ -90,16 +92,6 @@ void generateRandomPointCloud(PointCloud<T> &point, const size_t N, const T max_
 	std::cout << "done\n";
 }
 
-	void dump_mem_usage()
-	{
-		FILE* f=fopen("/proc/self/statm","rt");
-		if (!f) return;
-		char str[300];
-		size_t n=fread(str,1,200,f);
-		str[n]=0;
-		printf("MEM: %s\n",str);
-		fclose(f);
-	}
 
 template <typename num_t>
 void kdtree_demo(const size_t N)
@@ -125,19 +117,18 @@ void kdtree_demo(const size_t N)
 	index.buildIndex();
 
 	dump_mem_usage();
+	{
+		// do a knn search
+		const size_t num_results = 1;
+		size_t ret_index;
+		num_t out_dist_sqr;
+		nanoflann::KNNResultSet<num_t> resultSet(num_results);
+		resultSet.init(&ret_index, &out_dist_sqr );
+		index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
 
-	// do a knn search
-	const size_t num_results = 1;
-	size_t ret_index;
-	num_t out_dist_sqr;
-	nanoflann::KNNResultSet<num_t> resultSet(num_results);
-	resultSet.init(&ret_index, &out_dist_sqr );
-	index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
-
-	std::cout << "knnSearch(nn="<<num_results<<"): \n";
-	std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr << endl;
-
-
+		std::cout << "knnSearch(nn="<<num_results<<"): \n";
+		std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr << endl;
+	}
 	{
 		// Unsorted radius search:
 		const num_t radius = 1;
@@ -153,11 +144,20 @@ void kdtree_demo(const size_t N)
 
 }
 
-int main(int argc, char** argv)
+int main()
 {
 	kdtree_demo<float>(1000000);
 	kdtree_demo<double>(1000000);
-
 	return 0;
 }
 
+void dump_mem_usage()
+{
+	FILE* f=fopen("/proc/self/statm","rt");
+	if (!f) return;
+	char str[300];
+	size_t n=fread(str,1,200,f);
+	str[n]=0;
+	printf("MEM: %s\n",str);
+	fclose(f);
+}

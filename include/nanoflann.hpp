@@ -255,7 +255,7 @@ namespace nanoflann
 	/** Manhattan distance functor (generic version, optimized for high-dimensionality data sets).
 	  *  Corresponding distance traits: nanoflann::metric_L1
 	  * \tparam T Type of the elements (e.g. double, float, uint8_t)
-	  * \tparam DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
+	  * \tparam _DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
 	  */
 	template<class T, class DataSource, typename _DistanceType = T>
 	struct L1_Adaptor
@@ -303,7 +303,7 @@ namespace nanoflann
 	/** Squared Euclidean distance functor (generic version, optimized for high-dimensionality data sets).
 	  *  Corresponding distance traits: nanoflann::metric_L2
 	  * \tparam T Type of the elements (e.g. double, float, uint8_t)
-	  * \tparam DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
+	  * \tparam _DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
 	  */
 	template<class T, class DataSource, typename _DistanceType = T>
 	struct L2_Adaptor
@@ -352,7 +352,7 @@ namespace nanoflann
 	/** Squared Euclidean (L2) distance functor (suitable for low-dimensionality datasets, like 2D or 3D point clouds)
 	  *  Corresponding distance traits: nanoflann::metric_L2_Simple
 	  * \tparam T Type of the elements (e.g. double, float, uint8_t)
-	  * \tparam DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
+	  * \tparam _DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
 	  */
 	template<class T, class DataSource, typename _DistanceType = T>
 	struct L2_Simple_Adaptor
@@ -439,7 +439,7 @@ namespace nanoflann
 	template <typename T>
 	inline T* allocate(size_t count = 1)
 	{
-		T* mem = (T*) ::malloc(sizeof(T)*count);
+		T* mem = static_cast<T*>( ::malloc(sizeof(T)*count));
 		return mem;
 	}
 
@@ -473,7 +473,6 @@ namespace nanoflann
 		size_t  remaining;  /* Number of bytes left in current block of storage. */
 		void*   base;     /* Pointer to base of current block of storage. */
 		void*   loc;      /* Current location in block to next allocate memory. */
-		size_t  blocksize;
 
 		void internal_init()
 		{
@@ -490,7 +489,7 @@ namespace nanoflann
 		/**
 		    Default constructor. Initializes a new pool.
 		 */
-		PooledAllocator(const size_t blocksize_ = BLOCKSIZE) : blocksize(blocksize_) {
+		PooledAllocator() {
 			internal_init();
 		}
 
@@ -505,7 +504,7 @@ namespace nanoflann
 		void free_all()
 		{
 			while (base != NULL) {
-				void *prev = *((void**) base); /* Get pointer to prev block. */
+				void *prev = *(static_cast<void**>( base)); /* Get pointer to prev block. */
 				::free(base);
 				base = prev;
 			}
@@ -543,17 +542,17 @@ namespace nanoflann
 				}
 
 				/* Fill first word of new block with pointer to previous block. */
-				((void**) m)[0] = base;
+				static_cast<void**>(m)[0] = base;
 				base = m;
 
 				size_t shift = 0;
 				//int size_t = (WORDSIZE - ( (((size_t)m) + sizeof(void*)) & (WORDSIZE-1))) & (WORDSIZE-1);
 
 				remaining = blocksize - sizeof(void*) - shift;
-				loc = ((char*)m + sizeof(void*) + shift);
+				loc = (static_cast<char*>(m) + sizeof(void*) + shift);
 			}
 			void* rloc = loc;
-			loc = (char*)loc + size;
+			loc = static_cast<char*>(loc) + size;
 			remaining -= size;
 
 			usedMemory += size;
@@ -571,7 +570,7 @@ namespace nanoflann
 		template <typename T>
 		T* allocate(const size_t count = 1)
 		{
-			T* mem = (T*) this->malloc(sizeof(T)*count);
+			T* mem = static_cast<T*>(this->malloc(sizeof(T)*count));
 			return mem;
 		}
 
@@ -1296,13 +1295,13 @@ namespace nanoflann
 	  *
 	  *  \tparam DIM If set to >0, it specifies a compile-time fixed dimensionality for the points in the data set, allowing more compiler optimizations.
 	  *  \tparam Distance The distance metric to use: nanoflann::metric_L1, nanoflann::metric_L2, nanoflann::metric_L2_Simple, etc.
-	  *  \tparam IndexType The type for indices in the KD-tree index (typically, size_t of int)
 	  */
-	template <class MatrixType, int DIM = -1, class Distance = nanoflann::metric_L2, typename IndexType = size_t>
+	template <class MatrixType, int DIM = -1, class Distance = nanoflann::metric_L2>
 	struct KDTreeEigenMatrixAdaptor
 	{
-		typedef KDTreeEigenMatrixAdaptor<MatrixType,DIM,Distance,IndexType> self_t;
+		typedef KDTreeEigenMatrixAdaptor<MatrixType,DIM,Distance> self_t;
 		typedef typename MatrixType::Scalar              num_t;
+		typedef typename MatrixType::Index IndexType;
 		typedef typename Distance::template traits<num_t,self_t>::distance_t metric_t;
 		typedef KDTreeSingleIndexAdaptor< metric_t,self_t,DIM,IndexType>  index_t;
 
@@ -1311,7 +1310,7 @@ namespace nanoflann
 		/// Constructor: takes a const ref to the matrix object with the data points
 		KDTreeEigenMatrixAdaptor(const int dimensionality, const MatrixType &mat, const int leaf_max_size = 10) : m_data_matrix(mat)
 		{
-			const size_t dims = mat.cols();
+			const IndexType dims = mat.cols();
 			if (dims!=dimensionality) throw std::runtime_error("Error: 'dimensionality' must match column count in data matrix");
 			if (DIM>0 && static_cast<int>(dims)!=DIM)
 				throw std::runtime_error("Data set dimensionality does not match the 'DIM' template argument");
@@ -1336,7 +1335,7 @@ namespace nanoflann
 		  */
 		inline void query(const num_t *query_point, const size_t num_closest, IndexType *out_indices, num_t *out_distances_sq, const int /* nChecks_IGNORED */ = 10) const
 		{
-			nanoflann::KNNResultSet<typename MatrixType::Scalar,IndexType> resultSet(num_closest);
+			nanoflann::KNNResultSet<num_t,IndexType> resultSet(num_closest);
 			resultSet.init(out_indices, out_distances_sq);
 			index->findNeighbors(resultSet, query_point, nanoflann::SearchParams());
 		}
@@ -1357,10 +1356,10 @@ namespace nanoflann
 		}
 
 		// Returns the L2 distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
-		inline num_t kdtree_distance(const num_t *p1, const size_t idx_p2,size_t size) const
+		inline num_t kdtree_distance(const num_t *p1, const IndexType idx_p2,IndexType size) const
 		{
 			num_t s=0;
-			for (size_t i=0; i<size; i++) {
+			for (IndexType i=0; i<size; i++) {
 				const num_t d= p1[i]-m_data_matrix.coeff(idx_p2,i);
 				s+=d*d;
 			}
@@ -1368,15 +1367,15 @@ namespace nanoflann
 		}
 
 		// Returns the dim'th component of the idx'th point in the class:
-		inline num_t kdtree_get_pt(const size_t idx, int dim) const {
-			return m_data_matrix.coeff(idx,dim);
+		inline num_t kdtree_get_pt(const IndexType idx, int dim) const {
+			return m_data_matrix.coeff(idx,IndexType(dim));
 		}
 
 		// Optional bounding-box computation: return false to default to a standard bbox computation loop.
 		//   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
 		//   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3 for point clouds)
 		template <class BBOX>
-		bool kdtree_get_bbox(BBOX &bb) const {
+		bool kdtree_get_bbox(BBOX& /*bb*/) const {
 			return false;
 		}
 
