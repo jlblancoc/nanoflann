@@ -255,7 +255,7 @@ namespace nanoflann
 	/** Manhattan distance functor (generic version, optimized for high-dimensionality data sets).
 	  *  Corresponding distance traits: nanoflann::metric_L1
 	  * \tparam T Type of the elements (e.g. double, float, uint8_t)
-	  * \tparam DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
+	  * \tparam _DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
 	  */
 	template<class T, class DataSource, typename _DistanceType = T>
 	struct L1_Adaptor
@@ -303,7 +303,7 @@ namespace nanoflann
 	/** Squared Euclidean distance functor (generic version, optimized for high-dimensionality data sets).
 	  *  Corresponding distance traits: nanoflann::metric_L2
 	  * \tparam T Type of the elements (e.g. double, float, uint8_t)
-	  * \tparam DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
+	  * \tparam _DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
 	  */
 	template<class T, class DataSource, typename _DistanceType = T>
 	struct L2_Adaptor
@@ -352,7 +352,7 @@ namespace nanoflann
 	/** Squared Euclidean (L2) distance functor (suitable for low-dimensionality datasets, like 2D or 3D point clouds)
 	  *  Corresponding distance traits: nanoflann::metric_L2_Simple
 	  * \tparam T Type of the elements (e.g. double, float, uint8_t)
-	  * \tparam DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
+	  * \tparam _DistanceType Type of distance variables (must be signed) (e.g. float, double, int64_t)
 	  */
 	template<class T, class DataSource, typename _DistanceType = T>
 	struct L2_Simple_Adaptor
@@ -439,7 +439,7 @@ namespace nanoflann
 	template <typename T>
 	inline T* allocate(size_t count = 1)
 	{
-		T* mem = (T*) ::malloc(sizeof(T)*count);
+		T* mem = static_cast<T*>( ::malloc(sizeof(T)*count));
 		return mem;
 	}
 
@@ -473,7 +473,6 @@ namespace nanoflann
 		size_t  remaining;  /* Number of bytes left in current block of storage. */
 		void*   base;     /* Pointer to base of current block of storage. */
 		void*   loc;      /* Current location in block to next allocate memory. */
-		size_t  blocksize;
 
 		void internal_init()
 		{
@@ -490,7 +489,7 @@ namespace nanoflann
 		/**
 		    Default constructor. Initializes a new pool.
 		 */
-		PooledAllocator(const size_t blocksize_ = BLOCKSIZE) : blocksize(blocksize_) {
+		PooledAllocator() {
 			internal_init();
 		}
 
@@ -505,7 +504,7 @@ namespace nanoflann
 		void free_all()
 		{
 			while (base != NULL) {
-				void *prev = *((void**) base); /* Get pointer to prev block. */
+				void *prev = *(static_cast<void**>( base)); /* Get pointer to prev block. */
 				::free(base);
 				base = prev;
 			}
@@ -543,17 +542,17 @@ namespace nanoflann
 				}
 
 				/* Fill first word of new block with pointer to previous block. */
-				((void**) m)[0] = base;
+				static_cast<void**>(m)[0] = base;
 				base = m;
 
 				size_t shift = 0;
 				//int size_t = (WORDSIZE - ( (((size_t)m) + sizeof(void*)) & (WORDSIZE-1))) & (WORDSIZE-1);
 
 				remaining = blocksize - sizeof(void*) - shift;
-				loc = ((char*)m + sizeof(void*) + shift);
+				loc = (static_cast<char*>(m) + sizeof(void*) + shift);
 			}
 			void* rloc = loc;
-			loc = (char*)loc + size;
+			loc = static_cast<char*>(loc) + size;
 			remaining -= size;
 
 			usedMemory += size;
@@ -571,7 +570,7 @@ namespace nanoflann
 		template <typename T>
 		T* allocate(const size_t count = 1)
 		{
-			T* mem = (T*) this->malloc(sizeof(T)*count);
+			T* mem = static_cast<T*>(this->malloc(sizeof(T)*count));
 			return mem;
 		}
 
@@ -1376,7 +1375,7 @@ namespace nanoflann
 		//   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
 		//   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3 for point clouds)
 		template <class BBOX>
-		bool kdtree_get_bbox(BBOX &bb) const {
+		bool kdtree_get_bbox(BBOX& /*bb*/) const {
 			return false;
 		}
 
