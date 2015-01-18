@@ -117,19 +117,18 @@ void kdtree_demo(const size_t N)
 	index.buildIndex();
 
 	dump_mem_usage();
+	{
+		// do a knn search
+		const size_t num_results = 1;
+		size_t ret_index;
+		num_t out_dist_sqr;
+		nanoflann::KNNResultSet<num_t> resultSet(num_results);
+		resultSet.init(&ret_index, &out_dist_sqr );
+		index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
 
-	// do a knn search
-	const size_t num_results = 1;
-	size_t ret_index;
-	num_t out_dist_sqr;
-	nanoflann::KNNResultSet<num_t> resultSet(num_results);
-	resultSet.init(&ret_index, &out_dist_sqr );
-	index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
-
-	std::cout << "knnSearch(nn="<<num_results<<"): \n";
-	std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr << endl;
-
-
+		std::cout << "knnSearch(nn="<<num_results<<"): \n";
+		std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr << endl;
+	}
 	{
 		// Unsorted radius search:
 		const num_t radius = 1;
