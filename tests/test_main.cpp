@@ -179,23 +179,15 @@ TEST(kdtree,robust_empty_tree)
 	index1.buildIndex();
 
 
-	// Now we will try to search in the tree, and WE EXPECT an exception if
-	// the error detection works fine:
+	// Now we will try to search in the tree, and WE EXPECT a result of
+    // no neighbors found if the error detection works fine:
 	const size_t num_results = 1;
 	std::vector<size_t>   ret_index(num_results);
 	std::vector<double> out_dist_sqr(num_results);
 	nanoflann::KNNResultSet<double> resultSet(num_results);
 	resultSet.init(&ret_index[0], &out_dist_sqr[0] );
-	try
-	{
-		index1.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
-		// We shoudn't reach here!!
-		EXPECT_TRUE(false) << "Exception was not launched and it was expected!";
-	}
-	catch (std::exception &)
-	{
-		// Exception catched, OK.
-	}
-
+    bool result = index1.findNeighbors(resultSet, &query_pt[0],
+        nanoflann::SearchParams(10));
+    EXPECT_EQ(result, false);
 }
 
