@@ -90,7 +90,8 @@ namespace nanoflann
 			indices = indices_;
 			dists = dists_;
 			count = 0;
-			dists[capacity-1] = (std::numeric_limits<DistanceType>::max)();
+            if (capacity)
+                dists[capacity-1] = (std::numeric_limits<DistanceType>::max)();
 		}
 
 		inline CountType size() const
@@ -895,19 +896,24 @@ namespace nanoflann
 		 *     vec = the vector for which to search the nearest neighbors
 		 *
 		 * \tparam RESULTSET Should be any ResultSet<DistanceType>
+         * \return  True if the requested neighbors could be found.
 		 * \sa knnSearch, radiusSearch
 		 */
 		template <typename RESULTSET>
-		void findNeighbors(RESULTSET& result, const ElementType* vec, const SearchParams& searchParams) const
+		bool findNeighbors(RESULTSET& result, const ElementType* vec, const SearchParams& searchParams) const
 		{
 			assert(vec);
-			if (!root_node) throw std::runtime_error("[nanoflann] findNeighbors() called before building the index or no data points.");
+            if (size() == 0)
+                return false;
+			if (!root_node)
+                throw std::runtime_error("[nanoflann] findNeighbors() called before building the index.");
 			float epsError = 1+searchParams.eps;
 
 			distance_vector_t dists; // fixed or variable-sized container (depending on DIM)
 			dists.assign((DIM>0 ? DIM : dim) ,0); // Fill it with zeros.
 			DistanceType distsq = computeInitialDistances(vec, dists);
 			searchLevel(result, vec, root_node, distsq, dists, epsError);  // "count_leaf" parameter removed since was neither used nor returned to the user.
+            return result.full();
 		}
 
 		/**
