@@ -109,7 +109,7 @@ namespace nanoflann
 		{
 			CountType i;
 			for (i=count; i>0; --i) {
-#ifdef NANOFLANN_FIRST_MATCH   // If defined and two poins have the same distance, the one with the lowest-index will be returned first.
+#ifdef NANOFLANN_FIRST_MATCH   // If defined and two points have the same distance, the one with the lowest-index will be returned first.
 				if ( (dists[i-1]>dist) || ((dist==dists[i-1])&&(indices[i-1]>index)) ) {
 #else
 				if (dists[i-1]>dist) {
@@ -712,7 +712,7 @@ namespace nanoflann
 	 *  The class "DatasetAdaptor" must provide the following interface (can be non-virtual, inlined methods):
 	 *
 	 *  \code
-	 *   // Must return the number of data points
+	 *   // Must return the number of data poins
 	 *   inline size_t kdtree_get_point_count() const { ... }
 	 *
 	 *   // [Only if using the metric_L2_Simple type] Must return the Euclidean (L2) distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
@@ -766,7 +766,7 @@ namespace nanoflann
 
 		const KDTreeSingleIndexAdaptorParams index_params;
 
-		size_t m_size; //!< Number of current points in the dataset
+		size_t m_size; //!< Number of current poins in the dataset
 		size_t m_size_at_index_build; //!< Number of points in the dataset when the index was built
 		int dim;  //!< Dimensionality of each data point
 
