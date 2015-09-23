@@ -34,7 +34,7 @@
 using namespace std;
 using namespace nanoflann;
 
-// This is an exampleof a custom data set class
+// This is an example of a custom data set class
 template <typename T>
 struct PointCloud
 {
