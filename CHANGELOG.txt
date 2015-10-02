@@ -1,4 +1,4 @@
-nanoflann 1.1.9: Under development
+nanoflann 1.1.9: Released Oct 2, 2015
   * Added KDTreeSingleIndexAdaptor::radiusSearchCustomCallback() (Based on a suggestion by Yannick Morin-Rivest)
   * Better documentation in class headers.
   * Cleanup of unused code.
