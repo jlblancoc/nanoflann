@@ -25,7 +25,7 @@ Although nanoflann itself doesn't have to be compiled, you can build some exampl
 
 ### 1.2. C++ API reference
 
-  * Browse the [Doxygen documentation](http://nanoflann-reference.mrpt.org/svn/).
+  * Browse the [Doxygen documentation](http://jlblancoc.github.io/nanoflann/).
 
   * **Important note:** If L2 norms are used, notice that search radius and all passed and returned distances are actually *squared distances*.
 
