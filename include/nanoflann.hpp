@@ -776,14 +776,16 @@ namespace nanoflann
 		{
 			/** Union used because a node can be either a LEAF node or a non-leaf node, so both data fields are never used simultaneously */
 			union {
-				struct {
+				struct leaf
+                                {
 					IndexType    left, right;  //!< Indices of points in leaf node
 				} lr;
-				struct {
+				struct nonleaf
+                                {
 					int          divfeat; //!< Dimension used for subdivision.
 					DistanceType divlow, divhigh; //!< The values used for subdivision.
 				} sub;
-			};
+			} node_type;
 			Node* child1, * child2;  //!< Child nodes (both=NULL mean its a leaf node)
 		};
 		typedef Node* NodePtr;
@@ -1044,8 +1046,8 @@ namespace nanoflann
 			/* If too few exemplars remain, then make this a leaf node. */
 			if ( (right-left) <= m_leaf_max_size) {
 				node->child1 = node->child2 = NULL;    /* Mark as leaf node. */
-				node->lr.left = left;
-				node->lr.right = right;
+				node->node_type.lr.left = left;
+				node->node_type.lr.right = right;
 
 				// compute bounding-box of leaf points
 				for (int i=0; i<(DIM>0 ? DIM : dim); ++i) {
@@ -1065,7 +1067,7 @@ namespace nanoflann
 				DistanceType cutval;
 				middleSplit_(&vind[0]+left, right-left, idx, cutfeat, cutval, bbox);
 
-				node->sub.divfeat = cutfeat;
+				node->node_type.sub.divfeat = cutfeat;
 
 				BoundingBox left_bbox(bbox);
 				left_bbox[cutfeat].high = cutval;
@@ -1075,8 +1077,8 @@ namespace nanoflann
 				right_bbox[cutfeat].low = cutval;
 				node->child2 = divideTree(left+idx, right, right_bbox);
 
-				node->sub.divlow = left_bbox[cutfeat].high;
-				node->sub.divhigh = right_bbox[cutfeat].low;
+				node->node_type.sub.divlow = left_bbox[cutfeat].high;
+				node->node_type.sub.divhigh = right_bbox[cutfeat].low;
 
 				for (int i=0; i<(DIM>0 ? DIM : dim); ++i) {
 					bbox[i].low = std::min(left_bbox[i].low, right_bbox[i].low);
@@ -1210,7 +1212,7 @@ namespace nanoflann
 			if ((node->child1 == NULL)&&(node->child2 == NULL)) {
 				//count_leaf += (node->lr.right-node->lr.left);  // Removed since was neither used nor returned to the user.
 				DistanceType worst_dist = result_set.worstDist();
-				for (IndexType i=node->lr.left; i<node->lr.right; ++i) {
+				for (IndexType i=node->node_type.lr.left; i<node->node_type.lr.right; ++i) {
 					const IndexType index = vind[i];// reorder... : i;
 					DistanceType dist = distance(vec, index, (DIM>0 ? DIM : dim));
 					if (dist<worst_dist) {
@@ -1221,10 +1223,10 @@ namespace nanoflann
 			}
 
 			/* Which child branch should be taken first? */
-			int idx = node->sub.divfeat;
+			int idx = node->node_type.sub.divfeat;
 			ElementType val = vec[idx];
-			DistanceType diff1 = val - node->sub.divlow;
-			DistanceType diff2 = val - node->sub.divhigh;
+			DistanceType diff1 = val - node->node_type.sub.divlow;
+			DistanceType diff2 = val - node->node_type.sub.divhigh;
 
 			NodePtr bestChild;
 			NodePtr otherChild;
@@ -1232,12 +1234,12 @@ namespace nanoflann
 			if ((diff1+diff2)<0) {
 				bestChild = node->child1;
 				otherChild = node->child2;
-				cut_dist = distance.accum_dist(val, node->sub.divhigh, idx);
+				cut_dist = distance.accum_dist(val, node->node_type.sub.divhigh, idx);
 			}
 			else {
 				bestChild = node->child2;
 				otherChild = node->child1;
-				cut_dist = distance.accum_dist( val, node->sub.divlow, idx);
+				cut_dist = distance.accum_dist( val, node->node_type.sub.divlow, idx);
 			}
 
 			/* Call recursively to search next level down. */
