@@ -153,6 +153,8 @@ void kdtree_demo(const size_t N)
 
  int main()
 {
+	// Randomize Seed
+	srand(time(NULL));
 	kdtree_demo<float>(100000);
 	kdtree_demo<double>(100000);
 	return 0;

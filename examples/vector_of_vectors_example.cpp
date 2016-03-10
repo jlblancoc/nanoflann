@@ -185,6 +185,8 @@ void kdtree_demo(const size_t nSamples,const size_t dim)
 
 int main()
 {
+	// Randomize Seed
+	srand(time(NULL));
 	kdtree_demo(1e3 /* samples */, SAMPLES_DIM /* dim */);
 }
 
