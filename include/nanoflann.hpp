@@ -50,7 +50,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cstdio>  // for fwrite()
-#include <cmath>   // for fabs(),...
+#include <cmath>   // for abs(),...
 #include <limits>
 
 // Avoid conflicting declaration of min/max macros in windows headers
@@ -247,12 +247,6 @@ namespace nanoflann
 	/** @addtogroup metric_grp Metric (distance) classes
 	  * @{ */
 
-	template<typename T> inline T abs(T x) { return (x<0) ? -x : x; }
-	template<> inline int abs<int>(int x) { return ::abs(x); }
-	template<> inline float abs<float>(float x) { return fabsf(x); }
-	template<> inline double abs<double>(double x) { return fabs(x); }
-	template<> inline long double abs<long double>(long double x) { return fabsl(x); }
-
 	/** Manhattan distance functor (generic version, optimized for high-dimensionality data sets).
 	  *  Corresponding distance traits: nanoflann::metric_L1
 	  * \tparam T Type of the elements (e.g. double, float, uint8_t)
@@ -277,10 +271,10 @@ namespace nanoflann
 
 			/* Process 4 items with each loop for efficiency. */
 			while (a < lastgroup) {
-				const DistanceType diff0 = nanoflann::abs(a[0] - data_source.kdtree_get_pt(b_idx,d++));
-				const DistanceType diff1 = nanoflann::abs(a[1] - data_source.kdtree_get_pt(b_idx,d++));
-				const DistanceType diff2 = nanoflann::abs(a[2] - data_source.kdtree_get_pt(b_idx,d++));
-				const DistanceType diff3 = nanoflann::abs(a[3] - data_source.kdtree_get_pt(b_idx,d++));
+				const DistanceType diff0 = std::abs(a[0] - data_source.kdtree_get_pt(b_idx,d++));
+				const DistanceType diff1 = std::abs(a[1] - data_source.kdtree_get_pt(b_idx,d++));
+				const DistanceType diff2 = std::abs(a[2] - data_source.kdtree_get_pt(b_idx,d++));
+				const DistanceType diff3 = std::abs(a[3] - data_source.kdtree_get_pt(b_idx,d++));
 				result += diff0 + diff1 + diff2 + diff3;
 				a += 4;
 				if ((worst_dist>0)&&(result>worst_dist)) {
@@ -289,7 +283,7 @@ namespace nanoflann
 			}
 			/* Process last 0-3 components.  Not needed for standard vector lengths. */
 			while (a < last) {
-				result += nanoflann::abs( *a++ - data_source.kdtree_get_pt(b_idx,d++) );
+				result += std::abs( *a++ - data_source.kdtree_get_pt(b_idx,d++) );
 			}
 			return result;
 		}
@@ -297,7 +291,7 @@ namespace nanoflann
 		template <typename U, typename V>
 		inline DistanceType accum_dist(const U a, const V b, int ) const
 		{
-			return nanoflann::abs(a-b);
+			return std::abs(a-b);
 		}
 	};
 
