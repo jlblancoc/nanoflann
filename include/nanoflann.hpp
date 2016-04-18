@@ -50,7 +50,8 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cstdio>  // for fwrite()
-#include <cmath>   // for abs(),...
+#include <cmath>   // for abs()
+#include <cstdlib> // for abs()
 #include <limits>
 
 // Avoid conflicting declaration of min/max macros in windows headers
