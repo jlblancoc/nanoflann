@@ -260,7 +260,7 @@ namespace nanoflann
 		typedef T ElementType;
 		typedef _DistanceType DistanceType;
 
-		const DataSource &data_source;
+		const DataSource data_source;
 
 		L1_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
@@ -308,7 +308,7 @@ namespace nanoflann
 		typedef T ElementType;
 		typedef _DistanceType DistanceType;
 
-		const DataSource &data_source;
+		const DataSource data_source;
 
 		L2_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
@@ -357,7 +357,7 @@ namespace nanoflann
 		typedef T ElementType;
 		typedef _DistanceType DistanceType;
 
-		const DataSource &data_source;
+		const DataSource data_source;
 
 		L2_Simple_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
@@ -758,7 +758,7 @@ namespace nanoflann
 		/**
 		 * The dataset used by this index
 		 */
-		const DatasetAdaptor &dataset; //!< The source of our data
+		const DatasetAdaptor dataset; //!< The source of our data
 
 		const KDTreeSingleIndexAdaptorParams index_params;
 
@@ -939,7 +939,7 @@ namespace nanoflann
 		 *  \sa knnSearch, findNeighbors, radiusSearchCustomCallback
 		 * \return The number of points within the given radius (i.e. indices.size() or dists.size() )
 		 */
-		size_t radiusSearch(const ElementType *query_point,const DistanceType radius, std::vector<std::pair<IndexType,DistanceType> >& IndicesDists, const SearchParams& searchParams) const 
+		size_t radiusSearch(const ElementType *query_point,const DistanceType &radius, std::vector<std::pair<IndexType,DistanceType> >& IndicesDists, const SearchParams& searchParams) const 
 		{
 			RadiusResultSet<DistanceType,IndexType> resultSet(radius,IndicesDists);
 			const size_t nFound = radiusSearchCustomCallback(query_point,resultSet,searchParams);
@@ -1148,7 +1148,7 @@ namespace nanoflann
 		 *  dataset[ind[lim1..lim2-1]][cutfeat]==cutval
 		 *  dataset[ind[lim2..count]][cutfeat]>cutval
 		 */
-		void planeSplit(IndexType* ind, const IndexType count, int cutfeat, DistanceType cutval, IndexType& lim1, IndexType& lim2)
+		void planeSplit(IndexType* ind, const IndexType count, int cutfeat, DistanceType &cutval, IndexType& lim1, IndexType& lim2)
 		{
 			/* Move vector indices for left subtree to front of list. */
 			IndexType left = 0;
@@ -1201,7 +1201,7 @@ namespace nanoflann
 		 * \tparam RESULTSET Should be any ResultSet<DistanceType>
 		 */
 		template <class RESULTSET>
-		void searchLevel(RESULTSET& result_set, const ElementType* vec, const NodePtr node, DistanceType mindistsq,
+		void searchLevel(RESULTSET& result_set, const ElementType* vec, const NodePtr node, DistanceType &mindistsq,
 						 distance_vector_t& dists, const float epsError) const
 		{
 			/* If this is a leaf node, then do check and return. */
