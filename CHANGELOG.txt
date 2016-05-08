@@ -1,4 +1,4 @@
-nanoflann 1.1.10: (Under development)
+nanoflann 1.2.0: (Under development)
   * Fixed metric classes constructors get const ref arguments but stored const values.
 
 nanoflann 1.1.9: Released Oct 2, 2015
