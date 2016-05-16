@@ -260,7 +260,7 @@ namespace nanoflann
 		typedef T ElementType;
 		typedef _DistanceType DistanceType;
 
-		const DataSource data_source;
+		const DataSource &data_source;
 
 		L1_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
@@ -308,7 +308,7 @@ namespace nanoflann
 		typedef T ElementType;
 		typedef _DistanceType DistanceType;
 
-		const DataSource data_source;
+		const DataSource &data_source;
 
 		L2_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
@@ -357,7 +357,7 @@ namespace nanoflann
 		typedef T ElementType;
 		typedef _DistanceType DistanceType;
 
-		const DataSource data_source;
+		const DataSource &data_source;
 
 		L2_Simple_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
@@ -758,7 +758,7 @@ namespace nanoflann
 		/**
 		 * The dataset used by this index
 		 */
-		const DatasetAdaptor dataset; //!< The source of our data
+		const DatasetAdaptor &dataset; //!< The source of our data
 
 		const KDTreeSingleIndexAdaptorParams index_params;
 

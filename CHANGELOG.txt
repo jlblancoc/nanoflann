@@ -1,5 +1,6 @@
-nanoflann 1.2.0: (Under development)
-  * Fixed metric classes constructors get const ref arguments but stored const values.
+nanoflann 1.2.0: Released May 5, 2016
+  * Fixed: many classes constructors get const ref arguments but stored const values.
+  
 
 nanoflann 1.1.9: Released Oct 2, 2015
   * Added KDTreeSingleIndexAdaptor::radiusSearchCustomCallback() (Based on a suggestion by Yannick Morin-Rivest)
