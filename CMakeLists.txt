@@ -13,8 +13,13 @@ PROJECT(nanoflann)
 # --------------------------------------------------------------
 if(COMMAND cmake_policy)
       cmake_policy(SET CMP0003 NEW)
-endif(COMMAND cmake_policy)
-
+      if (POLICY CMP0037)
+		cmake_policy(SET CMP0037 OLD) # allow target "test"
+	  endif()
+      if (POLICY CMP0026)
+		cmake_policy(SET CMP0026 OLD) # allow get target exe location 
+	  endif()
+endif()
 SET( EXECUTABLE_OUTPUT_PATH ${nanoflann_BINARY_DIR}/bin CACHE PATH "Output directory for programs" )
 
 
