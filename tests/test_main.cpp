@@ -1,7 +1,7 @@
 /***********************************************************************
  * Software License Agreement (BSD License)
  *
- * Copyright 2011-2014 Jose Luis Blanco (joseluisblancoc@gmail.com).
+ * Copyright 2011-2016 Jose Luis Blanco (joseluisblancoc@gmail.com).
  *   All rights reserved.
  *
  * THE BSD LICENSE
@@ -180,14 +180,92 @@ TEST(kdtree,robust_empty_tree)
 
 
 	// Now we will try to search in the tree, and WE EXPECT a result of
-    // no neighbors found if the error detection works fine:
+	// no neighbors found if the error detection works fine:
 	const size_t num_results = 1;
 	std::vector<size_t>   ret_index(num_results);
 	std::vector<double> out_dist_sqr(num_results);
 	nanoflann::KNNResultSet<double> resultSet(num_results);
 	resultSet.init(&ret_index[0], &out_dist_sqr[0] );
-    bool result = index1.findNeighbors(resultSet, &query_pt[0],
-        nanoflann::SearchParams(10));
-    EXPECT_EQ(result, false);
+	bool result = index1.findNeighbors(resultSet, &query_pt[0],
+		nanoflann::SearchParams(10));
+	EXPECT_EQ(result, false);
 }
+
+using namespace nanoflann;
+#include "../examples/KDTreeVectorOfVectorsAdaptor.h"
+
+template <typename NUM>
+void generateRandomPointCloud(std::vector<std::vector<NUM> > &samples, const size_t N,const size_t dim, const NUM max_range)
+{
+	//std::cout << "Generating "<< N << " random points...";
+	samples.resize(N);
+	for (size_t i=0;i<N;i++)
+	{
+		samples[i].resize(dim);
+		for (size_t d=0;d<dim;d++)
+			samples[i][d] = max_range * (rand() % 1000) / NUM(1000.0);
+	}
+	//std::cout << "done\n";
+}
+
+template <typename NUM>
+void L2_vs_bruteforce_test(const size_t nSamples,const int DIM)
+{
+	std::vector<std::vector<NUM> > samples;
+
+	const NUM max_range = NUM(20.0);
+
+	// Generate points:
+	generateRandomPointCloud(samples, nSamples,DIM, max_range);
+
+	// Query point:
+	std::vector<NUM> query_pt(DIM);
+	for (size_t d=0;d<DIM;d++)
+		query_pt[d] = max_range * (rand() % 1000) / (1000.0);
+
+	// construct a kd-tree index:
+	// Dimensionality set at run-time (default: L2)
+	// ------------------------------------------------------------
+	typedef KDTreeVectorOfVectorsAdaptor< std::vector<std::vector<NUM> >, NUM >  my_kd_tree_t;
+
+	my_kd_tree_t   mat_index(DIM /*dim*/, samples, 10 /* max leaf */ );
+	mat_index.index->buildIndex();
+
+	// do a knn search
+	const size_t num_results = 1;
+	std::vector<size_t>   ret_indexes(num_results);
+	std::vector<NUM> out_dists_sqr(num_results);
+
+	nanoflann::KNNResultSet<NUM> resultSet(num_results);
+
+	resultSet.init(&ret_indexes[0], &out_dists_sqr[0] );
+	mat_index.index->findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10) );
+
+	// Brute force:
+	//TODO
+
+	// Compare:
+	// TODO
+
+//std::cout << "knnSearch(nn="<<num_results<<"): \n";
+//for (size_t i=0;i<num_results;i++)
+//std::cout << "ret_index["<<i<<"]=" << ret_indexes[i] << " out_dist_sqr=" << out_dists_sqr[i] << std::endl;
+}
+
+
+TEST(kdtree,L2_vs_bruteforce)
+{
+	srand(time(NULL));
+	for (int i=0;i<10;i++)
+	{
+		L2_vs_bruteforce_test<float>(100, 2);
+		L2_vs_bruteforce_test<float>(100, 3);
+		L2_vs_bruteforce_test<float>(100, 7);
+
+		L2_vs_bruteforce_test<double>(100, 2);
+		L2_vs_bruteforce_test<double>(100, 3);
+		L2_vs_bruteforce_test<double>(100, 7);
+	}
+}
+
 
