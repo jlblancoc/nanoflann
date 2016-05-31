@@ -32,14 +32,11 @@
 #include <cstdlib>
 #include <iostream>
 
-#include <Eigen/Dense>
-
 using namespace nanoflann;
 
 const int SAMPLES_DIM = 15;
 
 // ===== This example shows how to use nanoflann with these types of containers: =======
-//typedef std::vector<Eigen::VectorXd> my_vector_of_vectors_t;
 typedef std::vector<std::vector<double> > my_vector_of_vectors_t;
 // =====================================================================================
 
