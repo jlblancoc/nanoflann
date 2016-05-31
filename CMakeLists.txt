@@ -41,7 +41,11 @@ file(WRITE "${nanoflann_SOURCE_DIR}/version" "${NANOFLANN_VERSION_MAJOR}.${NANOF
 # Compiler options:
 IF(CMAKE_COMPILER_IS_GNUCXX)
 	 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -mtune=native -Wall -pedantic")
-ENDIF(CMAKE_COMPILER_IS_GNUCXX)
+ENDIF()
+
+IF(MSVC)
+	 add_definitions( "/W3 /D_CRT_SECURE_NO_WARNINGS /wd4267 /wd4244 /nologo" )
+ENDIF()
 
 # Try to find Eigen3 for use in the examples
 FIND_PACKAGE(PkgConfig QUIET)
