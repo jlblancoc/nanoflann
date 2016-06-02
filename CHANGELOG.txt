@@ -1,3 +1,6 @@
+nanoflann 1.2.2: (Under development)
+  * (None yet)
+
 nanoflann 1.2.1: Released Jun 1, 2016
   * Fix potential compiler warnings if `IndexType` is signed.
   * New unit tests comparing the results to those of brute force search.
