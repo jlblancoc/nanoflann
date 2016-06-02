@@ -30,14 +30,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *************************************************************************/
 
-/** \mainpage nanoflann C++ API documentation 
-  *  nanoflann is a C++ header-only library for building KD-Trees, mostly 
-  *  optimized for 2D or 3D point clouds. 
-  *  
-  *  nanoflann does not require compiling or installing, just an 
-  *  #include <nanoflann.hpp> in your code.  
-  *  
-  *  See: 
+/** \mainpage nanoflann C++ API documentation
+  *  nanoflann is a C++ header-only library for building KD-Trees, mostly
+  *  optimized for 2D or 3D point clouds.
+  *
+  *  nanoflann does not require compiling or installing, just an
+  *  #include <nanoflann.hpp> in your code.
+  *
+  *  See:
   *   - <a href="modules.html" >C++ API organized by modules</a>
   *   - <a href="https://github.com/jlblancoc/nanoflann" >Online README</a>
   *   - <a href="http://jlblancoc.github.io/nanoflann/" >Doxygen documentation</a>
@@ -730,7 +730,7 @@ namespace nanoflann
 	 *   }
 	 *
 	 *  \endcode
-	 * 
+	 *
 	 * \tparam DatasetAdaptor The user-provided adaptor (see comments above).
 	 * \tparam Distance The distance metric to use: nanoflann::metric_L1, nanoflann::metric_L2, nanoflann::metric_L2_Simple, etc.
 	 * \tparam DIM Dimensionality of data points (e.g. 3 for 3D points)
@@ -939,7 +939,7 @@ namespace nanoflann
 		 *  \sa knnSearch, findNeighbors, radiusSearchCustomCallback
 		 * \return The number of points within the given radius (i.e. indices.size() or dists.size() )
 		 */
-		size_t radiusSearch(const ElementType *query_point,const DistanceType &radius, std::vector<std::pair<IndexType,DistanceType> >& IndicesDists, const SearchParams& searchParams) const 
+		size_t radiusSearch(const ElementType *query_point,const DistanceType &radius, std::vector<std::pair<IndexType,DistanceType> >& IndicesDists, const SearchParams& searchParams) const
 		{
 			RadiusResultSet<DistanceType,IndexType> resultSet(radius,IndicesDists);
 			const size_t nFound = radiusSearchCustomCallback(query_point,resultSet,searchParams);
@@ -948,7 +948,7 @@ namespace nanoflann
 			return nFound;
 		}
 
-		/** 
+		/**
 		 * Just like radiusSearch() but with a custom callback class for each point found in the radius of the query.
 		 * See the source of RadiusResultSet<> as a start point for your own classes.
 		 * \sa radiusSearch
