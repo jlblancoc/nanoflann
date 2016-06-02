@@ -242,14 +242,26 @@ void L2_vs_bruteforce_test(const size_t nSamples,const int DIM)
 	mat_index.index->findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10) );
 
 	// Brute force:
-	//TODO
+	double min_dist_L2 = std::numeric_limits<double>::max();
+	int    min_idx = -1;
+	{
+		for (size_t i=0;i<nSamples;i++)
+		{
+			double dist=0.0;
+			for (int d=0;d<DIM;d++)
+				dist+= (query_pt[d]-samples[i][d])*(query_pt[d]-samples[i][d]);
+			if (dist<min_dist_L2)
+			{
+				min_dist_L2=dist;
+				min_idx = i;
+			}
+		}
+		ASSERT_TRUE(min_idx!=-1);
+	}
 
 	// Compare:
-	// TODO
-
-//std::cout << "knnSearch(nn="<<num_results<<"): \n";
-//for (size_t i=0;i<num_results;i++)
-//std::cout << "ret_index["<<i<<"]=" << ret_indexes[i] << " out_dist_sqr=" << out_dists_sqr[i] << std::endl;
+	EXPECT_EQ(min_idx,ret_indexes[0]);
+	EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
 }
 
 
