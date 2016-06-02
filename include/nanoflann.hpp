@@ -1201,7 +1201,7 @@ namespace nanoflann
 		 * \tparam RESULTSET Should be any ResultSet<DistanceType>
 		 */
 		template <class RESULTSET>
-		void searchLevel(RESULTSET& result_set, const ElementType* vec, const NodePtr node, DistanceType &mindistsq,
+		void searchLevel(RESULTSET& result_set, const ElementType* vec, const NodePtr node, DistanceType mindistsq,
 						 distance_vector_t& dists, const float epsError) const
 		{
 			/* If this is a leaf node, then do check and return. */
