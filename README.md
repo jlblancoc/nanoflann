@@ -56,8 +56,8 @@ Refer to the examples below or to the C++ API of [nanoflann::KDTreeSingleIndexAd
 
 ### 1.5. What can *nanoflann* do?
 
-  * Building KD-trees with a single index (no randomized KD-trees).
-  * Fast querying for neighbors on KD-trees. The two main entry points are:
+  * Building KD-trees with a single index (no randomized KD-trees, no approximate searches).
+  * Fast querying for closest neighbors on KD-trees. The two main entry points are:
     * [nanoflann::KDTreeSingleIndexAdaptor<>](http://nanoflann-reference.mrpt.org/svn/classnanoflann_1_1KDTreeSingleIndexAdaptor.html)`::knnSearch()`
       * Finds the `num_closest` nearest neighbors to `query_point[0:dim-1]`. Their indices are stored inside the result object. See an [example usage code](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_kdd_radius.cpp#L119).
     * [nanoflann::KDTreeSingleIndexAdaptor<>](http://nanoflann-reference.mrpt.org/svn/classnanoflann_1_1KDTreeSingleIndexAdaptor.html)`::radiusSearch()`
