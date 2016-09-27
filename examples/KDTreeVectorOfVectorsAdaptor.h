@@ -51,7 +51,7 @@ struct KDTreeVectorOfVectorsAdaptor
 {
 	typedef KDTreeVectorOfVectorsAdaptor<VectorOfVectorsType,num_t,DIM,Distance> self_t;
 	typedef typename Distance::template traits<num_t,self_t>::distance_t metric_t;
-	typedef KDTreeSingleIndexAdaptor< metric_t,self_t,DIM,IndexType>  index_t;
+	typedef nanoflann::KDTreeSingleIndexAdaptor< metric_t,self_t,DIM,IndexType>  index_t;
 
 	index_t* index; //! The kd-tree index for the user to call its methods as usual with any other FLANN index.
 
@@ -79,7 +79,7 @@ struct KDTreeVectorOfVectorsAdaptor
 	  */
 	inline void query(const num_t *query_point, const size_t num_closest, IndexType *out_indices, num_t *out_distances_sq, const int nChecks_IGNORED = 10) const
 	{
-		nanoflann::KNNResultSet<typename VectorOfVectorsType::Scalar,IndexType> resultSet(num_closest);
+		nanoflann::KNNResultSet<num_t,IndexType> resultSet(num_closest);
 		resultSet.init(out_indices, out_distances_sq);
 		index->findNeighbors(resultSet, query_point, nanoflann::SearchParams());
 	}
