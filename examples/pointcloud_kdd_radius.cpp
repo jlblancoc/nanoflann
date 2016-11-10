@@ -121,10 +121,15 @@ void kdtree_demo(const size_t N)
 	// knnSearch():  Perform a search for the N closest points
 	// ----------------------------------------------------------------
 	{
-		const size_t num_results = 5;
+		size_t num_results = 5;
 		std::vector<size_t>   ret_index(num_results);
 		std::vector<num_t> out_dist_sqr(num_results);
-		index.knnSearch(&query_pt[0], num_results, &ret_index[0], &out_dist_sqr[0]);
+
+		num_results = index.knnSearch(&query_pt[0], num_results, &ret_index[0], &out_dist_sqr[0]);
+		
+		// In case of less points in the tree than requested:
+		ret_index.resize(num_results);
+		out_dist_sqr.resize(num_results);
 
 		cout << "knnSearch(): num_results=" << num_results << "\n";
 		for (size_t i=0;i<num_results;i++)
@@ -156,7 +161,7 @@ void kdtree_demo(const size_t N)
 {
 	// Randomize Seed
 	srand(time(NULL));
-	kdtree_demo<float>(100000);
+	kdtree_demo<float>(4);
 	kdtree_demo<double>(100000);
 	return 0;
 }

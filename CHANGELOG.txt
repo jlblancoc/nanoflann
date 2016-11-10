@@ -1,5 +1,5 @@
-nanoflann 1.2.2: (Under development)
-  * (None yet)
+nanoflann 1.2.2: Released Nov 10, 2016
+  * knnSearch() now also returns the number of valid points found.
 
 nanoflann 1.2.1: Released Jun 1, 2016
   * Fix potential compiler warnings if `IndexType` is signed.
