@@ -70,7 +70,7 @@ namespace nanoflann
   *  @{ */
 
   	/** Library version: 0xMmP (M=Major,m=minor,P=patch) */
-	#define NANOFLANN_VERSION 0x122
+	#define NANOFLANN_VERSION 0x123
 
 	/** @addtogroup result_sets_grp Result set classes
 	  *  @{ */
@@ -1116,7 +1116,7 @@ namespace nanoflann
 				ElementType span = bbox[i].high-bbox[i].low;
 				if (span>(1-EPS)*max_span) {
 					ElementType min_elem, max_elem;
-					computeMinMax(ind, count, cutfeat, min_elem, max_elem);
+					computeMinMax(ind, count, i, min_elem, max_elem);
 					ElementType spread = max_elem-min_elem;;
 					if (spread>max_spread) {
 						cutfeat = i;

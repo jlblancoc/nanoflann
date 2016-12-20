@@ -1,3 +1,7 @@
+nanoflann 1.2.3: Released Dec 20, 2016
+  * Fixed: split plane now correctly chooses the dimensions with the largest span. 
+    Should lead to more optimal trees.
+
 nanoflann 1.2.2: Released Nov 10, 2016
   * knnSearch() now also returns the number of valid points found.
 
