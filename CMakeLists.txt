@@ -50,14 +50,16 @@ ENDIF()
 INCLUDE_DIRECTORIES(${nanoflann_SOURCE_DIR}/include)
 
 # Examples
-add_subdirectory(examples)
+OPTION(BUILD_EXAMPLES "Build examples" ON)
+IF(BUILD_EXAMPLES)
+	add_subdirectory(examples)
+ENDIF()
 
 # Tests
-SET( BUILD_TESTING ON CACHE BOOL "Build unit tests")
-
-IF( BUILD_TESTING)
+OPTION(BUILD_TESTS "Build unit tests" ON)
+IF(BUILD_TESTS)
 	add_subdirectory(tests)
-ENDIF( BUILD_TESTING)
+ENDIF()
 
 # --------------------------------------------------------------------
 # Install/uninstall targets
