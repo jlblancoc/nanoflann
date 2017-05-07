@@ -762,7 +762,7 @@ namespace nanoflann
 
 		const KDTreeSingleIndexAdaptorParams index_params;
 
-		size_t m_size; //!< Number of current poins in the dataset
+		size_t m_size; //!< Number of current points in the dataset
 		size_t m_size_at_index_build; //!< Number of points in the dataset when the index was built
 		int dim;  //!< Dimensionality of each data point
 
