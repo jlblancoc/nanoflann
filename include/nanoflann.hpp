@@ -136,6 +136,15 @@ namespace nanoflann
 		}
 	};
 
+	/** operator "<" for std::sort() */
+	struct IndexDist_Sorter
+	{
+		/** PairType will be typically: std::pair<IndexType,DistanceType> */
+		template <typename PairType>
+		inline bool operator()(const PairType &p1, const PairType &p2) const {
+			return p1.second < p2.second;
+		}
+	};
 
 	/**
 	 * A result-set class used when performing a radius based search.
@@ -185,21 +194,12 @@ namespace nanoflann
 		{
 		   if (m_indices_dists.empty()) throw std::runtime_error("Cannot invoke RadiusResultSet::worst_item() on an empty list of results.");
 		   typedef typename std::vector<std::pair<IndexType,DistanceType> >::const_iterator DistIt;
-		   DistIt it = std::max_element(m_indices_dists.begin(), m_indices_dists.end());
+		   DistIt it = std::max_element(m_indices_dists.begin(), m_indices_dists.end(), IndexDist_Sorter());
 		   return *it;
 		}
 	};
 
-	/** operator "<" for std::sort() */
-	struct IndexDist_Sorter
-	{
-		/** PairType will be typically: std::pair<IndexType,DistanceType> */
-		template <typename PairType>
-		inline bool operator()(const PairType &p1, const PairType &p2) const {
-			return p1.second < p2.second;
-		}
-	};
-
+	
 	/** @} */
 
 
@@ -762,7 +762,7 @@ namespace nanoflann
 
 		const KDTreeSingleIndexAdaptorParams index_params;
 
-		size_t m_size; //!< Number of current poins in the dataset
+		size_t m_size; //!< Number of current points in the dataset
 		size_t m_size_at_index_build; //!< Number of points in the dataset when the index was built
 		int dim;  //!< Dimensionality of each data point
 
