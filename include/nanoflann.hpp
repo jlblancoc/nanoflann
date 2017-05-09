@@ -136,7 +136,15 @@ namespace nanoflann
 		}
 	};
 
-	struct IndexDist_Sorter;
+	/** operator "<" for std::sort() */
+	struct IndexDist_Sorter
+	{
+		/** PairType will be typically: std::pair<IndexType,DistanceType> */
+		template <typename PairType>
+		inline bool operator()(const PairType &p1, const PairType &p2) const {
+			return p1.second < p2.second;
+		}
+	};
 
 	/**
 	 * A result-set class used when performing a radius based search.
@@ -191,16 +199,7 @@ namespace nanoflann
 		}
 	};
 
-	/** operator "<" for std::sort() */
-	struct IndexDist_Sorter
-	{
-		/** PairType will be typically: std::pair<IndexType,DistanceType> */
-		template <typename PairType>
-		inline bool operator()(const PairType &p1, const PairType &p2) const {
-			return p1.second < p2.second;
-		}
-	};
-
+	
 	/** @} */
 
 
