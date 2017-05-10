@@ -1,0 +1,7 @@
+# - Config file for the nanoflann package
+# It defines the following variables
+#  nanoflann_INCLUDE_DIRS - include directories for FooBar
+
+# Compute paths
+get_filename_component(nanoflann_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+set(nanoflann_INCLUDE_DIRS "@CONFIG_INCLUDE_DIRS@")
