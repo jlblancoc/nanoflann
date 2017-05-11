@@ -86,6 +86,27 @@ CONFIGURE_FILE(
 	"${nanoflann_BINARY_DIR}/nanoflann.pc" @ONLY IMMEDIATE )
 
 
+
+# Set relative install directories
+set(INSTALL_INCLUDE_DIR "include")
+set(INSTALL_PKGCONFIG_DIR "lib${LIB_SUFFIX}/pkgconfig")
+set(INSTALL_CMAKE_DIR "lib${LIB_SUFFIX}/cmake/nanoflann")
+set(INSTALL_COPYRIGHT_DIR "share/doc/libnanoflann-dev")
+
+
+# Generate the cmake config and cmake config-version file:
+SET(RELATIVE_INCLUDE_DIR "../../../include")
+SET(CONFIG_INCLUDE_DIRS "\${nanoflann_CMAKE_DIR}/${RELATIVE_INCLUDE_DIR}")
+
+CONFIGURE_FILE(
+    "${nanoflann_SOURCE_DIR}/scripts/nanoflannConfig.cmake.in"
+    "${nanoflann_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/nanoflannConfig.cmake" @ONLY IMMEDIATE )
+
+CONFIGURE_FILE(
+    "${nanoflann_SOURCE_DIR}/scripts/nanoflannConfigVersion.cmake.in"
+    "${nanoflann_BINARY_DIR}/nanoflannConfigVersion.cmake" @ONLY IMMEDIATE )
+
+
 # Uninstall target, for "make uninstall"
 CONFIGURE_FILE(
   "${CMAKE_CURRENT_SOURCE_DIR}/scripts/cmake_uninstall.cmake.in"
@@ -98,15 +119,20 @@ ADD_CUSTOM_TARGET(uninstall
 
 INSTALL(
 	FILES "${nanoflann_BINARY_DIR}/nanoflann.pc"
-	DESTINATION ${libnanoflann_dev_INSTALL_PREFIX}lib${LIB_SUFFIX}/pkgconfig )
+	DESTINATION "${libnanoflann_dev_INSTALL_PREFIX}${INSTALL_PKGCONFIG_DIR}" )
+
+INSTALL(
+    FILES "${nanoflann_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/nanoflannConfig.cmake"
+          "${nanoflann_BINARY_DIR}/nanoflannConfigVersion.cmake"
+    DESTINATION "${libnanoflann_dev_INSTALL_PREFIX}${INSTALL_CMAKE_DIR}" )
 
 INSTALL(
 	FILES "${nanoflann_SOURCE_DIR}/include/nanoflann.hpp"
-	DESTINATION ${libnanoflann_dev_INSTALL_PREFIX}include/ )
+	DESTINATION "${libnanoflann_dev_INSTALL_PREFIX}${INSTALL_INCLUDE_DIR}" )
 
 IF(CMAKE_USE_DEB_POSTFIXS)
 	INSTALL(
 		FILES "${nanoflann_SOURCE_DIR}/copyright"
-		DESTINATION ${libnanoflann_dev_INSTALL_PREFIX}share/doc/libnanoflann-dev/ )
+		DESTINATION "${libnanoflann_dev_INSTALL_PREFIX}${INSTALL_COPYRIGHT_DIR}" )
 ENDIF(CMAKE_USE_DEB_POSTFIXS)
 
