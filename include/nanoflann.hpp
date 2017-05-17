@@ -191,13 +191,6 @@ namespace nanoflann
 
 		inline DistanceType worstDist() const { return radius; }
 
-		/** Clears the result set and adjusts the search radius. */
-		inline void set_radius_and_clear( const DistanceType r )
-		{
-			radius = r;
-			clear();
-		}
-
 		/**
 		 * Find the worst result (furtherest neighbor) without copying or sorting
 		 * Pre-conditions: size() > 0
@@ -211,7 +204,7 @@ namespace nanoflann
 		}
 	};
 
-	
+
 	/** @} */
 
 
@@ -931,7 +924,7 @@ namespace nanoflann
 		 * the result object.
 		 *  \sa radiusSearch, findNeighbors
 		 * \note nChecks_IGNORED is ignored but kept for compatibility with the original FLANN interface.
-		 * \return Number `N` of valid points in the result set. Only the first `N` entries in `out_indices` and `out_distances_sq` will be valid. 
+		 * \return Number `N` of valid points in the result set. Only the first `N` entries in `out_indices` and `out_distances_sq` will be valid.
 		 *         Return may be less than `num_closest` only if the number of elements in the tree is less than `num_closest`.
 		 */
 		size_t knnSearch(const ElementType *query_point, const size_t num_closest, IndexType *out_indices, DistanceType *out_distances_sq, const int /* nChecks_IGNORED */ = 10) const
