@@ -107,7 +107,11 @@ namespace nanoflann
 		}
 
 
-		inline void addPoint(DistanceType dist, IndexType index)
+                /**
+                 * Called during search to add an element matching the criteria.
+                 * @return true if the search should be continued, false if the results are sufficient
+                 */
+                inline bool addPoint(DistanceType dist, IndexType index)
 		{
 			CountType i;
 			for (i=count; i>0; --i) {
@@ -128,6 +132,9 @@ namespace nanoflann
 				indices[i] = index;
 			}
 			if (count<capacity) count++;
+
+                        // tell caller that the search shall continue
+                        return true;
 		}
 
 		inline DistanceType worstDist() const
@@ -171,10 +178,15 @@ namespace nanoflann
 
 		inline bool full() const { return true; }
 
-		inline void addPoint(DistanceType dist, IndexType index)
+                /**
+                 * Called during search to add an element matching the criteria.
+                 * @return true if the search should be continued, false if the results are sufficient
+                 */
+                inline bool addPoint(DistanceType dist, IndexType index)
 		{
 			if (dist<radius)
 				m_indices_dists.push_back(std::make_pair(index,dist));
+                        return true;
 		}
 
 		inline DistanceType worstDist() const { return radius; }
@@ -1202,9 +1214,10 @@ namespace nanoflann
 		/**
 		 * Performs an exact search in the tree starting from a node.
 		 * \tparam RESULTSET Should be any ResultSet<DistanceType>
+                 * \return true if the search should be continued, false if the results are sufficient
 		 */
 		template <class RESULTSET>
-		void searchLevel(RESULTSET& result_set, const ElementType* vec, const NodePtr node, DistanceType mindistsq,
+                bool searchLevel(RESULTSET& result_set, const ElementType* vec, const NodePtr node, DistanceType mindistsq,
 						 distance_vector_t& dists, const float epsError) const
 		{
 			/* If this is a leaf node, then do check and return. */
@@ -1215,10 +1228,13 @@ namespace nanoflann
 					const IndexType index = vind[i];// reorder... : i;
 					DistanceType dist = distance(vec, index, (DIM>0 ? DIM : dim));
 					if (dist<worst_dist) {
-						result_set.addPoint(dist,vind[i]);
+                                                if(!result_set.addPoint(dist,vind[i])) {
+                                                    // the resultset doesn't want to receive any more points, we're done searching!
+                                                    return false;
+                                                }
 					}
 				}
-				return;
+                                return true;
 			}
 
 			/* Which child branch should be taken first? */
@@ -1242,15 +1258,22 @@ namespace nanoflann
 			}
 
 			/* Call recursively to search next level down. */
-			searchLevel(result_set, vec, bestChild, mindistsq, dists, epsError);
+                        if(!searchLevel(result_set, vec, bestChild, mindistsq, dists, epsError)) {
+                            // the resultset doesn't want to receive any more points, we're done searching!
+                            return false;
+                        }
 
 			DistanceType dst = dists[idx];
 			mindistsq = mindistsq + cut_dist - dst;
 			dists[idx] = cut_dist;
 			if (mindistsq*epsError<=result_set.worstDist()) {
-				searchLevel(result_set, vec, otherChild, mindistsq, dists, epsError);
+                            if(!searchLevel(result_set, vec, otherChild, mindistsq, dists, epsError)) {
+                                // the resultset doesn't want to receive any more points, we're done searching!
+                                return false;
+                            }
 			}
 			dists[idx] = dst;
+                        return true;
 		}
 
 	public:
