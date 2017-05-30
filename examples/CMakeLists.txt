@@ -18,6 +18,7 @@ ELSE()
 ENDIF()
 
 # examples:
+ADD_EXECUTABLE(dynamic_pointcloud_example dynamic_pointcloud_example.cpp)
 ADD_EXECUTABLE(pointcloud_example pointcloud_example.cpp)
 TARGET_LINK_LIBRARIES(pointcloud_example nanoflann)
 
