@@ -1954,6 +1954,7 @@ namespace nanoflann
 				for(int j=0;j<index[i].vind.size();j++)
 				{
 					index[pos].vind.push_back(index[i].vind[j]);
+					treeIndex[index[i].vind[j]] = pos;
 				}
 				index[i].vind.clear();
 				index[i].freeIndex();
