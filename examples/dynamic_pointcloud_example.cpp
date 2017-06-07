@@ -115,14 +115,17 @@ void kdtree_demo(const size_t N)
 
 	num_t query_pt[3] = { 0.5, 0.5, 0.5};
 
-	// add points one by one
-	for(int i=0;i<N;i++)
+	// add points in chunks at a time
+	int chunk_size = 100;
+	for(int i=0;i<N;i=i+chunk_size)
 	{
-		index.addPoint(i);
+		size_t end = min(size_t(i+chunk_size),N);
+		index.addPoints(i, end);
 	}
 
 	// remove a random point
-	index.removePoint(rand()%N);
+	size_t removePointIndex = rand()%N;
+	index.removePoint(removePointIndex);
 
 	dump_mem_usage();
 	{
