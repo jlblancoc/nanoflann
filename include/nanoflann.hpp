@@ -1943,25 +1943,30 @@ namespace nanoflann
 		/** Standard destructor */
 		~KDTreeSingleIndexDynamicAdaptor() { }
 
-		/** Add a point to the set */
-		void addPoint(IndexType idx)
+		/** Add points to the set */
+		void addPoints(IndexType start, IndexType end)
 		{
-			int pos = First0Bit(pointCount);
-			index[pos].vind.clear();
-			treeIndex.push_back(pos);
-			for(int i=0;i<pos;i++)
+			int count = end-start;
+			treeIndex.resize(treeIndex.size()+count);
+			for(IndexType idx=start;idx<end;idx++)
 			{
-				for(int j=0;j<index[i].vind.size();j++)
+				int pos = First0Bit(pointCount);
+				index[pos].vind.clear();
+				treeIndex[pointCount]=pos;
+				for(int i=0;i<pos;i++)
 				{
-					index[pos].vind.push_back(index[i].vind[j]);
-					treeIndex[index[i].vind[j]] = pos;
+					for(int j=0;j<index[i].vind.size();j++)
+					{
+						index[pos].vind.push_back(index[i].vind[j]);
+						treeIndex[index[i].vind[j]] = pos;
+					}
+					index[i].vind.clear();
+					index[i].freeIndex();
 				}
-				index[i].vind.clear();
-				index[i].freeIndex();
+				index[pos].vind.push_back(idx);
+				index[pos].buildIndex();
+				pointCount++;
 			}
-			index[pos].vind.push_back(idx);
-			index[pos].buildIndex();
-			pointCount++;
 		}
 
 		/** Remove a point from the set (Lazy Deletion) */
