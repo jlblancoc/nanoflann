@@ -707,6 +707,18 @@ namespace nanoflann
 	};
 	/** @} */
 
+	/** kd-tree base-class
+	 *
+	 * Contains the member functions common to the classes KDTreeSingleIndexAdaptor and KDTreeSingleIndexDynamicAdaptor_.
+	 *
+	 * \tparam Derived The name of the class which inherits this class.
+	 * \tparam DatasetAdaptor The user-provided adaptor (see comments above).
+	 * \tparam Distance The distance metric to use: nanoflann::metric_L1, nanoflann::metric_L2, nanoflann::metric_L2_Simple, etc.
+	 * \tparam DIM Dimensionality of data points (e.g. 3 for 3D points)
+	 * \tparam IndexType Will be typically size_t or int
+	 */
+
+
 	template<class Derived, typename Distance, class DatasetAdaptor,int DIM = -1, typename IndexType = size_t>
 	class KDTreeBaseClass
 	{
@@ -943,7 +955,7 @@ namespace nanoflann
 	/** @addtogroup kdtrees_grp KD-tree classes and adaptors
 	  * @{ */
 
-	/** kd-tree index
+	/** kd-tree static index
 	 *
 	 * Contains the k-d trees and other information for indexing a set of points
 	 * for nearest-neighbor matching.
@@ -1320,6 +1332,43 @@ namespace nanoflann
 
 	};   // class KDTree
 
+
+	/** kd-tree dynamic index
+	 *
+	 * Contains the k-d trees and other information for indexing a set of points
+	 * for nearest-neighbor matching.
+	 *
+	 *  The class "DatasetAdaptor" must provide the following interface (can be non-virtual, inlined methods):
+	 *
+	 *  \code
+	 *   // Must return the number of data poins
+	 *   inline size_t kdtree_get_point_count() const { ... }
+	 *
+	 *   // [Only if using the metric_L2_Simple type] Must return the Euclidean (L2) distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
+	 *   inline DistanceType kdtree_distance(const T *p1, const size_t idx_p2,size_t size) const { ... }
+	 *
+	 *   // Must return the dim'th component of the idx'th point in the class:
+	 *   inline T kdtree_get_pt(const size_t idx, int dim) const { ... }
+	 *
+	 *   // Optional bounding-box computation: return false to default to a standard bbox computation loop.
+	 *   //   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
+	 *   //   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3 for point clouds)
+	 *   template <class BBOX>
+	 *   bool kdtree_get_bbox(BBOX &bb) const
+	 *   {
+	 *      bb[0].low = ...; bb[0].high = ...;  // 0th dimension limits
+	 *      bb[1].low = ...; bb[1].high = ...;  // 1st dimension limits
+	 *      ...
+	 *      return true;
+	 *   }
+	 *
+	 *  \endcode
+	 *
+	 * \tparam DatasetAdaptor The user-provided adaptor (see comments above).
+	 * \tparam Distance The distance metric to use: nanoflann::metric_L1, nanoflann::metric_L2, nanoflann::metric_L2_Simple, etc.
+	 * \tparam DIM Dimensionality of data points (e.g. 3 for 3D points)
+	 * \tparam IndexType Will be typically size_t or int
+	 */	 
 	template <typename Distance, class DatasetAdaptor,int DIM = -1, typename IndexType = size_t>
 	class KDTreeSingleIndexDynamicAdaptor_ : public KDTreeBaseClass<KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM, IndexType>, Distance, DatasetAdaptor, DIM, IndexType>
 	{
@@ -1674,9 +1723,21 @@ namespace nanoflann
 			load_tree(stream, root_node);
 		}
 
-	};   // class KDTree
+	};
 
 
+	/** kd-tree dynaimic index
+	 *
+	 * class to create multiple static index and merge their results to behave as single dynamic index as proposed in Logarithmic Approach.
+	 *  
+	 *  Example of usage:
+	 *  examples/dynamic_pointcloud_example.cpp
+	 *
+	 * \tparam DatasetAdaptor The user-provided adaptor (see comments above).
+	 * \tparam Distance The distance metric to use: nanoflann::metric_L1, nanoflann::metric_L2, nanoflann::metric_L2_Simple, etc.
+	 * \tparam DIM Dimensionality of data points (e.g. 3 for 3D points)
+	 * \tparam IndexType Will be typically size_t or int
+	 */
 	template <typename Distance, class DatasetAdaptor,int DIM = -1, typename IndexType = size_t>
 	class KDTreeSingleIndexDynamicAdaptor
 	{
@@ -1796,6 +1857,18 @@ namespace nanoflann
 			treeIndex[idx] = -1;
 		}
 
+		/**
+		 * Find set of nearest neighbors to vec[0:dim-1]. Their indices are stored inside
+		 * the result object.
+		 *
+		 * Params:
+		 *     result = the result object in which the indices of the nearest-neighbors are stored
+		 *     vec = the vector for which to search the nearest neighbors
+		 *
+		 * \tparam RESULTSET Should be any ResultSet<DistanceType>
+         * \return  True if the requested neighbors could be found.
+		 * \sa knnSearch, radiusSearch
+		 */
 		template <typename RESULTSET>
 		bool findNeighbors(RESULTSET& result, const ElementType* vec, const SearchParams& searchParams) const
 		{
@@ -1806,7 +1879,7 @@ namespace nanoflann
 			return result.full();
 		}
 
-	};   // class KDTree
+	}; 
 
 	/** An L2-metric KD-tree adaptor for working with data directly stored in an Eigen Matrix, without duplicating the data storage.
 	  *  Each row in the matrix represents a point in the state space.
