@@ -16,9 +16,6 @@ if(COMMAND cmake_policy)
       if (POLICY CMP0037)
 		cmake_policy(SET CMP0037 OLD) # allow target "test"
 	  endif()
-      if (POLICY CMP0026)
-		cmake_policy(SET CMP0026 OLD) # allow get target exe location 
-	  endif()
 endif()
 SET( EXECUTABLE_OUTPUT_PATH ${nanoflann_BINARY_DIR}/bin CACHE PATH "Output directory for programs" )
 
@@ -46,9 +43,14 @@ IF(MSVC)
 	 add_definitions( "/W3 /D_CRT_SECURE_NO_WARNINGS /wd4267 /wd4244 /nologo" )
 ENDIF()
 
-# Include dir:
-INCLUDE_DIRECTORIES(${nanoflann_SOURCE_DIR}/include)
+# Define nanoflann lib (header-only)
+add_library(nanoflann INTERFACE)
 
+target_include_directories(nanoflann
+	INTERFACE
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+		$<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>/include)
+		
 # Examples
 OPTION(BUILD_EXAMPLES "Build examples" ON)
 IF(BUILD_EXAMPLES)

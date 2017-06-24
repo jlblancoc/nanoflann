@@ -19,12 +19,22 @@ ENDIF()
 
 # examples:
 ADD_EXECUTABLE(pointcloud_example pointcloud_example.cpp)
+TARGET_LINK_LIBRARIES(pointcloud_example nanoflann)
+
 ADD_EXECUTABLE(pointcloud_kdd_radius pointcloud_kdd_radius.cpp)
+TARGET_LINK_LIBRARIES(pointcloud_kdd_radius nanoflann)
+
 ADD_EXECUTABLE(pointcloud_adaptor_example pointcloud_adaptor_example.cpp)
+TARGET_LINK_LIBRARIES(pointcloud_adaptor_example nanoflann)
+
 ADD_EXECUTABLE(saveload_example saveload_example.cpp)
+TARGET_LINK_LIBRARIES(saveload_example nanoflann)
+
 ADD_EXECUTABLE(vector_of_vectors_example vector_of_vectors_example.cpp KDTreeVectorOfVectorsAdaptor.h)
+TARGET_LINK_LIBRARIES(vector_of_vectors_example nanoflann)
 
 IF(EIGEN3_FOUND)
 	ADD_EXECUTABLE(matrix_example matrix_example.cpp)
+	TARGET_LINK_LIBRARIES(matrix_example nanoflann)
 ENDIF()
 
