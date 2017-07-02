@@ -36,7 +36,7 @@ file(WRITE "${nanoflann_BINARY_DIR}/version" "${NANOFLANN_VERSION_MAJOR}.${NANOF
 
 # Compiler options:
 IF(CMAKE_COMPILER_IS_GNUCXX)
-	 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -mtune=native -Wall -pedantic")
+	 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fopenmp -mtune=native -Wall")
 ENDIF()
 
 IF(MSVC)
@@ -55,6 +55,7 @@ target_include_directories(nanoflann
 OPTION(BUILD_EXAMPLES "Build examples" ON)
 IF(BUILD_EXAMPLES)
 	add_subdirectory(examples)
+	add_subdirectory(benchmarkTool/realTests)
 ENDIF()
 
 # Tests
@@ -95,6 +96,8 @@ set(INSTALL_PKGCONFIG_DIR "lib${LIB_SUFFIX}/pkgconfig")
 set(INSTALL_CMAKE_DIR "lib${LIB_SUFFIX}/cmake/nanoflann")
 set(INSTALL_COPYRIGHT_DIR "share/doc/libnanoflann-dev")
 
+# 3rdparty Libraries
+include(3rdparty/CMakeLists-ExternalProjects.txt)
 
 # Generate the cmake config and cmake config-version file:
 SET(RELATIVE_INCLUDE_DIR "../../../include")
