@@ -30,7 +30,8 @@
 #include <ctime>
 #include <cstdlib>
 #include <iostream>
-#include<bits/stdc++.h>
+#include <fstream>
+
 using namespace std;
 using namespace nanoflann;
 
@@ -95,6 +96,7 @@ void scanPointCloud(PointCloud<T> &point, string file)
             cloud.push_back(tmp);
             N++;
         }
+    random_shuffle(cloud.begin(), cloud.end());
 	point.pts.resize(N);
 	for (size_t i=0;i<N;i++)
 	{
@@ -111,8 +113,6 @@ void kdtree_demo(string &path)
 	PointCloud<num_t> PcloudS, PcloudT;
 	// Scan points from file:
 	scanPointCloud<num_t>(PcloudS, path+"scan1.dat");
-        // Randomly shuffle the data
-        random_shuffle(PcloudS.pts.begin(), PcloudS.pts.end());
 	
         scanPointCloud<num_t>(PcloudT, path+"scan2.dat");
 
