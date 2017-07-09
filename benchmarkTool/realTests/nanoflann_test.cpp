@@ -79,7 +79,7 @@ struct PointCloud
 
 // Scan all points from file
 template <typename T>
-void scanPointCloud(PointCloud<T> &point, string file)
+PointCloud<T> scanPointCloud(unsigned int &N, string file)
 {
         ifstream read(file.c_str());
         
@@ -89,114 +89,105 @@ void scanPointCloud(PointCloud<T> &point, string file)
         vector<vector<T> > cloud;
         vector<T> tmp;
         
-        double x,y,z,d;
-        unsigned int N=0;
+        T x,y,z,d;
+        N=0;
         while(read>>x>>y>>z>>d){
-            tmp.clear();
-            tmp.push_back(x); tmp.push_back(y); tmp.push_back(z);
+            tmp.resize(3);
+            tmp[0]=x; tmp[1]=y; tmp[2]=z;
             cloud.push_back(tmp);
             N++;
         }
-    random_shuffle(cloud.begin(), cloud.end());
-	point.pts.resize(N);
-	for (size_t i=0;i<N;i++)
-	{
-		point.pts[i].x = cloud[i][0];
-		point.pts[i].y = cloud[i][1];
-		point.pts[i].z = cloud[i][2];
+        PointCloud<T> point;
+    	point.pts.resize(N);
+    	for (unsigned int i=0;i<N;i++)
+    	{
+    		point.pts[i].x = cloud[i][0];
+    		point.pts[i].y = cloud[i][1];
+    		point.pts[i].z = cloud[i][2];
         }
+        return point;
 }
 
 
 template <typename num_t>
 void kdtree_demo(string &path)
 {
-	PointCloud<num_t> PcloudS, PcloudT;
-	// Scan points from file:
-	scanPointCloud<num_t>(PcloudS, path+"scan1.dat");
-	
-        scanPointCloud<num_t>(PcloudT, path+"scan2.dat");
-
-        num_t query_pt[3];
-
-        const unsigned int N = PcloudS.pts.size();
+    	PointCloud<num_t> PcloudS, PcloudT;
+    	unsigned int N;
+        // Scan points from file
+    	PcloudS = scanPointCloud<num_t>(N, path+"scan1.dat");
+        PcloudT = scanPointCloud<num_t>(N, path+"scan2.dat");
 	
         // buildTime : time required to build the kd-tree index
         // queryTime : time required to find nearest neighbor for a single point in the kd-tree
         vector<double> buildTime, queryTime;
 
-        int plotCount=10;
+        unsigned int plotCount=10;
 
-        for(int i=1;i<=plotCount;i++)
+        for(unsigned int i=1;i<=plotCount;i++)
         {
-	    PointCloud<num_t> cloudS, cloudT;
-
             // size of dataset currently being used
-            int currSize=((i*1.0)/plotCount)*N;
-
+            unsigned int currSize=((i*1.0)/plotCount)*N;
+            PointCloud<num_t> cloudS, cloudT;
             cloudS.pts.resize(currSize);
             cloudT.pts.resize(currSize);
-            for(int j=0;j<currSize;j++)
+
+            for(unsigned int j=0;j<currSize;j++)
             {
                 cloudS.pts[j]=PcloudS.pts[j];
                 cloudT.pts[j]=PcloudT.pts[j];
             }
 
-            //	 construct a kd-tree index:
+            clock_t begin = clock();
+            // construct a kd-tree index:
             typedef KDTreeSingleIndexAdaptor<
                 L2_Simple_Adaptor<num_t, PointCloud<num_t> > ,
                 PointCloud<num_t>,
                 3 /* dim */
                     > my_kd_tree_t;
-
-            my_kd_tree_t   index(3 /*dim*/, cloudS, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
-            
-            clock_t begin = clock();
-            
+            my_kd_tree_t   index(3 /*dim*/, cloudS, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );            
             index.buildIndex();
-            
             clock_t end = clock();
             double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
             buildTime.push_back(elapsed_secs);
 
             {
-                clock_t begin = clock();
-
-                for(int j=0;j<currSize;j++)
+                double elapsed_secs=0;
+                for(unsigned int j=0;j<currSize;j++)
                 {
-                    query_pt[0]=cloudT.pts[j].x;
-                    query_pt[1]=cloudT.pts[j].y;
-                    query_pt[2]=cloudT.pts[j].z;
-                    
-                    // do a knn search
-                    const size_t num_results = 1;
+                    num_t query_pt[3];
+                    query_pt[0]=cloudT.pts[j].x; query_pt[1]=cloudT.pts[j].y; query_pt[2]=cloudT.pts[j].z;
                     size_t ret_index;
                     num_t out_dist_sqr;
-                    nanoflann::KNNResultSet<num_t> resultSet(num_results);
+                    const size_t num_results = 1;
+                    KNNResultSet<num_t> resultSet(num_results);
                     resultSet.init(&ret_index, &out_dist_sqr );
+                    clock_t begin = clock();
+                    // do a knn search
                     index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
+                    clock_t end = clock();
+                    elapsed_secs += double(end - begin);
                 }
-
-                clock_t end = clock();
-                double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+                elapsed_secs /= CLOCKS_PER_SEC;
                 queryTime.push_back(elapsed_secs/currSize);
             }
         }
 
-        for(int i=0;i<buildTime.size();i++)
+        for(unsigned int i=0;i<buildTime.size();i++)
             std::cout<<buildTime[i]<<" ";
         std::cout<<"\n";
 
-        for(int i=0;i<queryTime.size();i++)
+        for(unsigned int i=0;i<queryTime.size();i++)
             std::cout<<queryTime[i]<<" ";
         std::cout<<"\n";
 }
 
 int main()
 {
-	srand(time(NULL));
-        //randomly choose some dataset from dat_avz/001 to dat_avz/010 [fixed right now -- update later]
-        string dataset_path="/home/pranjalr34/gsoc/nanoflann/benchmarkTool/realTests/dat_avz/001/";
-	kdtree_demo<double>(dataset_path);
-	return 0;
+    srand(time(NULL));
+    string dataset_path(NANOFLANN_PATH);
+    //randomly choose some dataset from dat_avz/001 to dat_avz/010 [fixed right now -- update later]
+    dataset_path+="/benchmarkTool/realTests/dat_avz/001/";
+    kdtree_demo<double>(dataset_path);
+    return 0;
 }

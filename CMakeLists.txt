@@ -18,7 +18,7 @@ if(COMMAND cmake_policy)
 	  endif()
 endif()
 SET( EXECUTABLE_OUTPUT_PATH ${nanoflann_BINARY_DIR}/bin CACHE PATH "Output directory for programs" )
-
+add_definitions ( -DNANOFLANN_PATH="${CMAKE_SOURCE_DIR}" )
 
 # Extract library version into "NANOFLANN_VERSION"
 # -----------------------------------------------------

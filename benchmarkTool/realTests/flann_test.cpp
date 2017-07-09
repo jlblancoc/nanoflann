@@ -38,7 +38,7 @@ using namespace flann;
 
 // Scan all points from file
 template <typename T>
-void scanPointCloud(Matrix<T> &point, unsigned int &N, string file)
+Matrix<T> scanPointCloud(unsigned int &N, string file)
 {
         ifstream read(file.c_str());
         
@@ -47,92 +47,83 @@ void scanPointCloud(Matrix<T> &point, unsigned int &N, string file)
 
         vector<vector<T> > cloud;
         vector<T> tmp;
-        
+        int dim=3;
+
         T x,y,z,d;
         N=0;
         while(read>>x>>y>>z>>d){
-            tmp.clear();
-            tmp.push_back(x); tmp.push_back(y); tmp.push_back(z);
+            tmp.resize(dim);
+            tmp[0]=x; tmp[1]=y; tmp[2]=z;
             cloud.push_back(tmp);
             N++;
         }
-        random_shuffle(cloud.begin(), cloud.end());
-    	Matrix<T> Point(new T[N*3], N, 3);
-    	for (size_t i=0;i<N;i++)
-    	{
-    		Point[i][0] = cloud[i][0];
-    		Point[i][1] = cloud[i][1];
-    		Point[i][2] = cloud[i][2];
+    	Matrix<T> point(new T[N*dim], N, 3);
+    	for (unsigned int i=0;i<N;i++)
+        {
+            for(unsigned int j=0;j<dim;j++)
+            {
+    		  point[i][j] = cloud[i][j];
+            }
         }
-        point=Point;
+        return point;
 }
-
 
 template <typename num_t>
 void kdtree_demo(string &path)
 {
-        int nn=1;
         Matrix<num_t> PcloudS, PcloudT;
         unsigned int N;
-        // Scan points from file:
-        scanPointCloud<num_t>(PcloudS, N, path+"scan1.dat");
-        scanPointCloud<num_t>(PcloudT, N, path+"scan2.dat");
-
-        Matrix<num_t> query(new num_t[1*3], 1, 3);
+        // Scan points from file
+        PcloudS = scanPointCloud<num_t>(N, path+"scan1.dat");
+        PcloudT = scanPointCloud<num_t>(N, path+"scan2.dat");    
     
         // buildTime : time required to build the kd-tree index
         // queryTime : time required to find nearest neighbor for a single point in the kd-tree
         vector<double> buildTime, queryTime;
 
-        int plotCount=10;
-        for(int i=1;i<=plotCount;i++)
+        unsigned int plotCount=10, nn=1, dim=3;
+
+        for(unsigned int i=1;i<=plotCount;i++)
         {
             // size of dataset currently being used
-            int currSize=((i*1.0)/plotCount)*N;
-            Matrix<num_t> cloudS(new num_t[currSize*3], currSize, 3);
-            Matrix<num_t> cloudT(new num_t[currSize*3], currSize, 3);
+            unsigned int currSize=((i*1.0)/plotCount)*N;
+            Matrix<num_t> cloudS(new num_t[currSize*dim], currSize, dim);
+            Matrix<num_t> cloudT(new num_t[currSize*dim], currSize, dim);
 
-            for(int j=0;j<currSize;j++)
+            for(unsigned int j=0;j<currSize;j++)
             {
-                for(int k=0;k<3;k++)
+                for(unsigned int k=0;k<dim;k++)
                 {
                     cloudS[j][k]=PcloudS[j][k];
                     cloudT[j][k]=PcloudT[j][k];
                 }
             }
 
-            Index<L2<num_t> > index(cloudS, flann::KDTreeIndexParams(1));
             clock_t begin = clock();
+            // construct a kd-tree index:
+            Index<L2<num_t> > index(cloudS, flann::KDTreeIndexParams(1));
             index.buildIndex();
             clock_t end = clock();
             double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
             buildTime.push_back(elapsed_secs);
+            
             {
-
+                Matrix<int> indices(new int[cloudT.rows*nn], cloudT.rows, nn);
+                Matrix<num_t> dists(new num_t[cloudT.rows*nn], cloudT.rows, nn);
                 clock_t begin = clock();
-
-                for(int j=0;j<currSize;j++)
-                {
-                    query[0][0]=cloudT[j][0];
-                    query[0][1]=cloudT[j][1];
-                    query[0][2]=cloudT[j][2];
-                    Matrix<int> indices(new int[query.rows*nn], query.rows, nn);
-                    Matrix<num_t> dists(new num_t[query.rows*nn], query.rows, nn);
-
-                    index.knnSearch(query, indices, dists, nn, flann::SearchParams(-1));
-                }
-
+                // do a knn search
+                index.knnSearch(cloudT, indices, dists, nn, flann::SearchParams(-1));
                 clock_t end = clock();
                 double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
                 queryTime.push_back(elapsed_secs/currSize);
             }
         }
 
-        for(int i=0;i<buildTime.size();i++)
+        for(unsigned int i=0;i<buildTime.size();i++)
             std::cout<<buildTime[i]<<" ";
         std::cout<<"\n";
 
-        for(int i=0;i<queryTime.size();i++)
+        for(unsigned int i=0;i<queryTime.size();i++)
             std::cout<<queryTime[i]<<" ";
         std::cout<<"\n";
 }
@@ -140,8 +131,9 @@ void kdtree_demo(string &path)
 int main()
 {
 	srand(time(NULL));
-        //randomly choose some dataset from dat_avz/001 to dat_avz/010 [fixed right now -- update later]
-        string dataset_path="/home/pranjalr34/gsoc/nanoflann/benchmarkTool/realTests/dat_avz/001/";
+    string dataset_path(NANOFLANN_PATH);
+    //randomly choose some dataset from dat_avz/001 to dat_avz/010 [fixed right now -- update later]
+    dataset_path+="/benchmarkTool/realTests/dat_avz/001/";
 	kdtree_demo<double>(dataset_path);
 	return 0;
 }
