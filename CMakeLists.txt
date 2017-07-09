@@ -55,6 +55,11 @@ target_include_directories(nanoflann
 OPTION(BUILD_EXAMPLES "Build examples" ON)
 IF(BUILD_EXAMPLES)
 	add_subdirectory(examples)
+ENDIF()
+
+# Benchmarks
+OPTION(BUILD_BENCHMARKS "Build benchmarks" ON)
+IF(BUILD_BENCHMARKS)
 	add_subdirectory(benchmarkTool/realTests)
 ENDIF()
 
