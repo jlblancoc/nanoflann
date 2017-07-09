@@ -61,6 +61,7 @@ ENDIF()
 OPTION(BUILD_BENCHMARKS "Build benchmarks" ON)
 IF(BUILD_BENCHMARKS)
 	add_subdirectory(benchmarkTool/realTests)
+	add_subdirectory(benchmarkTool/randomTests)
 ENDIF()
 
 # Tests
