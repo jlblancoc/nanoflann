@@ -1,133 +1,136 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-
+/***********************************************************************
+ * Software License Agreement (BSD License)
+ *
+ * Copyright 2011-2016 Jose Luis Blanco (joseluisblancoc@gmail.com).
+ *   All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *************************************************************************/
+ 
+#include <fastann.hpp>
+#include <ctime>
+#include <cstdlib>
+#include <iostream>
+#include <fstream>
+#include <string>
 #include <vector>
 
-#include <stdint.h>
+using namespace std;
+using namespace fastann;
 
-#include "fastann.hpp"
-#include "rand_point_gen.hpp"
-
-static inline uint64_t rdtsc()
+// Scan all points from file
+template<class T>
+T* scanPointCloud(unsigned int &N, string file)
 {
-    #ifdef __i386__
-    uint32_t a, d;
-#elif defined __x86_64__
-    uint64_t a, d;
-#endif
+        ifstream read(file.c_str());
+        
+        string temp;
+        getline(read,temp);
 
-    asm volatile ("rdtsc" : "=a" (a), "=d" (d));
-
-    return ((uint64_t)a | (((uint64_t)d)<<32));
-}
-
-template<class Float>
-int
-test_kdtree(unsigned N, unsigned D, double min_accuracy)
-{
-    Float* pnts = fastann::gen_unit_random<Float>(N, D, 42);
-    Float* qus = fastann::gen_unit_random<Float>(N, D, 43);
-    
-    std::vector<Float> mins_exact(N);
-    std::vector<unsigned> argmins_exact(N);
-    std::vector<Float> mins_kdt(N);
-    std::vector<unsigned> argmins_kdt(N);
-
-    fastann::nn_obj<Float>* nnobj_exact = fastann::nn_obj_build_exact(pnts, N, D);
-    fastann::nn_obj<Float>* nnobj_kdt = fastann::nn_obj_build_kdtree(pnts, N, D, 8, 768);
-
-    nnobj_exact->search_nn(qus, N, &argmins_exact[0], &mins_exact[0]);
-    nnobj_kdt->search_nn(qus, N, &argmins_kdt[0], &mins_kdt[0]);
-    
-    unsigned num_same = 0;
-    for (unsigned n = 0; n < N; ++n) {
-        if (argmins_exact[n] == argmins_kdt[n]) num_same++;
-    }
-    
-    double accuracy = (double)num_same/N;
-    printf("Accuracy: %.1f%%\n", accuracy*100.0);
-
-    if (accuracy > min_accuracy) return 1;
-    else return 0;
-
-    delete[] pnts;
-    delete[] qus;
-
-    delete nnobj_exact;
-    delete nnobj_kdt;
-}
-
-template<>
-int
-test_kdtree<unsigned char>(unsigned N, unsigned D, double min_accuracy)
-{
-    double* pntst = fastann::gen_unit_random<double>(N, D, 42);
-    double* qust = fastann::gen_unit_random<double>(N, D, 43);
-
-    unsigned char* pnts = new unsigned char[N*D];
-    unsigned char* qus = new unsigned char[N*D];
-
-    for (unsigned n=0; n < N; ++n) {
-        for (unsigned d=0; d < D; ++d) {
-            pnts[n*D + d] = (unsigned char)(256.0 * pntst[n*D + d]);
-            qus[n*D + d] = (unsigned char)(256.0 * qust[n*D + d]);
+        vector<vector<T> > cloud;
+        vector<T> tmp;
+        
+        T x,y,z,d;
+        N=0;
+        while(read>>x>>y>>z>>d){
+            tmp.resize(3);
+            tmp[0]=x; tmp[1]=y; tmp[2]=z;
+            cloud.push_back(tmp);
+            N++;
         }
-    }
-
-    std::vector<unsigned> mins_exact(N);
-    std::vector<unsigned> argmins_exact(N);
-    std::vector<unsigned> mins_kdt(N);
-    std::vector<unsigned> argmins_kdt(N);
-
-    fastann::nn_obj<unsigned char>* nnobj_exact = fastann::nn_obj_build_exact(pnts, N, D);
-    fastann::nn_obj<unsigned char>* nnobj_kdt = fastann::nn_obj_build_kdtree(pnts, N, D, 8, 768);
-
-    nnobj_exact->search_nn(qus, N, &argmins_exact[0], &mins_exact[0]);
-    nnobj_kdt->search_nn(qus, N, &argmins_kdt[0], &mins_kdt[0]);
-    
-    unsigned num_same = 0;
-    for (unsigned n = 0; n < N; ++n) {
-        if (argmins_exact[n] == argmins_kdt[n]) num_same++;
-    }
-
-    double accuracy = (double)num_same/N;
-    printf("Accuracy: %.1f%%\n", accuracy*100.0);
-
-    if (accuracy > min_accuracy) return 1;
-    else return 0;
-    
-    delete[] pnts;
-    delete[] qus;
-
-    delete nnobj_exact;
-    delete nnobj_kdt;
+        T* point = new T[N*3];
+        for (unsigned int n=0; n < N; ++n) 
+        {
+            for (unsigned int d=0; d < 3; ++d) 
+            {
+                point[n*3 + d] = cloud[n][d];
+            }
+        }
+        return point;
 }
 
-int
-main()
+template <typename num_t>
+void kdtree_demo(string &path)
 {
-    unsigned N = 10000;
-    unsigned D = 128;
-    
-    unsigned num_failed = 0;
-    unsigned num_passed = 0;
-    double min_accuracy = 0.36; // Seems to be right.
-    // This should be repeatable everywhere because of randomkit.c
-    // It sounds low, but is to be expected with unit random vectors
-    // With SIFT we do _much_ better.
+        num_t *PcloudS, *PcloudT;
+        unsigned int N;
+        // Scan points from file
+        PcloudS = scanPointCloud<num_t>(N, path+"scan1.dat");
+        PcloudT = scanPointCloud<num_t>(N, path+"scan2.dat");
 
-    if (test_kdtree<unsigned char>(N, D, min_accuracy)) { num_passed++; }
-    else { num_failed++; }
+        // buildTime : time required to build the kd-tree index
+        // queryTime : time required to find nearest neighbor for a single point in the kd-tree
+        vector<double> buildTime, queryTime;
 
-    if (test_kdtree<float>(N, D, min_accuracy)) { num_passed++; }
-    else { num_failed++; }
+        unsigned int plotCount=10, dim=3;
 
-    if (test_kdtree<double>(N, D, min_accuracy)) { num_passed++; }
-    else { num_failed++; }
+        for(unsigned int i=1;i<=plotCount;i++)
+        {
+            // size of dataset currently being used
+            unsigned int currSize=((i*1.0)/plotCount)*N;
+            num_t *cloudS = new num_t[currSize*dim]; 
+            num_t *cloudT = new num_t[currSize*dim]; ;
 
-    printf("NUM_PASSED %d  NUM_FAILED %d\n", num_passed, num_failed);
-    
-    if (num_failed) return -1;
-    else return 0;
+            for (unsigned int n=0; n < currSize; ++n) {
+                for (unsigned int d=0; d < dim; ++d) {
+                    cloudS[n*dim + d] = PcloudS[n*dim + d];
+                    cloudT[n*dim + d] = PcloudT[n*dim + d];
+                }
+            }
+
+            clock_t begin = clock();
+            // construct a kd-tree index:
+            nn_obj<num_t>* nnobj_exact = nn_obj_build_exact(cloudS, currSize, 3);
+            clock_t end = clock();
+            double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+            buildTime.push_back(elapsed_secs);
+
+            {
+                vector<num_t> mins_exact(currSize);
+                vector<unsigned> argmins_exact(currSize);
+                clock_t begin = clock();
+                // do a knn search
+                nnobj_exact->search_nn(cloudT, currSize, &argmins_exact[0], &mins_exact[0]);
+                clock_t end = clock();
+                double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+                queryTime.push_back(elapsed_secs/currSize);
+            } 
+        }
+
+        for(unsigned int i=0;i<buildTime.size();i++)
+            std::cout<<buildTime[i]<<" ";
+        std::cout<<"\n";
+
+        for(unsigned int i=0;i<queryTime.size();i++)
+            std::cout<<queryTime[i]<<" ";
+        std::cout<<"\n";
+}
+
+int main()
+{
+    srand(time(NULL));
+    string dataset_path(NANOFLANN_PATH);
+    //randomly choose some dataset from dat_avz/001 to dat_avz/010 [fixed right now -- update later]
+    dataset_path+="/benchmarkTool/realTests/dat_avz/001/";
+    kdtree_demo<double>(dataset_path);
+    return 0;
 }
