@@ -102,7 +102,7 @@ template <typename T>
 vector<triplet> generateRandomPointCloud(const size_t N, const T max_range = 10)
 {
     vector<triplet> point;
-    for (unsigned int i=0;i<N;i++)
+    for (size_t i=0;i<N;i++)
     {
         triplet tmp(max_range * (rand() % 1000) / T(1000), max_range * (rand() % 1000) / T(1000), max_range * (rand() % 1000) / T(1000));
         point.push_back(tmp);
@@ -119,7 +119,7 @@ void kdtree_demo(const size_t N, double &buildTimer, double &queryTimer)
     tree_type exact_dist(std::ptr_fun(tac));
     clock_t begin = clock();
     // construct a kd-tree index:
-    for(unsigned int j=0;j<N;j++)
+    for(size_t j=0;j<N;j++)
       exact_dist.insert(cloudS[j]);
     exact_dist.optimise();
     clock_t end = clock();
@@ -128,7 +128,7 @@ void kdtree_demo(const size_t N, double &buildTimer, double &queryTimer)
 
     {
         double elapsed_secs=0;
-        for(unsigned int j=0;j<N;j++)
+        for(size_t j=0;j<N;j++)
         {             
             triplet query_pt=cloudT[j];
             std::pair<tree_type::const_iterator,double> found;
@@ -147,30 +147,30 @@ int main()
 {
     // Randomize Seed
     srand(time(NULL));
-    unsigned int plotCount=10;
+    size_t plotCount = 10;
     // Number of points
     size_t Ns[] = {1e3, 5e3, 1e4, 5e4, 1e5, 2e5, 5e5, 7e5, 1e6, 2e6};
     // And repetitions for each point cloud size:
-    size_t nReps[]  = {100, 100, 10, 10,  1,  1,  1,  1,  1, 1};
+    size_t nReps[] = {1, 1, 1, 1,  1,  1,  1,  1,  1, 1};
     // buildTime : time required to build the kd-tree index
     // queryTime : time required to find nearest neighbor for a single point in the kd-tree
     vector<double> buildTime, queryTime;
 
     for (size_t i=0;i<plotCount;i++)
     {
-        double buildTimer=0, queryTimer=0;
+        double buildTimer = 0, queryTimer = 0;
         for (size_t repets=0;repets<nReps[i];repets++)
             kdtree_demo<float>(Ns[i], buildTimer, queryTimer);
-        buildTimer=buildTimer/nReps[i];
-        queryTimer=queryTimer/nReps[i];
+        buildTimer /= nReps[i];
+        queryTimer /= nReps[i];
         buildTime.push_back(buildTimer);
         queryTime.push_back(queryTimer);
     }
-    for(unsigned int i=0;i<buildTime.size();i++)
+    for(size_t i=0;i<buildTime.size();i++)
         std::cout<<buildTime[i]<<" ";
     std::cout<<"\n";
 
-    for(unsigned int i=0;i<queryTime.size();i++)
+    for(size_t i=0;i<queryTime.size();i++)
         std::cout<<queryTime[i]<<" ";
     std::cout<<"\n";
     return 0;

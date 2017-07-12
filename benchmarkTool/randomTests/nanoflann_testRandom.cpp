@@ -110,16 +110,16 @@ void kdtree_demo(const size_t N, double &buildTimer, double &queryTimer)
     
     {
         double elapsed_secs=0;
-        for(unsigned int i=0;i<N;i++)
+        for(size_t i=0;i<N;i++)
         {
-            num_t query_pt[3] = { cloudT.pts[i].x, cloudT.pts[i].y, cloudT.pts[i].z};
+            num_t query_pt[3] = {cloudT.pts[i].x, cloudT.pts[i].y, cloudT.pts[i].z};
             // do a knn search
             const size_t num_results = 1;
             size_t ret_index;
             num_t out_dist_sqr;
             clock_t begin = clock();
             nanoflann::KNNResultSet<num_t> resultSet(num_results);
-            resultSet.init(&ret_index, &out_dist_sqr );
+            resultSet.init(&ret_index, &out_dist_sqr);
             index.findNeighbors(resultSet, query_pt, nanoflann::SearchParams(10));
             clock_t end = clock();
             elapsed_secs += double(end - begin);
@@ -133,30 +133,30 @@ int main()
 {
     // Randomize Seed
     srand(time(NULL));
-    unsigned int plotCount=1;
+    size_t plotCount = 10;
     // Number of points
     size_t Ns[] = {1e3, 5e3, 1e4, 5e4, 1e5, 2e5, 5e5, 7e5, 1e6, 2e6};
     // And repetitions for each point cloud size:
-    size_t nReps[]  = {1, 1, 1, 1,  1,  1,  1,  1,  1, 1};
+    size_t nReps[] = {1, 1, 1, 1,  1,  1,  1,  1,  1, 1};
     // buildTime : time required to build the kd-tree index
     // queryTime : time required to find nearest neighbor for a single point in the kd-tree
     vector<double> buildTime, queryTime;
 
     for (size_t i=0;i<plotCount;i++)
     {
-        double buildTimer=0, queryTimer=0;
+        double buildTimer = 0, queryTimer = 0;
         for (size_t repets=0;repets<nReps[i];repets++)
             kdtree_demo<float>(Ns[i], buildTimer, queryTimer);
-        buildTimer=buildTimer/nReps[i];
-        queryTimer=queryTimer/nReps[i];
+        buildTimer /= nReps[i];
+        queryTimer /= nReps[i];
         buildTime.push_back(buildTimer);
         queryTime.push_back(queryTimer);
     }
-    for(unsigned int i=0;i<buildTime.size();i++)
+    for(size_t i=0;i<buildTime.size();i++)
         std::cout<<buildTime[i]<<" ";
     std::cout<<"\n";
 
-    for(unsigned int i=0;i<queryTime.size();i++)
+    for(size_t i=0;i<queryTime.size();i++)
         std::cout<<queryTime[i]<<" ";
     std::cout<<"\n";
     return 0;
