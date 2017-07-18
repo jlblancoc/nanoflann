@@ -132,7 +132,7 @@ void kdtree_demo(const size_t N, double &buildTimer, double &queryTimer)
 int main()
 {
     // Randomize Seed
-    srand(time(NULL));
+    //srand(time(NULL));
     size_t plotCount = 10;
     size_t maxSize = 10000;
 

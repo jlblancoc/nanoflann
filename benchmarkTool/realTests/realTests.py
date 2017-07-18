@@ -1,5 +1,4 @@
 #!/usr/bin/python
-import math
 import matplotlib.pyplot as plt
 import subprocess
 
@@ -42,7 +41,7 @@ def plotTime(execPath, numRepetitions, numDivisions):
 		QueryTimeError += [stdVal]
 	return BuildTimeFinal, BuildTimeError, QueryTimeFinal, QueryTimeError
 
-numRepetitions = 10
+numRepetitions = 50
 numDivisions = 10
 xaxis = []
 for i in range(1,numDivisions+1):
@@ -50,14 +49,14 @@ for i in range(1,numDivisions+1):
 
 
 fig, ax = plt.subplots()
-nanoflannBuildTimeFinal, nanoflannBuildTimeError, nanoflannQueryTimeFinal, nanoflannQueryTimeError = plotTime('../../build/bin/./nanoflann_testReal', numRepetitions, numDivisions)
-flannBuildTimeFinal, flannBuildTimeError, flannQueryTimeFinal, flannQueryTimeError = plotTime('../../build/bin/./flann_testReal', numRepetitions, numDivisions)
-fastannBuildTimeFinal, fastannBuildTimeError, fastannQueryTimeFinal, fastannQueryTimeError = plotTime('../../build/bin/./fastann_testReal', numRepetitions, numDivisions)
-plt.plot(xaxis, nanoflannBuildTimeFinal, 'r', label='nanoflann', linewidth=3.0)
+nanoflannBuildTimeFinal, nanoflannBuildTimeError, nanoflannQueryTimeFinal, nanoflannQueryTimeError = plotTime('/home/pranjalr34/gsoc/nanoflann/build/bin/./nanoflann_testReal', numRepetitions, numDivisions)
+flannBuildTimeFinal, flannBuildTimeError, flannQueryTimeFinal, flannQueryTimeError = plotTime('/home/pranjalr34/gsoc/nanoflann/build/bin/./flann_testReal', numRepetitions, numDivisions)
+fastannBuildTimeFinal, fastannBuildTimeError, fastannQueryTimeFinal, fastannQueryTimeError = plotTime('/home/pranjalr34/gsoc/nanoflann/build/bin/./fastann_testReal', numRepetitions, numDivisions)
+plt.plot(xaxis, nanoflannBuildTimeFinal, 'r', label='nanoflann', linewidth=4.0)
 plt.errorbar(xaxis, nanoflannBuildTimeFinal, color='k', yerr=nanoflannBuildTimeError, fmt='o')
-plt.plot(xaxis, flannBuildTimeFinal, 'g', label='flann', linewidth=3.0)
+plt.plot(xaxis, flannBuildTimeFinal, 'g', label='flann', linewidth=4.0)
 plt.errorbar(xaxis, flannBuildTimeFinal, color='k', yerr=flannBuildTimeError, fmt='o')
-plt.plot(xaxis, fastannBuildTimeFinal, 'b', label='fastann', linewidth=3.0)
+plt.plot(xaxis, fastannBuildTimeFinal, 'b', label='fastann', linewidth=4.0)
 plt.errorbar(xaxis, fastannBuildTimeFinal, color='k', yerr=fastannBuildTimeError, fmt='o')
 plt.xlabel('Relative size of point cloud', fontsize=25)
 plt.ylabel('Time (ms)', fontsize=25)
@@ -71,15 +70,15 @@ frame.set_facecolor('0.90')
 for label in legend.get_texts():
     label.set_fontsize('large')
 for label in legend.get_lines():
-    label.set_linewidth(10)  # the legend line width
+    label.set_linewidth(15)  # the legend line width
 plt.show()
 
 fig, ax = plt.subplots()
-plt.plot(xaxis, nanoflannQueryTimeFinal, 'r', label='nanoflann', linewidth=3.0)
+plt.plot(xaxis, nanoflannQueryTimeFinal, 'r', label='nanoflann', linewidth=4.0)
 plt.errorbar(xaxis, nanoflannQueryTimeFinal, color='k', yerr=nanoflannQueryTimeError, fmt='o')
-plt.plot(xaxis, flannQueryTimeFinal, 'g', label='flann', linewidth=3.0)
+plt.plot(xaxis, flannQueryTimeFinal, 'g', label='flann', linewidth=4.0)
 plt.errorbar(xaxis, flannQueryTimeFinal, color='k', yerr=flannQueryTimeError, fmt='o')
-plt.plot(xaxis, fastannQueryTimeFinal, 'b', label='fastann', linewidth=3.0)
+plt.plot(xaxis, fastannQueryTimeFinal, 'b', label='fastann', linewidth=4.0)
 plt.errorbar(xaxis, fastannQueryTimeFinal, color='k', yerr=fastannQueryTimeError, fmt='o')
 plt.xlabel('Relative size of point cloud', fontsize=25)
 plt.ylabel('Time (ms)', fontsize=25)
@@ -93,5 +92,5 @@ frame.set_facecolor('0.90')
 for label in legend.get_texts():
     label.set_fontsize('large')
 for label in legend.get_lines():
-    label.set_linewidth(10)  # the legend line width
+    label.set_linewidth(15)  # the legend line width
 plt.show()
