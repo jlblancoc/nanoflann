@@ -81,22 +81,17 @@ int main()
     // Randomize Seed
     srand(time(NULL));
     size_t plotCount = 10;
-    // Number of points
-    size_t Ns[] = {1e3, 5e3, 1e4, 5e4, 1e5, 2e5, 5e5, 7e5, 1e6, 2e6};
-    // And repetitions for each point cloud size:
-    size_t nReps[] = {1, 1, 1, 1,  1,  1,  1,  1,  1, 1};
+    size_t maxSize = 10000;
+
     // buildTime : time required to build the kd-tree index
     // queryTime : time required to find nearest neighbor for a single point in the kd-tree
     vector<double> buildTime, queryTime;
 
-    for (size_t i=0;i<plotCount;i++)
+    for (size_t i=1;i<=plotCount;i++)
     {
+        size_t currSize=((i*1.0)/plotCount)*maxSize;
         double buildTimer = 0, queryTimer = 0;
-        for (size_t repets=0;repets<nReps[i];repets++)
-            kdtree_demo<float>(Ns[i], buildTimer, queryTimer);
-        buildTimer /= nReps[i];
-        queryTimer /= nReps[i];
-        cout<<buildTimer<<" "<<queryTimer<<"\n";
+        kdtree_demo<float>(currSize, buildTimer, queryTimer);
         buildTime.push_back(buildTimer);
         queryTime.push_back(queryTimer);
     }
