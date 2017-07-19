@@ -87,6 +87,7 @@ void kdtree_demo(string &path)
         {
             // size of dataset currently being used
             unsigned int currSize=((i*1.0)/plotCount)*N;
+            std::cout<<currSize<<" ";
             Matrix<num_t> cloudS(new num_t[currSize*dim], currSize, dim);
             Matrix<num_t> cloudT(new num_t[currSize*dim], currSize, dim);
 
@@ -118,7 +119,8 @@ void kdtree_demo(string &path)
                 queryTime.push_back(elapsed_secs/currSize);
             }
         }
-
+        std::cout<<"\n";
+        
         for(unsigned int i=0;i<buildTime.size();i++)
             std::cout<<buildTime[i]<<" ";
         std::cout<<"\n";

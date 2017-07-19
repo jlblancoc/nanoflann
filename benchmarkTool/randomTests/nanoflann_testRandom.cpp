@@ -143,11 +143,13 @@ int main()
     for (size_t i=1;i<=plotCount;i++)
     {
         size_t currSize=((i*1.0)/plotCount)*maxSize;
+        std::cout<<currSize<<" ";
         double buildTimer = 0, queryTimer = 0;
         kdtree_demo<float>(currSize, buildTimer, queryTimer);
         buildTime.push_back(buildTimer);
         queryTime.push_back(queryTimer);
     }
+    cout<<"\n";
     for(size_t i=0;i<buildTime.size();i++)
         std::cout<<buildTime[i]<<" ";
     std::cout<<"\n";
