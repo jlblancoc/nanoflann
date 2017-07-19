@@ -87,9 +87,9 @@ void kdtree_demo(string &path)
         {
             // size of dataset currently being used
             unsigned int currSize=((i*1.0)/plotCount)*N;
+            std::cout<<currSize<<" ";
             num_t *cloudS = new num_t[currSize*dim]; 
             num_t *cloudT = new num_t[currSize*dim]; ;
-
             for (unsigned int n=0; n < currSize; ++n) {
                 for (unsigned int d=0; d < dim; ++d) {
                     cloudS[n*dim + d] = PcloudS[n*dim + d];
@@ -115,7 +115,8 @@ void kdtree_demo(string &path)
                 queryTime.push_back(elapsed_secs/currSize);
             } 
         }
-
+        std::cout<<"\n";
+        
         for(unsigned int i=0;i<buildTime.size();i++)
             std::cout<<buildTime[i]<<" ";
         std::cout<<"\n";
