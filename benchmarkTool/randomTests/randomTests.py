@@ -21,7 +21,7 @@ def plotTime(execPath, numRepetitions, numDivisions):
 	QueryTime = [[0.0 for x in range(numDivisions)] for y in range(numRepetitions)] 
 	xaxis = []
 	for processCount in range(numRepetitions):
-		proc = subprocess.Popen([execPath], stdout=subprocess.PIPE, shell=True)
+		proc = subprocess.Popen([execPath + ' ' + str(processCount)], stdout=subprocess.PIPE, shell=True)
 		(out, err) = proc.communicate()
 		List = out.split()
 		for it, item in enumerate(List):
