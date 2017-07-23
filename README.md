@@ -13,11 +13,12 @@ This library is a *fork (and a subset)* of the [flann library](http://people.cs.
 Cite as:
 ```
 @misc{blanco2014nanoflann,
-  title={nanoflann: a C++ header-only fork of FLANN, a library for Nearest Neighbor (NN) wih KD-trees},
-  author={Blanco, Jose Luis},
+  title        = {nanoflann: a {C}++ header-only fork of {FLANN}, a library for Nearest Neighbor ({NN}) wih KD-trees},
+  author       = {Blanco, Jose Luis},
   howpublished = {\url{https://github.com/jlblancoc/nanoflann}},
-  year={2014}
+  year         = {2014}
 }
+
 ```
 
 ### 1.1. Obtaining the code
