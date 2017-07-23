@@ -10,6 +10,15 @@
 
 This library is a *fork (and a subset)* of the [flann library](http://people.cs.ubc.ca/~mariusm/index.php/FLANN/FLANN) by Marius Muja and David G. Lowe, and born as a child project of [MRPT](http://www.mrpt.org/). Following the original license terms, *nanoflann* is distributed under the BSD license. Please, for bugs use the issues button or fork and open a pull request.
 
+Cite as:
+```
+@misc{blanco2014nanoflann,
+  title={nanoflann: a C++ header-only fork of FLANN, a library for Nearest Neighbor (NN) wih KD-trees},
+  author={Blanco, Jose Luis},
+  howpublished = {\url{https://github.com/jlblancoc/nanoflann}},
+  year={2014}
+}
+```
 
 ### 1.1. Obtaining the code
 
