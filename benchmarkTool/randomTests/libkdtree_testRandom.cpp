@@ -145,13 +145,16 @@ void kdtree_demo(const size_t N, double &buildTimer, double &queryTimer)
 
 int main(int argc, char *argv[])
 {
-    // Randomize Seed
-    if(argc!=2)
-        srand(time(NULL));
-    else
-        srand(atoi(argv[1]));
     size_t plotCount = 10;
     size_t maxSize = 10000;
+    // Randomize Seed
+    if(argc!=3)
+        srand(time(NULL));
+    else
+    {
+        srand(atoi(argv[2]));
+        maxSize = atoi(argv[1]);
+    }
 
     // buildTime : time required to build the kd-tree index
     // queryTime : time required to find nearest neighbor for a single point in the kd-tree
