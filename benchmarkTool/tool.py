@@ -7,9 +7,12 @@ def realTests():
 	os.system('realTests/./realTests.py')
 	return
 
-def randomTests(window, numPoints, CheckVar1, CheckVar2, CheckVar3, CheckVar4):
-	libState = [CheckVar1.get(), CheckVar2.get(), CheckVar3.get(), CheckVar4.get()]
-	os.system('randomTests/./randomTests.py ' + str(numPoints.get()) + ' ' + str(libState[0]) + ' ' + str(libState[1]) + ' ' + str(libState[2]) + ' ' + str(libState[3]))
+def randomTests(window, numPoints, nanoflannFlag, flannFlag, fastannFlag, libkdtreeFlag):
+	libState  = [nanoflannFlag.get(), flannFlag.get(), fastannFlag.get(), libkdtreeFlag.get()]
+	numPoints = numPoints.get()
+	# pass parameters as command line arguments
+	os.system('randomTests/./randomTests.py ' + str(numPoints) + ' ' + str(libState[0]) + ' ' + str(libState[1]) + ' ' + str(libState[2]) + ' ' + str(libState[3]))
+	# close window
 	window.destroy()
 	return
 
@@ -24,28 +27,34 @@ def getParams():
 	window.wm_title("Select Parameters")
 	window.resizable(width=False, height=False)
 	
+	# Label for Entry box
 	L1 = tk.Label(window, text="Max Points")
 	L1.grid(row=0, column=0)
 	
+	# Entry box
 	numPoints =  tk.StringVar(window, value='10000')
 	E1 = tk.Entry(window, textvariable = numPoints, bd = 5, width = 20)
 	E1.grid(row=0, column=1)
 
-	CheckVar1 = tk.IntVar()
-	CheckVar2 = tk.IntVar()
-	CheckVar3 = tk.IntVar()
-	CheckVar4 = tk.IntVar()
-	C1 = tk.Checkbutton(window, text = "nanoflann", variable = CheckVar1, onvalue = 1, command = lambda: DarkenLabel(C1), background='white', offvalue = 0, height=5, width = 20)
+	nanoflannFlag = tk.IntVar()
+	flannFlag = tk.IntVar()
+	fastannFlag = tk.IntVar()
+	libkdtreeFlag = tk.IntVar()
+	
+	# 4 checkbuttons
+	C1 = tk.Checkbutton(window, text = "nanoflann", variable = nanoflannFlag, onvalue = 1, command = lambda: DarkenLabel(C1), background='white', offvalue = 0, height=5, width = 20)
 	C1.grid(row=1, column=1)
-	C2 = tk.Checkbutton(window, text = "flann", variable = CheckVar2, onvalue = 1, command = lambda: DarkenLabel(C2), background='white', offvalue = 0, height=5, width = 20)
+	C2 = tk.Checkbutton(window, text = "flann", variable = flannFlag, onvalue = 1, command = lambda: DarkenLabel(C2), background='white', offvalue = 0, height=5, width = 20)
 	C2.grid(row=2, column=1)
-	C3 = tk.Checkbutton(window, text = "fastann", variable = CheckVar3, onvalue = 1, command = lambda: DarkenLabel(C3), background='white', offvalue = 0, height=5, width = 20)
+	C3 = tk.Checkbutton(window, text = "fastann", variable = fastannFlag, onvalue = 1, command = lambda: DarkenLabel(C3), background='white', offvalue = 0, height=5, width = 20)
 	C3.grid(row=3, column=1)
-	C4 = tk.Checkbutton(window, text = "libkdtree", variable = CheckVar4, onvalue = 1, command = lambda: DarkenLabel(C4), background='white', offvalue = 0, height=5, width = 20)
+	C4 = tk.Checkbutton(window, text = "libkdtree", variable = libkdtreeFlag, onvalue = 1, command = lambda: DarkenLabel(C4), background='white', offvalue = 0, height=5, width = 20)
 	C4.grid(row=4, column=1)
 
-	btn = tk.Button(window, text = 'submit', command = lambda: randomTests(window, numPoints, CheckVar1, CheckVar2, CheckVar3, CheckVar4))
+	# submit button
+	btn = tk.Button(window, text = 'submit', command = lambda: randomTests(window, numPoints, nanoflannFlag, flannFlag, fastannFlag, libkdtreeFlag))
 	btn.grid(row=5, column=1, pady = 10)
+	
 	return
 
 def createButton(TextMessage, row_index, col_index):
@@ -57,10 +66,11 @@ def createButton(TextMessage, row_index, col_index):
 	if(TextMessage == 'Random Test'):
 		btn = tk.Button(frame, font=helv36, text =TextMessage, command = getParams, foreground='black', background='white', activeforeground='white', activebackground='green') #create a button inside frame 
 	btn.grid(row=row_index, column=col_index, sticky=tk.N+tk.S+tk.E+tk.W)
+	return
 
 if __name__ == '__main__':
-	#Create & Configure root 
-	col = 'white'
+
+	# configure window
 	root = tk.Tk()
 	root.wm_title("Benchmarking Tool")
 	height = 400
@@ -73,7 +83,8 @@ if __name__ == '__main__':
 
 	frame=tk.Frame(root)
 	frame.grid(row=0, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
-		
+	
+	# 2 buttons	
 	createButton("Real Test", 0, 0)
 	createButton("Random Test", 1, 0)
 
