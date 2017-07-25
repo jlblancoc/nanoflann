@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import sys
 import matplotlib.pyplot as plt
 import subprocess
 
@@ -15,13 +16,12 @@ def cal(MatrixTime, col):
 	stdVal = stdVal**0.5
 	return meanVal, stdVal
 
-
-def plotTime(execPath, numRepetitions, numDivisions):
+def plotTime(execPath, numRepetitions, numDivisions, numPoints):
 	BuildTime = [[0.0 for x in range(numDivisions)] for y in range(numRepetitions)] 
 	QueryTime = [[0.0 for x in range(numDivisions)] for y in range(numRepetitions)] 
 	xaxis = []
 	for processCount in range(numRepetitions):
-		proc = subprocess.Popen([execPath + ' ' + str(processCount)], stdout=subprocess.PIPE, shell=True)
+		proc = subprocess.Popen([execPath + ' ' + str(numPoints) + ' ' + str(processCount) ], stdout=subprocess.PIPE, shell=True)
 		(out, err) = proc.communicate()
 		List = out.split()
 		for it, item in enumerate(List):
@@ -47,17 +47,36 @@ def plotTime(execPath, numRepetitions, numDivisions):
 
 numRepetitions = 50
 numDivisions = 10
+numPoints = 10000 # default numPoints
+nanoflannFlag = 0
+flannFlag = 0
+fastannFlag = 0
+libkdtreeFlag = 0
+
+if(len(sys.argv) == 6):
+	numPoints = int(sys.argv[1])
+	nanoflannFlag = int(sys.argv[2])
+	flannFlag = int(sys.argv[3])
+	fastannFlag = int(sys.argv[4])
+	libkdtreeFlag = int(sys.argv[5])
 
 fig, ax = plt.subplots()
-xaxis, nanoflannBuildTimeFinal, nanoflannBuildTimeError, nanoflannQueryTimeFinal, nanoflannQueryTimeError = plotTime('/home/pranjalr34/gsoc/nanoflann/build/bin/./nanoflann_testRandom', numRepetitions, numDivisions)
-xaxis, flannBuildTimeFinal, flannBuildTimeError, flannQueryTimeFinal, flannQueryTimeError = plotTime('/home/pranjalr34/gsoc/nanoflann/build/bin/./flann_testRandom', numRepetitions, numDivisions)
-#xaxis, fastannBuildTimeFinal, fastannBuildTimeError, fastannQueryTimeFinal, fastannQueryTimeError = plotTime('/home/pranjalr34/gsoc/nanoflann/build/bin/./fastann_testRandom', numRepetitions, numDivisions)
-plt.plot(xaxis, nanoflannBuildTimeFinal, 'r', label='nanoflann', linewidth=3.0)
-plt.errorbar(xaxis, nanoflannBuildTimeFinal, color='k', yerr=nanoflannBuildTimeError, fmt='o')
-plt.plot(xaxis, flannBuildTimeFinal, 'g', label='flann', linewidth=3.0)
-plt.errorbar(xaxis, flannBuildTimeFinal, color='k', yerr=flannBuildTimeError, fmt='o')
-#plt.plot(xaxis, fastannBuildTimeFinal, 'b', label='fastann', linewidth=3.0)
-#plt.errorbar(xaxis, fastannBuildTimeFinal, color='k', yerr=fastannBuildTimeError, fmt='o')
+if(nanoflannFlag):
+	xaxis, nanoflannBuildTimeFinal, nanoflannBuildTimeError, nanoflannQueryTimeFinal, nanoflannQueryTimeError = plotTime('/home/pranjalr34/gsoc/nanoflann/build/bin/./nanoflann_testRandom', numRepetitions, numDivisions, numPoints)
+	plt.plot(xaxis, nanoflannBuildTimeFinal, 'r', label='nanoflann', linewidth=3.0)
+	plt.errorbar(xaxis, nanoflannBuildTimeFinal, color='k', yerr=nanoflannBuildTimeError, fmt='o')
+if(flannFlag):
+	xaxis, flannBuildTimeFinal, flannBuildTimeError, flannQueryTimeFinal, flannQueryTimeError = plotTime('/home/pranjalr34/gsoc/nanoflann/build/bin/./flann_testRandom', numRepetitions, numDivisions, numPoints)
+	plt.plot(xaxis, flannBuildTimeFinal, 'g', label='flann', linewidth=3.0)
+	plt.errorbar(xaxis, flannBuildTimeFinal, color='k', yerr=flannBuildTimeError, fmt='o')
+if(fastannFlag):
+	xaxis, fastannBuildTimeFinal, fastannBuildTimeError, fastannQueryTimeFinal, fastannQueryTimeError = plotTime('/home/pranjalr34/gsoc/nanoflann/build/bin/./fastann_testRandom', numRepetitions, numDivisions, numPoints)
+	plt.plot(xaxis, fastannBuildTimeFinal, 'b', label='fastann', linewidth=3.0)
+	plt.errorbar(xaxis, fastannBuildTimeFinal, color='k', yerr=fastannBuildTimeError, fmt='o')
+if(libkdtreeFlag):
+	xaxis, libkdtreeBuildTimeFinal, libkdtreeBuildTimeError, libkdtreeQueryTimeFinal, libkdtreeQueryTimeError = plotTime('/home/pranjalr34/gsoc/nanoflann/build/bin/./libkdtree_testRandom', numRepetitions, numDivisions, numPoints)
+	plt.plot(xaxis, libkdtreeBuildTimeFinal, 'k', label='libkdtree', linewidth=3.0)
+	plt.errorbar(xaxis, libkdtreeBuildTimeFinal, color='k', yerr=libkdtreeBuildTimeError, fmt='o')
 
 ax.grid(True)
 
@@ -92,12 +111,18 @@ for label in legend.get_lines():
 plt.show()
 
 fig, ax = plt.subplots()
-plt.plot(xaxis, nanoflannQueryTimeFinal, 'r', label='nanoflann', linewidth=3.0)
-plt.errorbar(xaxis, nanoflannQueryTimeFinal, color='k', yerr=nanoflannQueryTimeError, fmt='o')
-plt.plot(xaxis, flannQueryTimeFinal, 'g', label='flann', linewidth=3.0)
-plt.errorbar(xaxis, flannQueryTimeFinal, color='k', yerr=flannQueryTimeError, fmt='o')
-#plt.plot(xaxis, fastannQueryTimeFinal, 'b', label='fastann', linewidth=3.0)
-#plt.errorbar(xaxis, fastannQueryTimeFinal, color='k', yerr=fastannQueryTimeError, fmt='o')
+if(nanoflannFlag):
+	plt.plot(xaxis, nanoflannQueryTimeFinal, 'r', label='nanoflann', linewidth=3.0)
+	plt.errorbar(xaxis, nanoflannQueryTimeFinal, color='k', yerr=nanoflannQueryTimeError, fmt='o')
+if(flannFlag):
+	plt.plot(xaxis, flannQueryTimeFinal, 'g', label='flann', linewidth=3.0)
+	plt.errorbar(xaxis, flannQueryTimeFinal, color='k', yerr=flannQueryTimeError, fmt='o')
+if(fastannFlag):
+	plt.plot(xaxis, fastannQueryTimeFinal, 'b', label='fastann', linewidth=3.0)
+	plt.errorbar(xaxis, fastannQueryTimeFinal, color='k', yerr=fastannQueryTimeError, fmt='o')
+if(libkdtreeFlag):
+	plt.plot(xaxis, libkdtreeQueryTimeFinal, 'k', label='libkdtree', linewidth=3.0)
+	plt.errorbar(xaxis, libkdtreeQueryTimeFinal, color='k', yerr=libkdtreeQueryTimeError, fmt='o')
 
 ax.grid(True)
 
