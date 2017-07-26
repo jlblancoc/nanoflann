@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import matplotlib.pyplot as plt
 import subprocess
+import os
 
 # calculate mean and standard deviation of an observation
 def cal(MatrixTime, col):
@@ -54,12 +55,13 @@ if __name__ == '__main__':
 	numDivisions = 10
 
 	# BUILD TIME PLOTS
-
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        dir_path = dir_path + '/../../build/bin/'
 	fig, ax = plt.subplots()
-	xaxis, nanoflannBuildTimeFinal, nanoflannBuildTimeError, nanoflannQueryTimeFinal, nanoflannQueryTimeError = plotTime('/home/pranjalr34/gsoc/nanoflann/build/bin/./nanoflann_testReal', numRepetitions, numDivisions)
-	xaxis, flannBuildTimeFinal, flannBuildTimeError, flannQueryTimeFinal, flannQueryTimeError = plotTime('/home/pranjalr34/gsoc/nanoflann/build/bin/./flann_testReal', numRepetitions, numDivisions)
-	#xaxis, fastannBuildTimeFinal, fastannBuildTimeError, fastannQueryTimeFinal, fastannQueryTimeError = plotTime('/home/pranjalr34/gsoc/nanoflann/build/bin/./fastann_testReal', numRepetitions, numDivisions)
-	#xaxis, libkdtreeBuildTimeFinal, libkdtreeBuildTimeError, libkdtreeQueryTimeFinal, libkdtreeQueryTimeError = plotTime('/home/pranjalr34/gsoc/nanoflann/build/bin/./libkdtree_testReal', numRepetitions, numDivisions)
+	xaxis, nanoflannBuildTimeFinal, nanoflannBuildTimeError, nanoflannQueryTimeFinal, nanoflannQueryTimeError = plotTime(dir_path + './nanoflann_testReal', numRepetitions, numDivisions)
+	xaxis, flannBuildTimeFinal, flannBuildTimeError, flannQueryTimeFinal, flannQueryTimeError = plotTime(dir_path + './flann_testReal', numRepetitions, numDivisions)
+	#xaxis, fastannBuildTimeFinal, fastannBuildTimeError, fastannQueryTimeFinal, fastannQueryTimeError = plotTime(dir_path + './fastann_testReal', numRepetitions, numDivisions)
+	#xaxis, libkdtreeBuildTimeFinal, libkdtreeBuildTimeError, libkdtreeQueryTimeFinal, libkdtreeQueryTimeError = plotTime(dir_path + './libkdtree_testReal', numRepetitions, numDivisions)
 	plt.plot(xaxis, nanoflannBuildTimeFinal, 'r', label='nanoflann', linewidth=3.0)
 	plt.errorbar(xaxis, nanoflannBuildTimeFinal, color='k', yerr=nanoflannBuildTimeError, fmt='o')
 	plt.plot(xaxis, flannBuildTimeFinal, 'g', label='flann', linewidth=3.0)
