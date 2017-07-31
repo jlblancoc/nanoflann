@@ -52,22 +52,21 @@ def plotTime(execPath, numRepetitions, numDivisions, numPoints):
 
 if __name__ == '__main__':
 
+	if(len(sys.argv)!=6):
+		raise ValueError('\n\n****Running Instructions:****\n ./randomTests.py numPoints nanoflannFlag flannFlag fastannFlag libkdtreeFlag\n\n Example:\n ./randomTests.py 1000 1 1 0 0\n This will run benchmarking tests with 1000 random points for nanoflann and flann.')
+
 	numRepetitions = 50
 	numDivisions   = 10
-	numPoints      = 10000 # default numPoints
 	# default states
 	nanoflannFlag  = 0
 	flannFlag      = 0
 	fastannFlag    = 0
 	libkdtreeFlag  = 0
-
-	# valid number of command line arguments
-	if(len(sys.argv) == 6):
-		numPoints     = int(sys.argv[1])
-		nanoflannFlag = int(sys.argv[2])
-		flannFlag     = int(sys.argv[3])
-		fastannFlag   = int(sys.argv[4])
-		libkdtreeFlag = int(sys.argv[5])
+	numPoints      = int(sys.argv[1])
+	nanoflannFlag  = int(sys.argv[2])
+	flannFlag      = int(sys.argv[3])
+	fastannFlag    = int(sys.argv[4])
+	libkdtreeFlag  = int(sys.argv[5])
 
 	# BUILD TIME PLOTS
 

@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import sys
 import matplotlib.pyplot as plt
 import subprocess
 import os
@@ -51,6 +52,14 @@ def plotTime(execPath, numRepetitions, numDivisions):
 
 if __name__ == '__main__':
 
+	if(len(sys.argv)!=7 or  os.path.exists(sys.argv[1]) == False  or os.path.exists(sys.argv[2]) == False):
+		raise ValueError('\n\n****Running Instructions:****\n ./realTests.py dataFile1 dataFile2 nanoflannFlag flannFlag fastannFlag libkdtreeFlag\n\n Example:\n ./realTests.py dat_avz/001/scan1.dat dat_avz/001/scan2.dat 1 1 0 0\n This will run benchmarking tests on real scans with different poses for nanoflann and flann.\n Make sure that the scans are of the same scene.')
+
+	nanoflannFlag = int(sys.argv[3])
+	flannFlag     = int(sys.argv[4])
+	fastannFlag   = int(sys.argv[5])
+	libkdtreeFlag = int(sys.argv[6])
+
 	numRepetitions = 50
 	numDivisions = 10
 
@@ -58,18 +67,22 @@ if __name__ == '__main__':
         dir_path = os.path.dirname(os.path.realpath(__file__))
         dir_path = dir_path + '/../../build/bin/'
 	fig, ax = plt.subplots()
-	xaxis, nanoflannBuildTimeFinal, nanoflannBuildTimeError, nanoflannQueryTimeFinal, nanoflannQueryTimeError = plotTime(dir_path + './nanoflann_testReal', numRepetitions, numDivisions)
-	xaxis, flannBuildTimeFinal, flannBuildTimeError, flannQueryTimeFinal, flannQueryTimeError = plotTime(dir_path + './flann_testReal', numRepetitions, numDivisions)
-	#xaxis, fastannBuildTimeFinal, fastannBuildTimeError, fastannQueryTimeFinal, fastannQueryTimeError = plotTime(dir_path + './fastann_testReal', numRepetitions, numDivisions)
-	#xaxis, libkdtreeBuildTimeFinal, libkdtreeBuildTimeError, libkdtreeQueryTimeFinal, libkdtreeQueryTimeError = plotTime(dir_path + './libkdtree_testReal', numRepetitions, numDivisions)
-	plt.plot(xaxis, nanoflannBuildTimeFinal, 'r', label='nanoflann', linewidth=3.0)
-	plt.errorbar(xaxis, nanoflannBuildTimeFinal, color='k', yerr=nanoflannBuildTimeError, fmt='o')
-	plt.plot(xaxis, flannBuildTimeFinal, 'g', label='flann', linewidth=3.0)
-	plt.errorbar(xaxis, flannBuildTimeFinal, color='k', yerr=flannBuildTimeError, fmt='o')
-	#plt.plot(xaxis, fastannBuildTimeFinal, 'b', label='fastann', linewidth=3.0)
-	#plt.errorbar(xaxis, fastannBuildTimeFinal, color='k', yerr=fastannBuildTimeError, fmt='o')
-	#plt.plot(xaxis, libkdtreeBuildTimeFinal, 'k', label='fastann', linewidth=3.0)
-	#plt.errorbar(xaxis, libkdtreeBuildTimeFinal, color='k', yerr=fastannBuildTimeError, fmt='o')
+	if(nanoflannFlag):
+		xaxis, nanoflannBuildTimeFinal, nanoflannBuildTimeError, nanoflannQueryTimeFinal, nanoflannQueryTimeError = plotTime(dir_path + './nanoflann_testReal' + ' ' + sys.argv[1] + ' ' + sys.argv[2], numRepetitions, numDivisions)
+		plt.plot(xaxis, nanoflannBuildTimeFinal, 'r', label='nanoflann', linewidth=3.0)
+		plt.errorbar(xaxis, nanoflannBuildTimeFinal, color='k', yerr=nanoflannBuildTimeError, fmt='o')
+	if(flannFlag):
+		xaxis, flannBuildTimeFinal, flannBuildTimeError, flannQueryTimeFinal, flannQueryTimeError = plotTime(dir_path + './flann_testReal' + ' ' + sys.argv[1] + ' ' + sys.argv[2], numRepetitions, numDivisions)
+		plt.plot(xaxis, flannBuildTimeFinal, 'g', label='flann', linewidth=3.0)
+		plt.errorbar(xaxis, flannBuildTimeFinal, color='k', yerr=flannBuildTimeError, fmt='o')
+	if(fastannFlag):
+		xaxis, fastannBuildTimeFinal, fastannBuildTimeError, fastannQueryTimeFinal, fastannQueryTimeError = plotTime(dir_path + './fastann_testReal' + ' ' + sys.argv[1] + ' ' + sys.argv[2], numRepetitions, numDivisions)
+		plt.plot(xaxis, fastannBuildTimeFinal, 'b', label='fastann', linewidth=3.0)
+		plt.errorbar(xaxis, fastannBuildTimeFinal, color='k', yerr=fastannBuildTimeError, fmt='o')
+	if(libkdtreeFlag):
+		xaxis, libkdtreeBuildTimeFinal, libkdtreeBuildTimeError, libkdtreeQueryTimeFinal, libkdtreeQueryTimeError = plotTime(dir_path + './libkdtree_testReal' + ' ' + sys.argv[1] + ' ' + sys.argv[2], numRepetitions, numDivisions)
+		plt.plot(xaxis, libkdtreeBuildTimeFinal, 'k', label='fastann', linewidth=3.0)
+		plt.errorbar(xaxis, libkdtreeBuildTimeFinal, color='k', yerr=fastannBuildTimeError, fmt='o')
 
 	# plot configurations
 	ax.grid(True)
@@ -107,14 +120,18 @@ if __name__ == '__main__':
 	# QUERY TIME PLOTS
 
 	fig, ax = plt.subplots()
-	plt.plot(xaxis, nanoflannQueryTimeFinal, 'r', label='nanoflann', linewidth=3.0)
-	plt.errorbar(xaxis, nanoflannQueryTimeFinal, color='k', yerr=nanoflannQueryTimeError, fmt='o')
-	plt.plot(xaxis, flannQueryTimeFinal, 'g', label='flann', linewidth=3.0)
-	plt.errorbar(xaxis, flannQueryTimeFinal, color='k', yerr=flannQueryTimeError, fmt='o')
-	#plt.plot(xaxis, fastannQueryTimeFinal, 'b', label='fastann', linewidth=3.0)
-	#plt.errorbar(xaxis, fastannQueryTimeFinal, color='k', yerr=fastannQueryTimeError, fmt='o')
-	#plt.plot(xaxis, libkdtreeQueryTimeFinal, 'k', label='libkdtree', linewidth=3.0)
-	#plt.errorbar(xaxis, libkdtreeQueryTimeFinal, color='k', yerr=libkdtreeQueryTimeError, fmt='o')
+	if(nanoflannFlag):
+		plt.plot(xaxis, nanoflannQueryTimeFinal, 'r', label='nanoflann', linewidth=3.0)
+		plt.errorbar(xaxis, nanoflannQueryTimeFinal, color='k', yerr=nanoflannQueryTimeError, fmt='o')
+	if(flannFlag):
+		plt.plot(xaxis, flannQueryTimeFinal, 'g', label='flann', linewidth=3.0)
+		plt.errorbar(xaxis, flannQueryTimeFinal, color='k', yerr=flannQueryTimeError, fmt='o')
+	if(fastannFlag):
+		plt.plot(xaxis, fastannQueryTimeFinal, 'b', label='fastann', linewidth=3.0)
+		plt.errorbar(xaxis, fastannQueryTimeFinal, color='k', yerr=fastannQueryTimeError, fmt='o')
+	if(libkdtreeFlag):
+		plt.plot(xaxis, libkdtreeQueryTimeFinal, 'k', label='libkdtree', linewidth=3.0)
+		plt.errorbar(xaxis, libkdtreeQueryTimeFinal, color='k', yerr=libkdtreeQueryTimeError, fmt='o')
 
 	# plot configurations
 	ax.grid(True)
