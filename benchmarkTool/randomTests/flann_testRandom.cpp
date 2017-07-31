@@ -80,13 +80,16 @@ int main(int argc, char *argv[])
 {
     size_t plotCount = 10;
     size_t maxSize = 10000;
-    // Randomize Seed
-    if(argc!=3)
-        srand(time(NULL));
-    else
+    
+    if(argc == 3)
     {
         srand(atoi(argv[2]));
         maxSize = atoi(argv[1]);
+    }
+    else
+    {
+        cerr << "**Running Instructions:**\n ./flann_testRandom numPoints seed\nExample:\n ./flann_testRandom 10000 1" << endl;
+        return 0;
     }
 
     // buildTime : time required to build the kd-tree index

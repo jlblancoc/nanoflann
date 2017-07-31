@@ -110,13 +110,13 @@ PointCloud<T> scanPointCloud(unsigned int &N, string file)
 
 
 template <typename num_t>
-void kdtree_demo(string &path)
+void kdtree_demo(string &path1, string &path2)
 {
     	PointCloud<num_t> PcloudS, PcloudT;
     	unsigned int N;
         // Scan points from file
-    	PcloudS = scanPointCloud<num_t>(N, path+"scan1.dat");
-        PcloudT = scanPointCloud<num_t>(N, path+"scan2.dat");
+    	PcloudS = scanPointCloud<num_t>(N, path1);
+        PcloudT = scanPointCloud<num_t>(N, path2);
 	
         // buildTime : time required to build the kd-tree index
         // queryTime : time required to find nearest neighbor for a single point in the kd-tree
@@ -184,12 +184,15 @@ void kdtree_demo(string &path)
         std::cout<<"\n";
 }
 
-int main()
+int main(int argc, char **argv)
 {
-    srand(time(NULL));
-    string dataset_path(NANOFLANN_PATH);
-    //randomly choose some dataset from dat_avz/001 to dat_avz/010 [fixed right now -- update later]
-    dataset_path+="/benchmarkTool/realTests/dat_avz/001/";
-    kdtree_demo<double>(dataset_path);
+    if(argc!=3)
+    {
+        cerr << "**Running Instructions:**\n./nanoflann_testReal dataFile1 dataFile" << endl;
+        return 0;
+    }
+    string dataFile1(argv[1]);
+    string dataFile2(argv[2]);
+    kdtree_demo<double>(dataFile1, dataFile2);
     return 0;
 }
