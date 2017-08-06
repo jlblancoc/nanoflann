@@ -1502,7 +1502,7 @@ namespace nanoflann
 
 			distance_vector_t dists; // fixed or variable-sized container (depending on DIM)
 			dists.assign((DIM>0 ? DIM : dim) ,0); // Fill it with zeros.
-			DistanceType distsq = computeInitialDistances(vec, dists);
+			DistanceType distsq = this->computeInitialDistances(*this, vec, dists);
 			searchLevel(result, vec, root_node, distsq, dists, epsError);  // "count_leaf" parameter removed since was neither used nor returned to the user.
             return result.full();
 		}
@@ -1612,25 +1612,6 @@ namespace nanoflann
 					}
 				}
 			}
-		}
-
-		DistanceType computeInitialDistances(const ElementType* vec, distance_vector_t& dists) const
-		{
-			assert(vec);
-			DistanceType distsq = DistanceType();
-
-			for (int i = 0; i < (DIM>0 ? DIM : dim); ++i) {
-				if (vec[i] < root_bbox[i].low) {
-					dists[i] = distance.accum_dist(vec[i], root_bbox[i].low, i);
-					distsq += dists[i];
-				}
-				if (vec[i] > root_bbox[i].high) {
-					dists[i] = distance.accum_dist(vec[i], root_bbox[i].high, i);
-					distsq += dists[i];
-				}
-			}
-
-			return distsq;
 		}
 
 		/**
