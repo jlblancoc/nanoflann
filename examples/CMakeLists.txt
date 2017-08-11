@@ -30,6 +30,12 @@ TARGET_LINK_LIBRARIES(pointcloud_kdd_radius nanoflann)
 ADD_EXECUTABLE(pointcloud_adaptor_example pointcloud_adaptor_example.cpp)
 TARGET_LINK_LIBRARIES(pointcloud_adaptor_example nanoflann)
 
+ADD_EXECUTABLE(InnerProdQuat_adaptor_example InnerProdQuat_adaptor_example.cpp)
+TARGET_LINK_LIBRARIES(InnerProdQuat_adaptor_example nanoflann)
+
+ADD_EXECUTABLE(acosInnerProdQuat_adaptor_example acosInnerProdQuat_adaptor_example.cpp)
+TARGET_LINK_LIBRARIES(acosInnerProdQuat_adaptor_example nanoflann)
+
 ADD_EXECUTABLE(saveload_example saveload_example.cpp)
 TARGET_LINK_LIBRARIES(saveload_example nanoflann)
 

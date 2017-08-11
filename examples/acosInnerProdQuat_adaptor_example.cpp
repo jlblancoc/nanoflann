@@ -31,6 +31,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <iostream>
+#include <math.h>
 
 using namespace std;
 using namespace nanoflann;
@@ -58,7 +59,7 @@ struct PointCloud
 		const T d1=p1[1] * pts[idx_p2].x;
 		const T d2=p1[2] * pts[idx_p2].y;
 		const T d3=p1[3] * pts[idx_p2].z;
-		return 1 - std::(d0+d1+d2+d3);
+		return std::acos(std::abs(d0+d1+d2+d3));
 	}
 
 	// Returns the dim'th component of the idx'th point in the class:
@@ -81,16 +82,22 @@ struct PointCloud
 };
 
 template <typename T>
-void generateRandomPointCloud(PointCloud<T> &point, const size_t N, const T max_range = 10)
+void generateRandomPointCloud(PointCloud<T> &point, const size_t N)
 {
-	std::cout << "Generating "<< N << " point cloud...";
+	std::cout << "Generating "<< N << " quaternions...";
 	point.pts.resize(N);
+	T s, sig1, sig2, theta1, theta2;
 	for (size_t i=0;i<N;i++)
 	{
-		point.pts[i].w = max_range * (rand() % 1000) / T(1000);
-		point.pts[i].x = max_range * (rand() % 1000) / T(1000);
-		point.pts[i].y = max_range * (rand() % 1000) / T(1000);
-		point.pts[i].z = max_range * (rand() % 1000) / T(1000);
+		s = ((double)rand()) / RAND_MAX;
+		sig1 = sqrt(1-s);
+		sig2 = sqrt(s);
+		theta1 = 2 * M_PI * (((double)rand()) / RAND_MAX);
+		theta2 = 2 * M_PI * (((double)rand()) / RAND_MAX);
+		point.pts[i].w = cos(theta2) * sig2;
+		point.pts[i].x = sin(theta1) * sig1;
+		point.pts[i].y = cos(theta1) * sig1;
+		point.pts[i].z = sin(theta2) * sig2;
 	}
 
 	std::cout << "done\n";
@@ -105,12 +112,13 @@ void kdtree_demo(const size_t N)
 	// Generate points:
 	generateRandomPointCloud(cloud, N);
 
-	num_t query_pt[4] = { 0.5, 0.5, 0.5, 0.5};
+	//num_t query_pt[4] = { 0.5, 0.5, 0.5, 0.5};
+	num_t query_pt[4] = { cloud.pts[2].w, cloud.pts[2].x, cloud.pts[2].y, cloud.pts[2].z}; // Update this
 
 
 	// construct a kd-tree index:
 	typedef KDTreeSingleIndexAdaptor<
-		InnerProdQuat_Adaptor<num_t, PointCloud<num_t> > ,
+		acosInnerProdQuat_Adaptor<num_t, PointCloud<num_t> > ,
 		PointCloud<num_t>,
 		4 /* dim */
 		> my_kd_tree_t;
@@ -135,7 +143,7 @@ void kdtree_demo(const size_t N)
 	}
 	{
 		// Unsorted radius search:
-		const num_t radius = 1;
+		const num_t radius = 50;
 		std::vector<std::pair<size_t,num_t> > indices_dists;
 		RadiusResultSet<num_t,size_t> resultSet(radius,indices_dists);
 

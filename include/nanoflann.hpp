@@ -377,6 +377,48 @@ namespace nanoflann
 		}
 	};
 
+	template<class T, class DataSource, typename _DistanceType = T>
+	struct InnerProdQuat_Adaptor
+	{
+		typedef T ElementType;
+		typedef _DistanceType DistanceType;
+
+		const DataSource &data_source;
+
+		InnerProdQuat_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
+
+		inline DistanceType operator()(const T* a, const size_t b_idx, size_t size) const {
+			return data_source.kdtree_distance(a,b_idx,size);
+		}
+
+		template <typename U, typename V>
+		inline DistanceType accum_dist(const U a, const V b, int ) const
+		{
+			return (a-b)*(a-b);   // Update this
+		}
+	};
+
+	template<class T, class DataSource, typename _DistanceType = T>
+	struct acosInnerProdQuat_Adaptor
+	{
+		typedef T ElementType;
+		typedef _DistanceType DistanceType;
+
+		const DataSource &data_source;
+
+		acosInnerProdQuat_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
+
+		inline DistanceType operator()(const T* a, const size_t b_idx, size_t size) const {
+			return data_source.kdtree_distance(a,b_idx,size);
+		}
+
+		template <typename U, typename V>
+		inline DistanceType accum_dist(const U a, const V b, int ) const
+		{
+			return (a-b)*(a-b);  // Update this
+		}
+	};
+
 	/** Metaprogramming helper traits class for the L1 (Manhattan) metric */
 	struct metric_L1 {
 		template<class T, class DataSource>
@@ -396,6 +438,20 @@ namespace nanoflann
 		template<class T, class DataSource>
 		struct traits {
 			typedef L2_Simple_Adaptor<T,DataSource> distance_t;
+		};
+	};
+	/** Metaprogramming helper traits class for the InnerProdQuat metric */
+	struct metric_InnerProdQuat {
+		template<class T, class DataSource>
+		struct traits {
+			typedef InnerProdQuat_Adaptor<T,DataSource> distance_t;
+		};
+	};
+	/** Metaprogramming helper traits class for the acosInnerProdQuat metric */
+	struct metric_acosInnerProdQuat {
+		template<class T, class DataSource>
+		struct traits {
+			typedef acosInnerProdQuat_Adaptor<T,DataSource> distance_t;
 		};
 	};
 
