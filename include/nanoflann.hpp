@@ -681,7 +681,12 @@ namespace nanoflann
         // assign one value to all elements
         inline void assign (const T& value) { for (size_t i=0;i<N;i++) elems[i]=value; }
         // assign (compatible with std::vector's one) (by JLBC for MRPT)
+#ifndef NDEBUG
         void assign (const size_t n, const T& value) { assert(N==n); for (size_t i=0;i<N;i++) elems[i]=value; }
+#else
+        void assign (const size_t, const T& value) { for (size_t i=0;i<N;i++) elems[i]=value; }
+#endif
+
       private:
         // check range (may be private because it is static)
         static void rangecheck (size_type i) { if (i >= size()) { throw std::out_of_range("CArray<>: index out of range"); } }
