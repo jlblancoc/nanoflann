@@ -16,3 +16,5 @@ TARGET_LINK_LIBRARIES(fastann_testRandom nanoflann ${fastann_LIBRARIES})
 set(libkdtree_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/3rdparty/libkdtree")
 include_directories(${libkdtree_INCLUDE_DIRS})
 ADD_EXECUTABLE(libkdtree_testRandom libkdtree_testRandom.cpp)
+
+set_target_properties(nanoflann_testRandom flann_testRandom fastann_testRandom libkdtree_testRandom PROPERTIES FOLDER "./")

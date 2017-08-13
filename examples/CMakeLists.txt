@@ -42,8 +42,11 @@ TARGET_LINK_LIBRARIES(saveload_example nanoflann)
 ADD_EXECUTABLE(vector_of_vectors_example vector_of_vectors_example.cpp KDTreeVectorOfVectorsAdaptor.h)
 TARGET_LINK_LIBRARIES(vector_of_vectors_example nanoflann)
 
+set_target_properties(dynamic_pointcloud_example pointcloud_example pointcloud_kdd_radius pointcloud_adaptor_example saveload_example vector_of_vectors_example PROPERTIES FOLDER "./")
+
 IF(EIGEN3_FOUND)
 	ADD_EXECUTABLE(matrix_example matrix_example.cpp)
 	TARGET_LINK_LIBRARIES(matrix_example nanoflann)
+        set_target_properties(matrix_example PROPERTIES FOLDER "./")
 ENDIF()
 

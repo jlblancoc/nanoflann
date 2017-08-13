@@ -11,6 +11,11 @@ PROJECT(nanoflann)
 # Indicate CMake 2.7 and above that we don't want to mix relative
 #  and absolute paths in lib lists. Run "cmake --help-policy CMP0003" for info
 # --------------------------------------------------------------
+
+# Solution Folder options:
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
+
 if(COMMAND cmake_policy)
       cmake_policy(SET CMP0003 NEW)
       if (POLICY CMP0037)
