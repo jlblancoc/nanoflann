@@ -1311,32 +1311,28 @@ namespace nanoflann
 	  *
 	  * 	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic> >  my_kd_tree_t;
 	  * 	const int max_leaf = 10;
-	  * 	my_kd_tree_t   mat_index(dimdim, mat, max_leaf );
+	  * 	my_kd_tree_t   mat_index(mat, max_leaf );
 	  * 	mat_index.index->buildIndex();
 	  * 	mat_index.index->...
 	  * \endcode
 	  *
-	  *  \tparam DIM If set to >0, it specifies a compile-time fixed dimensionality for the points in the data set, allowing more compiler optimizations.
 	  *  \tparam Distance The distance metric to use: nanoflann::metric_L1, nanoflann::metric_L2, nanoflann::metric_L2_Simple, etc.
 	  */
-	template <class MatrixType, int DIM = -1, class Distance = nanoflann::metric_L2>
+	template <class MatrixType, class Distance = nanoflann::metric_L2>
 	struct KDTreeEigenMatrixAdaptor
 	{
-		typedef KDTreeEigenMatrixAdaptor<MatrixType,DIM,Distance> self_t;
+		typedef KDTreeEigenMatrixAdaptor<MatrixType,Distance> self_t;
 		typedef typename MatrixType::Scalar              num_t;
 		typedef typename MatrixType::Index IndexType;
 		typedef typename Distance::template traits<num_t,self_t>::distance_t metric_t;
-		typedef KDTreeSingleIndexAdaptor< metric_t,self_t,DIM,IndexType>  index_t;
+		typedef KDTreeSingleIndexAdaptor< metric_t,self_t, MatrixType::ColsAtCompileTime,IndexType>  index_t;
 
 		index_t* index; //! The kd-tree index for the user to call its methods as usual with any other FLANN index.
 
 		/// Constructor: takes a const ref to the matrix object with the data points
-		KDTreeEigenMatrixAdaptor(const int dimensionality, const MatrixType &mat, const int leaf_max_size = 10) : m_data_matrix(mat)
+		KDTreeEigenMatrixAdaptor(const MatrixType &mat, const int leaf_max_size = 10) : m_data_matrix(mat)
 		{
 			const IndexType dims = mat.cols();
-			if (dims!=dimensionality) throw std::runtime_error("Error: 'dimensionality' must match column count in data matrix");
-			if (DIM>0 && static_cast<int>(dims)!=DIM)
-				throw std::runtime_error("Data set dimensionality does not match the 'DIM' template argument");
 			index = new index_t( dims, *this /* adaptor */, nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size ) );
 			index->buildIndex();
 		}
