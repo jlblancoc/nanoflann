@@ -18,35 +18,22 @@ ELSE()
 ENDIF()
 
 # examples:
-ADD_EXECUTABLE(dynamic_pointcloud_example dynamic_pointcloud_example.cpp)
-TARGET_LINK_LIBRARIES(dynamic_pointcloud_example nanoflann)
+MACRO(DEFINE_EXAMPLE _NAME)
+	ADD_EXECUTABLE(${_NAME} ${_NAME}.cpp)
+	set_target_properties(${_NAME} PROPERTIES FOLDER "Examples")
+	TARGET_LINK_LIBRARIES(${_NAME} nanoflann)  # adds the "#include" directory.
+ENDMACRO()
 
-ADD_EXECUTABLE(pointcloud_example pointcloud_example.cpp)
-TARGET_LINK_LIBRARIES(pointcloud_example nanoflann)
-
-ADD_EXECUTABLE(pointcloud_kdd_radius pointcloud_kdd_radius.cpp)
-TARGET_LINK_LIBRARIES(pointcloud_kdd_radius nanoflann)
-
-ADD_EXECUTABLE(pointcloud_adaptor_example pointcloud_adaptor_example.cpp)
-TARGET_LINK_LIBRARIES(pointcloud_adaptor_example nanoflann)
-
-ADD_EXECUTABLE(InnerProdQuat_adaptor_example InnerProdQuat_adaptor_example.cpp)
-TARGET_LINK_LIBRARIES(InnerProdQuat_adaptor_example nanoflann)
-
-ADD_EXECUTABLE(acosInnerProdQuat_adaptor_example acosInnerProdQuat_adaptor_example.cpp)
-TARGET_LINK_LIBRARIES(acosInnerProdQuat_adaptor_example nanoflann)
-
-ADD_EXECUTABLE(saveload_example saveload_example.cpp)
-TARGET_LINK_LIBRARIES(saveload_example nanoflann)
-
-ADD_EXECUTABLE(vector_of_vectors_example vector_of_vectors_example.cpp KDTreeVectorOfVectorsAdaptor.h)
-TARGET_LINK_LIBRARIES(vector_of_vectors_example nanoflann)
-
-set_target_properties(dynamic_pointcloud_example pointcloud_example pointcloud_kdd_radius pointcloud_adaptor_example saveload_example vector_of_vectors_example PROPERTIES FOLDER "./")
+DEFINE_EXAMPLE(dynamic_pointcloud_example)
+DEFINE_EXAMPLE(pointcloud_example)
+DEFINE_EXAMPLE(pointcloud_kdd_radius)
+DEFINE_EXAMPLE(pointcloud_adaptor_example)
+DEFINE_EXAMPLE(InnerProdQuat_adaptor_example)
+DEFINE_EXAMPLE(acosInnerProdQuat_adaptor_example)
+DEFINE_EXAMPLE(saveload_example)
+DEFINE_EXAMPLE(vector_of_vectors_example)
 
 IF(EIGEN3_FOUND)
-	ADD_EXECUTABLE(matrix_example matrix_example.cpp)
-	TARGET_LINK_LIBRARIES(matrix_example nanoflann)
-        set_target_properties(matrix_example PROPERTIES FOLDER "./")
+	DEFINE_EXAMPLE(matrix_example)
 ENDIF()
 
