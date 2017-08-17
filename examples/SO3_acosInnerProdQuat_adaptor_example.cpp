@@ -31,6 +31,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <iostream>
+#include <math.h>
 
 using namespace std;
 using namespace nanoflann;
@@ -50,16 +51,6 @@ struct PointCloud
 
 	// Must return the number of data points
 	inline size_t kdtree_get_point_count() const { return pts.size(); }
-
-	// Returns the distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
-	inline T kdtree_distance(const T *p1, const size_t idx_p2,size_t /*size*/) const
-	{
-		const T d0=p1[0] * pts[idx_p2].w;
-		const T d1=p1[1] * pts[idx_p2].x;
-		const T d2=p1[2] * pts[idx_p2].y;
-		const T d3=p1[3] * pts[idx_p2].z;
-		return 1 - std::abs(d0+d1+d2+d3);
-	}
 
 	// Returns the dim'th component of the idx'th point in the class:
 	// Since this is inlined and the "dim" argument is typically an immediate value, the
@@ -114,9 +105,10 @@ void kdtree_demo(const size_t N)
 	//num_t query_pt[4] = { 0.5, 0.5, 0.5, 0.5};
 	num_t query_pt[4] = { cloud.pts[2].w, cloud.pts[2].x, cloud.pts[2].y, cloud.pts[2].z}; // Update this
 
+
 	// construct a kd-tree index:
 	typedef KDTreeSingleIndexAdaptor<
-		InnerProdQuat_Adaptor<num_t, PointCloud<num_t> > ,
+		SO3_acosInnerProdQuat_Adaptor<num_t, PointCloud<num_t> > ,
 		PointCloud<num_t>,
 		4 /* dim */
 		> my_kd_tree_t;
@@ -141,7 +133,7 @@ void kdtree_demo(const size_t N)
 	}
 	{
 		// Unsorted radius search:
-		const num_t radius = 1;
+		const num_t radius = 50;
 		std::vector<std::pair<size_t,num_t> > indices_dists;
 		RadiusResultSet<num_t,size_t> resultSet(radius,indices_dists);
 

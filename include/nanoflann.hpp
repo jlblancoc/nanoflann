@@ -384,18 +384,23 @@ namespace nanoflann
 	};
 
 	template<class T, class DataSource, typename _DistanceType = T>
-	struct InnerProdQuat_Adaptor
+	struct SO3_InnerProdQuat_Adaptor
 	{
 		typedef T ElementType;
 		typedef _DistanceType DistanceType;
 
 		const DataSource &data_source;
 
-		InnerProdQuat_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
+		SO3_InnerProdQuat_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
 		inline DistanceType operator()(const T* a, const size_t b_idx, size_t size) const {
-			// Update this
-			return data_source.kdtree_distance(a,b_idx,size);
+			DistanceType result = DistanceType();
+			for (int i=0; i<size; ++i) {
+				const DistanceType diff = a[i] * data_source.kdtree_get_pt(b_idx, i);
+				result += diff;
+			}
+			result = 1 - std::abs(result);
+			return result;
 		}
 
 		template <typename U, typename V>
@@ -406,18 +411,23 @@ namespace nanoflann
 	};
 
 	template<class T, class DataSource, typename _DistanceType = T>
-	struct acosInnerProdQuat_Adaptor
+	struct SO3_acosInnerProdQuat_Adaptor
 	{
 		typedef T ElementType;
 		typedef _DistanceType DistanceType;
 
 		const DataSource &data_source;
 
-		acosInnerProdQuat_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
+		SO3_acosInnerProdQuat_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
 		inline DistanceType operator()(const T* a, const size_t b_idx, size_t size) const {
-			// Update this
-			return data_source.kdtree_distance(a,b_idx,size);
+			DistanceType result = DistanceType();
+			for (int i=0; i<size; ++i) {
+				const DistanceType diff = a[i] * data_source.kdtree_get_pt(b_idx, i);
+				result += diff;
+			}
+			result = std::acos(std::abs(result));
+			return result;
 		}
 
 		template <typename U, typename V>
@@ -448,18 +458,18 @@ namespace nanoflann
 			typedef L2_Simple_Adaptor<T,DataSource> distance_t;
 		};
 	};
-	/** Metaprogramming helper traits class for the InnerProdQuat metric */
-	struct metric_InnerProdQuat {
+	/** Metaprogramming helper traits class for the SO3_InnerProdQuat metric */
+	struct metric_SO3_InnerProdQuat {
 		template<class T, class DataSource>
 		struct traits {
-			typedef InnerProdQuat_Adaptor<T,DataSource> distance_t;
+			typedef SO3_InnerProdQuat_Adaptor<T,DataSource> distance_t;
 		};
 	};
-	/** Metaprogramming helper traits class for the acosInnerProdQuat metric */
-	struct metric_acosInnerProdQuat {
+	/** Metaprogramming helper traits class for the SO3_acosInnerProdQuat metric */
+	struct metric_SO3_acosInnerProdQuat {
 		template<class T, class DataSource>
 		struct traits {
-			typedef acosInnerProdQuat_Adaptor<T,DataSource> distance_t;
+			typedef SO3_acosInnerProdQuat_Adaptor<T,DataSource> distance_t;
 		};
 	};
 
