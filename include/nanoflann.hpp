@@ -270,7 +270,7 @@ namespace nanoflann
 
 		L1_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
-		inline DistanceType operator()(const T* a, const size_t b_idx, size_t size, DistanceType worst_dist = -1) const
+		inline DistanceType evalMetric(const T* a, const size_t b_idx, size_t size, DistanceType worst_dist = -1) const
 		{
 			DistanceType result = DistanceType();
 			const T* last = a + size;
@@ -318,7 +318,7 @@ namespace nanoflann
 
 		L2_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
-		inline DistanceType operator()(const T* a, const size_t b_idx, size_t size, DistanceType worst_dist = -1) const
+		inline DistanceType evalMetric(const T* a, const size_t b_idx, size_t size, DistanceType worst_dist = -1) const
 		{
 			DistanceType result = DistanceType();
 			const T* last = a + size;
@@ -367,7 +367,7 @@ namespace nanoflann
 
 		L2_Simple_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
-		inline DistanceType operator()(const T* a, const size_t b_idx, size_t size) const {
+		inline DistanceType evalMetric(const T* a, const size_t b_idx, size_t size) const {
 			DistanceType result = DistanceType();
 			for (int i=0; i<size; ++i) {
 				const DistanceType diff = a[i] - data_source.kdtree_get_pt(b_idx, i);
@@ -383,6 +383,11 @@ namespace nanoflann
 		}
 	};
 
+	/** Inner Product of Quaternions distance functor (Reference : Metrics for 3D Rotations: Comparison and Analysis by Du Q. Huynh)
+	  *  Corresponding distance traits: nanoflann::metric_SO3_InnerProdQuat
+	  * \tparam T Type of the elements (e.g. double, float)
+	  * \tparam _DistanceType Type of distance variables (must be signed) (e.g. float, double)
+	  */
 	template<class T, class DataSource, typename _DistanceType = T>
 	struct SO3_InnerProdQuat_Adaptor
 	{
@@ -393,7 +398,7 @@ namespace nanoflann
 
 		SO3_InnerProdQuat_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
-		inline DistanceType operator()(const T* a, const size_t b_idx, size_t size) const {
+		inline DistanceType evalMetric(const T* a, const size_t b_idx, size_t size) const {
 			DistanceType result = DistanceType();
 			for (int i=0; i<size; ++i) {
 				const DistanceType diff = a[i] * data_source.kdtree_get_pt(b_idx, i);
@@ -410,6 +415,11 @@ namespace nanoflann
 		}
 	};
 
+	/** Cosine inverse of Inner Product of Quaternions distance functor (Reference : Metrics for 3D Rotations: Comparison and Analysis by Du Q. Huynh)
+	  *  Corresponding distance traits: nanoflann::metric_SO3_acosInnerProdQuat
+	  * \tparam T Type of the elements (e.g. double, float)
+	  * \tparam _DistanceType Type of distance variables (must be signed) (e.g. float, double)
+	  */
 	template<class T, class DataSource, typename _DistanceType = T>
 	struct SO3_acosInnerProdQuat_Adaptor
 	{
@@ -420,7 +430,7 @@ namespace nanoflann
 
 		SO3_acosInnerProdQuat_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
-		inline DistanceType operator()(const T* a, const size_t b_idx, size_t size) const {
+		inline DistanceType evalMetric(const T* a, const size_t b_idx, size_t size) const {
 			DistanceType result = DistanceType();
 			for (int i=0; i<size; ++i) {
 				const DistanceType diff = a[i] * data_source.kdtree_get_pt(b_idx, i);
@@ -1318,7 +1328,7 @@ namespace nanoflann
 				DistanceType worst_dist = result_set.worstDist();
 				for (IndexType i=node->node_type.lr.left; i<node->node_type.lr.right; ++i) {
 					const IndexType index = vind[i];// reorder... : i;
-					DistanceType dist = distance(vec, index, (DIM>0 ? DIM : dim));
+					DistanceType dist = distance.evalMetric(vec, index, (DIM>0 ? DIM : dim));
 					if (dist<worst_dist) {
                                                 if(!result_set.addPoint(dist,vind[i])) {
                                                     // the resultset doesn't want to receive any more points, we're done searching!
@@ -1699,7 +1709,7 @@ namespace nanoflann
 					const IndexType index = vind[i];// reorder... : i;
 					if(treeIndex[index]==-1)
 						continue;
-					DistanceType dist = distance(vec, index, (DIM>0 ? DIM : dim));
+					DistanceType dist = distance.evalMetric(vec, index, (DIM>0 ? DIM : dim));
 					if (dist<worst_dist) {
 						result_set.addPoint(dist,vind[i]);
 					}
