@@ -99,17 +99,6 @@ struct KDTreeVectorOfVectorsAdaptor
 		return m_data.size();
 	}
 
-	// Returns the distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
-	inline num_t kdtree_distance(const num_t *p1, const size_t idx_p2,size_t size) const
-	{
-		num_t s=0;
-		for (size_t i=0; i<size; i++) {
-			const num_t d= p1[i]-m_data[idx_p2][i];
-			s+=d*d;
-		}
-		return s;
-	}
-
 	// Returns the dim'th component of the idx'th point in the class:
 	inline num_t kdtree_get_pt(const size_t idx, int dim) const {
 		return m_data[idx][dim];

@@ -368,7 +368,12 @@ namespace nanoflann
 		L2_Simple_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
 		inline DistanceType operator()(const T* a, const size_t b_idx, size_t size) const {
-			return data_source.kdtree_distance(a,b_idx,size);
+			DistanceType result = DistanceType();
+			for (int i=0; i<size; ++i) {
+				const DistanceType diff = a[i] - data_source.kdtree_get_pt(b_idx, i);
+				result += diff * diff;
+			}
+			return result;
 		}
 
 		template <typename U, typename V>
@@ -389,6 +394,7 @@ namespace nanoflann
 		InnerProdQuat_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
 		inline DistanceType operator()(const T* a, const size_t b_idx, size_t size) const {
+			// Update this
 			return data_source.kdtree_distance(a,b_idx,size);
 		}
 
@@ -410,6 +416,7 @@ namespace nanoflann
 		acosInnerProdQuat_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
 		inline DistanceType operator()(const T* a, const size_t b_idx, size_t size) const {
+			// Update this
 			return data_source.kdtree_distance(a,b_idx,size);
 		}
 
@@ -1018,8 +1025,6 @@ namespace nanoflann
 	 *   // Must return the number of data poins
 	 *   inline size_t kdtree_get_point_count() const { ... }
 	 *
-	 *   // [Only if using the metric_L2_Simple type] Must return the Euclidean (L2) distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
-	 *   inline DistanceType kdtree_distance(const T *p1, const size_t idx_p2,size_t size) const { ... }
 	 *
 	 *   // Must return the dim'th component of the idx'th point in the class:
 	 *   inline T kdtree_get_pt(const size_t idx, int dim) const { ... }
@@ -1395,9 +1400,6 @@ namespace nanoflann
 	 *  \code
 	 *   // Must return the number of data poins
 	 *   inline size_t kdtree_get_point_count() const { ... }
-	 *
-	 *   // [Only if using the metric_L2_Simple type] Must return the Euclidean (L2) distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
-	 *   inline DistanceType kdtree_distance(const T *p1, const size_t idx_p2,size_t size) const { ... }
 	 *
 	 *   // Must return the dim'th component of the idx'th point in the class:
 	 *   inline T kdtree_get_pt(const size_t idx, int dim) const { ... }
