@@ -383,6 +383,45 @@ namespace nanoflann
 		}
 	};
 
+	/** SO2 distance functor
+	  *  Corresponding distance traits: nanoflann::metric_SO2
+	  * \tparam T Type of the elements (e.g. double, float)
+	  * \tparam _DistanceType Type of distance variables (must be signed) (e.g. float, double)
+	  * orientation is constrained to be in [-pi, pi]
+	  */
+	template<class T, class DataSource, typename _DistanceType = T>
+	struct SO2_Adaptor
+	{
+		typedef T ElementType;
+		typedef _DistanceType DistanceType;
+
+		const DataSource &data_source;
+
+		SO2_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
+
+		inline DistanceType evalMetric(const T* a, const size_t b_idx, size_t size) const {
+			DistanceType result = DistanceType();
+			result = data_source.kdtree_get_pt(b_idx, 0) - a[0];
+			if (result > M_PI)
+				result -= 2. * M_PI;
+			else if (result < -M_PI)
+				result += 2. * M_PI;
+			return result;
+		}
+
+		template <typename U, typename V>
+		inline DistanceType accum_dist(const U a, const V b, int ) const
+		{
+			DistanceType result = DistanceType();
+			result = b - a;
+			if (result > M_PI)
+				result -= 2. * M_PI;
+			else if (result < -M_PI)
+				result += 2. * M_PI;
+			return result;
+		}
+	};
+
 	/** Inner Product of Quaternions distance functor (Reference : Metrics for 3D Rotations: Comparison and Analysis by Du Q. Huynh)
 	  *  Corresponding distance traits: nanoflann::metric_SO3_InnerProdQuat
 	  * \tparam T Type of the elements (e.g. double, float)
@@ -466,6 +505,13 @@ namespace nanoflann
 		template<class T, class DataSource>
 		struct traits {
 			typedef L2_Simple_Adaptor<T,DataSource> distance_t;
+		};
+	};
+	/** Metaprogramming helper traits class for the SO3_InnerProdQuat metric */
+	struct metric_SO2 {
+		template<class T, class DataSource>
+		struct traits {
+			typedef SO2_Adaptor<T,DataSource> distance_t;
 		};
 	};
 	/** Metaprogramming helper traits class for the SO3_InnerProdQuat metric */
