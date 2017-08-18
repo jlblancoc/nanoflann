@@ -255,6 +255,10 @@ namespace nanoflann
 	/** @addtogroup metric_grp Metric (distance) classes
 	  * @{ */
 
+	struct Metric
+	{
+	};
+
 	/** Manhattan distance functor (generic version, optimized for high-dimensionality data sets).
 	  *  Corresponding distance traits: nanoflann::metric_L1
 	  * \tparam T Type of the elements (e.g. double, float, uint8_t)
@@ -487,42 +491,48 @@ namespace nanoflann
 	};
 
 	/** Metaprogramming helper traits class for the L1 (Manhattan) metric */
-	struct metric_L1 {
+	struct metric_L1 : public Metric
+	{
 		template<class T, class DataSource>
 		struct traits {
 			typedef L1_Adaptor<T,DataSource> distance_t;
 		};
 	};
 	/** Metaprogramming helper traits class for the L2 (Euclidean) metric */
-	struct metric_L2 {
+	struct metric_L2 : public Metric 
+	{
 		template<class T, class DataSource>
 		struct traits {
 			typedef L2_Adaptor<T,DataSource> distance_t;
 		};
 	};
 	/** Metaprogramming helper traits class for the L2_simple (Euclidean) metric */
-	struct metric_L2_Simple {
+	struct metric_L2_Simple : public Metric
+	{
 		template<class T, class DataSource>
 		struct traits {
 			typedef L2_Simple_Adaptor<T,DataSource> distance_t;
 		};
 	};
 	/** Metaprogramming helper traits class for the SO3_InnerProdQuat metric */
-	struct metric_SO2 {
+	struct metric_SO2 : public Metric 
+	{
 		template<class T, class DataSource>
 		struct traits {
 			typedef SO2_Adaptor<T,DataSource> distance_t;
 		};
 	};
 	/** Metaprogramming helper traits class for the SO3_InnerProdQuat metric */
-	struct metric_SO3_InnerProdQuat {
+	struct metric_SO3_InnerProdQuat : public Metric
+	{
 		template<class T, class DataSource>
 		struct traits {
 			typedef SO3_InnerProdQuat_Adaptor<T,DataSource> distance_t;
 		};
 	};
 	/** Metaprogramming helper traits class for the SO3_acosInnerProdQuat metric */
-	struct metric_SO3_acosInnerProdQuat {
+	struct metric_SO3_acosInnerProdQuat : public Metric
+	{
 		template<class T, class DataSource>
 		struct traits {
 			typedef SO3_acosInnerProdQuat_Adaptor<T,DataSource> distance_t;
@@ -830,6 +840,7 @@ namespace nanoflann
 	struct array_or_vector_selector<-1,T> {
 		typedef std::vector<T> container_t;
 	};
+	
 	/** @} */
 
 	/** kd-tree base-class
@@ -838,11 +849,10 @@ namespace nanoflann
 	 *
 	 * \tparam Derived The name of the class which inherits this class.
 	 * \tparam DatasetAdaptor The user-provided adaptor (see comments above).
-	 * \tparam Distance The distance metric to use: nanoflann::metric_L1, nanoflann::metric_L2, nanoflann::metric_L2_Simple, etc.
+	 * \tparam Distance The distance metric to use, these are all classes derived from nanoflann::Metric
 	 * \tparam DIM Dimensionality of data points (e.g. 3 for 3D points)
 	 * \tparam IndexType Will be typically size_t or int
 	 */
-
 
 	template<class Derived, typename Distance, class DatasetAdaptor,int DIM = -1, typename IndexType = size_t>
 	class KDTreeBaseClass
