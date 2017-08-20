@@ -454,38 +454,6 @@ namespace nanoflann
 		}
 	};
 
-	/** Cosine inverse of Inner Product of Quaternions distance functor (Reference : Metrics for 3D Rotations: Comparison and Analysis by Du Q. Huynh)
-	  *  Corresponding distance traits: nanoflann::metric_SO3_acosInnerProdQuat
-	  * \tparam T Type of the elements (e.g. double, float)
-	  * \tparam _DistanceType Type of distance variables (must be signed) (e.g. float, double)
-	  */
-	template<class T, class DataSource, typename _DistanceType = T>
-	struct SO3_acosInnerProdQuat_Adaptor
-	{
-		typedef T ElementType;
-		typedef _DistanceType DistanceType;
-
-		const DataSource &data_source;
-
-		SO3_acosInnerProdQuat_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
-
-		inline DistanceType evalMetric(const T* a, const size_t b_idx, size_t size) const {
-			DistanceType result = DistanceType();
-			for (int i=0; i<size; ++i) {
-				const DistanceType diff = a[i] * data_source.kdtree_get_pt(b_idx, i);
-				result += diff;
-			}
-			result = std::acos(std::abs(result));
-			return result;
-		}
-
-		template <typename U, typename V>
-		inline DistanceType accum_dist(const U a, const V b, int ) const
-		{
-			return (a-b)*(a-b);  // Update this
-		}
-	};
-
 	/** Metaprogramming helper traits class for the L1 (Manhattan) metric */
 	struct metric_L1 : public Metric
 	{
@@ -524,14 +492,6 @@ namespace nanoflann
 		template<class T, class DataSource>
 		struct traits {
 			typedef SO3_InnerProdQuat_Adaptor<T,DataSource> distance_t;
-		};
-	};
-	/** Metaprogramming helper traits class for the SO3_acosInnerProdQuat metric */
-	struct metric_SO3_acosInnerProdQuat : public Metric
-	{
-		template<class T, class DataSource>
-		struct traits {
-			typedef SO3_acosInnerProdQuat_Adaptor<T,DataSource> distance_t;
 		};
 	};
 
