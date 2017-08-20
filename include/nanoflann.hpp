@@ -823,7 +823,6 @@ namespace nanoflann
 			obj.m_size_at_index_build = 0;
 		}
 
-	protected:
 		typedef typename Distance::ElementType  ElementType;
 		typedef typename Distance::DistanceType DistanceType;
 
@@ -852,11 +851,37 @@ namespace nanoflann
 			ElementType low, high;
 		};
 
+		/**
+		 *  Array of indices to vectors in the dataset.
+		 */
+		std::vector<IndexType> vind;
+
+		NodePtr root_node;
+
+		size_t m_leaf_max_size;
+
+		size_t m_size; //!< Number of current points in the dataset
+		size_t m_size_at_index_build; //!< Number of points in the dataset when the index was built
+		int dim;  //!< Dimensionality of each data point
+
 		/** Define "BoundingBox" as a fixed-size or variable-size container depending on "DIM" */
 		typedef typename array_or_vector_selector<DIM,Interval>::container_t BoundingBox;
 
 		/** Define "distance_vector_t" as a fixed-size or variable-size container depending on "DIM" */
 		typedef typename array_or_vector_selector<DIM,DistanceType>::container_t distance_vector_t;
+
+		/** The KD-tree used to find neighbours */
+		
+		BoundingBox root_bbox;
+
+		/**
+		 * Pooled memory allocator.
+		 *
+		 * Using a pooled memory allocator is more efficient
+		 * than allocating memory directly when there is a large
+		 * number small of memory allocations.
+		 */
+		PooledAllocator pool;
 
 		/** Returns number of points in dataset  */
 		size_t size(const Derived &obj) const { return obj.m_size; }
@@ -1087,17 +1112,7 @@ namespace nanoflann
 		/** Hidden copy constructor, to disallow copying indices (Not implemented) */
 		KDTreeSingleIndexAdaptor(const KDTreeSingleIndexAdaptor<Distance,DatasetAdaptor,DIM,IndexType>&);
 	public:
-		typedef typename Distance::ElementType  ElementType;
-		typedef typename Distance::DistanceType DistanceType;
-
-		/**
-		 *  Array of indices to vectors in the dataset.
-		 */
-		std::vector<IndexType> vind;
-
-		size_t m_leaf_max_size;
-
-
+		
 		/**
 		 * The dataset used by this index
 		 */
@@ -1105,12 +1120,12 @@ namespace nanoflann
 
 		const KDTreeSingleIndexAdaptorParams index_params;
 
-		size_t m_size; //!< Number of current points in the dataset
-		size_t m_size_at_index_build; //!< Number of points in the dataset when the index was built
-		int dim;  //!< Dimensionality of each data point
-
+		Distance distance;
 
 		typedef typename nanoflann::KDTreeBaseClass<nanoflann::KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, IndexType>, Distance, DatasetAdaptor, DIM, IndexType> BaseClassRef;
+
+		typedef typename BaseClassRef::ElementType ElementType;
+		typedef typename BaseClassRef::DistanceType DistanceType;
 
 		typedef typename BaseClassRef::Node Node;
 		typedef Node* NodePtr;
@@ -1121,22 +1136,6 @@ namespace nanoflann
 
 		/** Define "distance_vector_t" as a fixed-size or variable-size container depending on "DIM" */
 		typedef typename BaseClassRef::distance_vector_t distance_vector_t;
-
-		/** The KD-tree used to find neighbours */
-		NodePtr root_node;
-		BoundingBox root_bbox;
-
-		/**
-		 * Pooled memory allocator.
-		 *
-		 * Using a pooled memory allocator is more efficient
-		 * than allocating memory directly when there is a large
-		 * number small of memory allocations.
-		 */
-		PooledAllocator pool;
-
-
-		Distance distance;
 
 		/**
 		 * KDTree constructor
@@ -1152,13 +1151,14 @@ namespace nanoflann
 		 * @param params Basically, the maximum leaf node size
 		 */
 		KDTreeSingleIndexAdaptor(const int dimensionality, const DatasetAdaptor& inputData, const KDTreeSingleIndexAdaptorParams& params = KDTreeSingleIndexAdaptorParams() ) :
-			dataset(inputData), index_params(params), root_node(NULL), distance(inputData)
+			dataset(inputData), index_params(params), distance(inputData)
 		{
-			m_size = dataset.kdtree_get_point_count();
-			m_size_at_index_build = m_size;
-			dim = dimensionality;
-			if (DIM>0) dim=DIM;
-			m_leaf_max_size = params.leaf_max_size;
+			BaseClassRef::root_node = NULL;
+			BaseClassRef::m_size = dataset.kdtree_get_point_count();
+			BaseClassRef::m_size_at_index_build = BaseClassRef::m_size;
+			BaseClassRef::dim = dimensionality;
+			if (DIM>0) BaseClassRef::dim=DIM;
+			BaseClassRef::m_leaf_max_size = params.leaf_max_size;
 
 			// Create a permutable array of indices to the input vectors.
 			init_vind();
@@ -1174,10 +1174,10 @@ namespace nanoflann
 		{
 			init_vind();
 			this->freeIndex(*this);
-			m_size_at_index_build = m_size;
-			if(m_size == 0) return;
-			computeBoundingBox(root_bbox);
-			root_node = this->divideTree(*this, 0, m_size, root_bbox );   // construct the tree
+			BaseClassRef::m_size_at_index_build = BaseClassRef::m_size;
+			if(BaseClassRef::m_size == 0) return;
+			computeBoundingBox(BaseClassRef::root_bbox);
+			BaseClassRef::root_node = this->divideTree(*this, 0, BaseClassRef::m_size, BaseClassRef::root_bbox );   // construct the tree
 		}
 
 		/** \name Query methods
@@ -1201,14 +1201,14 @@ namespace nanoflann
 			assert(vec);
             if (this->size(*this) == 0)
                 return false;
-			if (!root_node)
+			if (!BaseClassRef::root_node)
                 throw std::runtime_error("[nanoflann] findNeighbors() called before building the index.");
 			float epsError = 1+searchParams.eps;
 
 			distance_vector_t dists; // fixed or variable-sized container (depending on DIM)
-			dists.assign((DIM>0 ? DIM : dim) ,0); // Fill it with zeros.
+			dists.assign((DIM>0 ? DIM : BaseClassRef::dim) ,0); // Fill it with zeros.
 			DistanceType distsq = this->computeInitialDistances(*this, vec, dists);
-			searchLevel(result, vec, root_node, distsq, dists, epsError);  // "count_leaf" parameter removed since was neither used nor returned to the user.
+			searchLevel(result, vec, BaseClassRef::root_node, distsq, dists, epsError);  // "count_leaf" parameter removed since was neither used nor returned to the user.
             return result.full();
 		}
 
@@ -1268,9 +1268,9 @@ namespace nanoflann
 		void init_vind()
 		{
 			// Create a permutable array of indices to the input vectors.
-			m_size = dataset.kdtree_get_point_count();
-			if (vind.size()!=m_size) vind.resize(m_size);
-			for (size_t i = 0; i < m_size; i++) vind[i] = i;
+			BaseClassRef::m_size = dataset.kdtree_get_point_count();
+			if (BaseClassRef::vind.size()!=BaseClassRef::m_size) BaseClassRef::vind.resize(BaseClassRef::m_size);
+			for (size_t i = 0; i < BaseClassRef::m_size; i++) BaseClassRef::vind[i] = i;
 		}
 
 		/// Helper accessor to the dataset points:
@@ -1293,7 +1293,7 @@ namespace nanoflann
 
 		void load_tree(FILE* stream, NodePtr& tree)
 		{
-			tree = pool.allocate<Node>();
+			tree = BaseClassRef::pool.allocate<Node>();
 			load_value(stream, *tree);
 			if (tree->child1!=NULL) {
 				load_tree(stream, tree->child1);
@@ -1305,7 +1305,7 @@ namespace nanoflann
 
 		void computeBoundingBox(BoundingBox& bbox)
 		{
-			bbox.resize((DIM>0 ? DIM : dim));
+			bbox.resize((DIM>0 ? DIM : BaseClassRef::dim));
 			if (dataset.kdtree_get_bbox(bbox))
 			{
 				// Done! It was implemented in derived class
@@ -1314,12 +1314,12 @@ namespace nanoflann
 			{
 				const size_t N = dataset.kdtree_get_point_count();
 				if (!N) throw std::runtime_error("[nanoflann] computeBoundingBox() called but no data points found.");
-				for (int i=0; i<(DIM>0 ? DIM : dim); ++i) {
+				for (int i=0; i<(DIM>0 ? DIM : BaseClassRef::dim); ++i) {
 					bbox[i].low =
 					bbox[i].high = dataset_get(0,i);
 				}
 				for (size_t k=1; k<N; ++k) {
-					for (int i=0; i<(DIM>0 ? DIM : dim); ++i) {
+					for (int i=0; i<(DIM>0 ? DIM : BaseClassRef::dim); ++i) {
 						if (dataset_get(k,i)<bbox[i].low) bbox[i].low = dataset_get(k,i);
 						if (dataset_get(k,i)>bbox[i].high) bbox[i].high = dataset_get(k,i);
 					}
@@ -1341,10 +1341,10 @@ namespace nanoflann
 				//count_leaf += (node->lr.right-node->lr.left);  // Removed since was neither used nor returned to the user.
 				DistanceType worst_dist = result_set.worstDist();
 				for (IndexType i=node->node_type.lr.left; i<node->node_type.lr.right; ++i) {
-					const IndexType index = vind[i];// reorder... : i;
-					DistanceType dist = distance.evalMetric(vec, index, (DIM>0 ? DIM : dim));
+					const IndexType index = BaseClassRef::vind[i];// reorder... : i;
+					DistanceType dist = distance.evalMetric(vec, index, (DIM>0 ? DIM : BaseClassRef::dim));
 					if (dist<worst_dist) {
-                                                if(!result_set.addPoint(dist,vind[i])) {
+                                                if(!result_set.addPoint(dist,BaseClassRef::vind[i])) {
                                                     // the resultset doesn't want to receive any more points, we're done searching!
                                                     return false;
                                                 }
@@ -1399,12 +1399,12 @@ namespace nanoflann
 		  * \sa loadIndex  */
 		void saveIndex(FILE* stream)
 		{
-			save_value(stream, m_size);
-			save_value(stream, dim);
-			save_value(stream, root_bbox);
-			save_value(stream, m_leaf_max_size);
-			save_value(stream, vind);
-			save_tree(stream, root_node);
+			save_value(stream, BaseClassRef::m_size);
+			save_value(stream, BaseClassRef::dim);
+			save_value(stream, BaseClassRef::root_bbox);
+			save_value(stream, BaseClassRef::m_leaf_max_size);
+			save_value(stream, BaseClassRef::vind);
+			save_tree(stream, BaseClassRef::root_node);
 		}
 
 		/**  Loads a previous index from a binary file.
@@ -1413,12 +1413,12 @@ namespace nanoflann
 		  * \sa loadIndex  */
 		void loadIndex(FILE* stream)
 		{
-			load_value(stream, m_size);
-			load_value(stream, dim);
-			load_value(stream, root_bbox);
-			load_value(stream, m_leaf_max_size);
-			load_value(stream, vind);
-			load_tree(stream, root_node);
+			load_value(stream, BaseClassRef::m_size);
+			load_value(stream, BaseClassRef::dim);
+			load_value(stream, BaseClassRef::root_bbox);
+			load_value(stream, BaseClassRef::m_leaf_max_size);
+			load_value(stream, BaseClassRef::vind);
+			load_tree(stream, BaseClassRef::root_node);
 		}
 
 	};   // class KDTree
@@ -1461,16 +1461,6 @@ namespace nanoflann
 	class KDTreeSingleIndexDynamicAdaptor_ : public KDTreeBaseClass<KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM, IndexType>, Distance, DatasetAdaptor, DIM, IndexType>
 	{
 	public:
-		typedef typename Distance::ElementType  ElementType;
-		typedef typename Distance::DistanceType DistanceType;
-	
-		/**
-		 *  Array of indices to vectors in the dataset.
-		 */
-		std::vector<IndexType> vind;
-
-		size_t m_leaf_max_size;
-
 
 		/**
 		 * The dataset used by this index
@@ -1481,11 +1471,12 @@ namespace nanoflann
 
 		std::vector<int> &treeIndex;
 
-		size_t m_size; //!< Number of current points in the dataset
-		size_t m_size_at_index_build; //!< Number of points in the dataset when the index was built
-		int dim;  //!< Dimensionality of each data point
+		Distance distance;
 
 		typedef typename nanoflann::KDTreeBaseClass<nanoflann::KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM, IndexType>, Distance, DatasetAdaptor, DIM, IndexType> BaseClassRef;
+
+		typedef typename BaseClassRef::ElementType  ElementType;
+		typedef typename BaseClassRef::DistanceType  DistanceType;
 
 		typedef typename BaseClassRef::Node Node;
 		typedef Node* NodePtr;
@@ -1496,23 +1487,6 @@ namespace nanoflann
 
 		/** Define "distance_vector_t" as a fixed-size or variable-size container depending on "DIM" */
 		typedef typename BaseClassRef::distance_vector_t distance_vector_t;
-
-		/** The KD-tree used to find neighbours */
-		NodePtr root_node;
-		BoundingBox root_bbox;
-
-		/**
-		 * Pooled memory allocator.
-		 *
-		 * Using a pooled memory allocator is more efficient
-		 * than allocating memory directly when there is a large
-		 * number small of memory allocations.
-		 */
-		PooledAllocator pool;
-
-	public:
-
-		Distance distance;
 
 		/**
 		 * KDTree constructor
@@ -1528,28 +1502,29 @@ namespace nanoflann
 		 * @param params Basically, the maximum leaf node size
 		 */
 		KDTreeSingleIndexDynamicAdaptor_(const int dimensionality, DatasetAdaptor& inputData, std::vector<int>& treeIndex_, const KDTreeSingleIndexAdaptorParams& params = KDTreeSingleIndexAdaptorParams()) :
-			dataset(inputData), index_params(params), treeIndex(treeIndex_), root_node(NULL), distance(inputData)
+			dataset(inputData), index_params(params), treeIndex(treeIndex_), distance(inputData)
 		{
-			m_size = 0;
-			m_size_at_index_build = 0;
-			dim = dimensionality;
-			if (DIM>0) dim=DIM;
-			m_leaf_max_size = params.leaf_max_size;
+			BaseClassRef::root_node = NULL;
+			BaseClassRef::m_size = 0;
+			BaseClassRef::m_size_at_index_build = 0;
+			BaseClassRef::dim = dimensionality;
+			if (DIM>0) BaseClassRef::dim=DIM;
+			BaseClassRef::m_leaf_max_size = params.leaf_max_size;
 		}
 
 
 		/** Assignment operator definiton */
 		KDTreeSingleIndexDynamicAdaptor_ operator=( const KDTreeSingleIndexDynamicAdaptor_& rhs ) {
 		      KDTreeSingleIndexDynamicAdaptor_ tmp( rhs );
-		      std::swap( vind, tmp.vind );
-		      std::swap( m_leaf_max_size, tmp.m_leaf_max_size );
+		      std::swap( BaseClassRef::vind, tmp.BaseClassRef::vind );
+		      std::swap( BaseClassRef::m_leaf_max_size, tmp.BaseClassRef::m_leaf_max_size );
 		      std::swap( index_params, tmp.index_params );
 		      std::swap( treeIndex, tmp.treeIndex );
-		      std::swap( m_size, tmp.m_size );
-		      std::swap( m_size_at_index_build, tmp.m_size_at_index_build );
-		      std::swap( root_node, tmp.root_node );
-		      std::swap( root_bbox, tmp.root_bbox );
-		      std::swap( pool, tmp.pool );
+		      std::swap( BaseClassRef::m_size, tmp.BaseClassRef::m_size );
+		      std::swap( BaseClassRef::m_size_at_index_build, tmp.BaseClassRef::m_size_at_index_build );
+		      std::swap( BaseClassRef::root_node, tmp.BaseClassRef::root_node );
+		      std::swap( BaseClassRef::root_bbox, tmp.BaseClassRef::root_bbox );
+		      std::swap( BaseClassRef::pool, tmp.BaseClassRef::pool );
 		      return *this;
 		 }
 
@@ -1561,12 +1536,12 @@ namespace nanoflann
 		 */
 		void buildIndex()
 		{
-			m_size = vind.size();
+			BaseClassRef::m_size = BaseClassRef::vind.size();
 			this->freeIndex(*this);
-			m_size_at_index_build = m_size;
-			if(m_size == 0) return;
-			computeBoundingBox(root_bbox);
-			root_node = this->divideTree(*this, 0, m_size, root_bbox );   // construct the tree
+			BaseClassRef::m_size_at_index_build = BaseClassRef::m_size;
+			if(BaseClassRef::m_size == 0) return;
+			computeBoundingBox(BaseClassRef::root_bbox);
+			BaseClassRef::root_node = this->divideTree(*this, 0, BaseClassRef::m_size, BaseClassRef::root_bbox );   // construct the tree
 		}
 
 		/** \name Query methods
@@ -1590,14 +1565,14 @@ namespace nanoflann
 			assert(vec);
             if (this->size(*this) == 0)
                 return false;
-			if (!root_node)
+			if (!BaseClassRef::root_node)
                 return false;
 			float epsError = 1+searchParams.eps;
 
 			distance_vector_t dists; // fixed or variable-sized container (depending on DIM)
-			dists.assign((DIM>0 ? DIM : dim) ,0); // Fill it with zeros.
+			dists.assign((DIM>0 ? DIM : BaseClassRef::dim) ,0); // Fill it with zeros.
 			DistanceType distsq = this->computeInitialDistances(*this, vec, dists);
-			searchLevel(result, vec, root_node, distsq, dists, epsError);  // "count_leaf" parameter removed since was neither used nor returned to the user.
+			searchLevel(result, vec, BaseClassRef::root_node, distsq, dists, epsError);  // "count_leaf" parameter removed since was neither used nor returned to the user.
             return result.full();
 		}
 
@@ -1673,7 +1648,7 @@ namespace nanoflann
 
 		void load_tree(FILE* stream, NodePtr& tree)
 		{
-			tree = pool.allocate<Node>();
+			tree = BaseClassRef::pool.allocate<Node>();
 			load_value(stream, *tree);
 			if (tree->child1!=NULL) {
 				load_tree(stream, tree->child1);
@@ -1686,23 +1661,23 @@ namespace nanoflann
 
 		void computeBoundingBox(BoundingBox& bbox)
 		{
-			bbox.resize((DIM>0 ? DIM : dim));
+			bbox.resize((DIM>0 ? DIM : BaseClassRef::dim));
 			if (dataset.kdtree_get_bbox(bbox))
 			{
 				// Done! It was implemented in derived class
 			}
 			else
 			{
-				const size_t N = m_size;
+				const size_t N = BaseClassRef::m_size;
 				if (!N) throw std::runtime_error("[nanoflann] computeBoundingBox() called but no data points found.");
-				for (int i=0; i<(DIM>0 ? DIM : dim); ++i) {
+				for (int i=0; i<(DIM>0 ? DIM : BaseClassRef::dim); ++i) {
 					bbox[i].low =
-					bbox[i].high = dataset_get(vind[0],i);
+					bbox[i].high = dataset_get(BaseClassRef::vind[0],i);
 				}
 				for (size_t k=1; k<N; ++k) {
-					for (int i=0; i<(DIM>0 ? DIM : dim); ++i) {
-						if (dataset_get(vind[k],i)<bbox[i].low) bbox[i].low = dataset_get(vind[k],i);
-						if (dataset_get(vind[k],i)>bbox[i].high) bbox[i].high = dataset_get(vind[k],i);
+					for (int i=0; i<(DIM>0 ? DIM : BaseClassRef::dim); ++i) {
+						if (dataset_get(BaseClassRef::vind[k],i)<bbox[i].low) bbox[i].low = dataset_get(BaseClassRef::vind[k],i);
+						if (dataset_get(BaseClassRef::vind[k],i)>bbox[i].high) bbox[i].high = dataset_get(BaseClassRef::vind[k],i);
 					}
 				}
 			}
@@ -1721,12 +1696,12 @@ namespace nanoflann
 				//count_leaf += (node->lr.right-node->lr.left);  // Removed since was neither used nor returned to the user.
 				DistanceType worst_dist = result_set.worstDist();
 				for (IndexType i=node->node_type.lr.left; i<node->node_type.lr.right; ++i) {
-					const IndexType index = vind[i];// reorder... : i;
+					const IndexType index = BaseClassRef::vind[i];// reorder... : i;
 					if(treeIndex[index]==-1)
 						continue;
-					DistanceType dist = distance.evalMetric(vec, index, (DIM>0 ? DIM : dim));
+					DistanceType dist = distance.evalMetric(vec, index, (DIM>0 ? DIM : BaseClassRef::dim));
 					if (dist<worst_dist) {
-						result_set.addPoint(dist,vind[i]);
+						result_set.addPoint(dist,BaseClassRef::vind[i]);
 					}
 				}
 				return;
@@ -1771,12 +1746,12 @@ namespace nanoflann
 		  * \sa loadIndex  */
 		void saveIndex(FILE* stream)
 		{
-			save_value(stream, m_size);
-			save_value(stream, dim);
-			save_value(stream, root_bbox);
-			save_value(stream, m_leaf_max_size);
-			save_value(stream, vind);
-			save_tree(stream, root_node);
+			save_value(stream, BaseClassRef::m_size);
+			save_value(stream, BaseClassRef::dim);
+			save_value(stream, BaseClassRef::root_bbox);
+			save_value(stream, BaseClassRef::m_leaf_max_size);
+			save_value(stream, BaseClassRef::vind);
+			save_tree(stream, BaseClassRef::root_node);
 		}
 
 		/**  Loads a previous index from a binary file.
@@ -1785,12 +1760,12 @@ namespace nanoflann
 		  * \sa loadIndex  */
 		void loadIndex(FILE* stream)
 		{
-			load_value(stream, m_size);
-			load_value(stream, dim);
-			load_value(stream, root_bbox);
-			load_value(stream, m_leaf_max_size);
-			load_value(stream, vind);
-			load_tree(stream, root_node);
+			load_value(stream, BaseClassRef::m_size);
+			load_value(stream, BaseClassRef::dim);
+			load_value(stream, BaseClassRef::root_bbox);
+			load_value(stream, BaseClassRef::m_leaf_max_size);
+			load_value(stream, BaseClassRef::vind);
+			load_tree(stream, BaseClassRef::root_node);
 		}
 
 	};

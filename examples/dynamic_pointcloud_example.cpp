@@ -114,8 +114,8 @@ void kdtree_demo(const size_t N)
 		index.addPoints(i, end);
 	}
 
-	// remove a random point
-	size_t removePointIndex = rand()%N;
+	// remove a point
+	size_t removePointIndex = N-1;
 	index.removePoint(removePointIndex);
 
 	dump_mem_usage();
