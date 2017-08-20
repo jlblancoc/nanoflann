@@ -804,7 +804,7 @@ namespace nanoflann
 		 */
 		NodePtr divideTree(Derived &obj, const IndexType left, const IndexType right, BoundingBox& bbox)
 		{
-			NodePtr node = obj.pool.allocate<Node>(); // allocate memory
+			NodePtr node = obj.pool.template allocate<Node>(); // allocate memory
 
 			/* If too few exemplars remain, then make this a leaf node. */
 			if ( (right-left) <= static_cast<IndexType>(obj.m_leaf_max_size) ) {
