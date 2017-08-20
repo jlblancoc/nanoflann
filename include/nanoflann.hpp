@@ -404,13 +404,7 @@ namespace nanoflann
 		SO2_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
 
 		inline DistanceType evalMetric(const T* a, const size_t b_idx, size_t size) const {
-			DistanceType result = DistanceType();
-			result = data_source.kdtree_get_pt(b_idx, 0) - a[0];
-			if (result > M_PI)
-				result -= 2. * M_PI;
-			else if (result < -M_PI)
-				result += 2. * M_PI;
-			return result;
+			return accum_dist(a[size-1], data_source.kdtree_get_pt(b_idx, size-1) , size-1);
 		}
 
 		template <typename U, typename V>
