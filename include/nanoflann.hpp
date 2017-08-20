@@ -1154,15 +1154,17 @@ namespace nanoflann
 		int dim;  //!< Dimensionality of each data point
 
 
-		typedef typename nanoflann::KDTreeBaseClass<nanoflann::KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, IndexType>, Distance, DatasetAdaptor, DIM, IndexType>::Node Node;
+		typedef typename nanoflann::KDTreeBaseClass<nanoflann::KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, IndexType>, Distance, DatasetAdaptor, DIM, IndexType> BaseClassRef;
+
+		typedef typename BaseClassRef::Node Node;
 		typedef Node* NodePtr;
 
-		typedef typename nanoflann::KDTreeBaseClass<nanoflann::KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, IndexType>, Distance, DatasetAdaptor, DIM, IndexType>::Interval Interval;
+		typedef typename BaseClassRef::Interval Interval;
 		/** Define "BoundingBox" as a fixed-size or variable-size container depending on "DIM" */
-		typedef typename nanoflann::KDTreeBaseClass<nanoflann::KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, IndexType>, Distance, DatasetAdaptor, DIM, IndexType>::BoundingBox BoundingBox;
+		typedef typename BaseClassRef::BoundingBox BoundingBox;
 
 		/** Define "distance_vector_t" as a fixed-size or variable-size container depending on "DIM" */
-		typedef typename nanoflann::KDTreeBaseClass<nanoflann::KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, IndexType>, Distance, DatasetAdaptor, DIM, IndexType>::distance_vector_t distance_vector_t;
+		typedef typename BaseClassRef::distance_vector_t distance_vector_t;
 
 		/** The KD-tree used to find neighbours */
 		NodePtr root_node;
@@ -1527,16 +1529,17 @@ namespace nanoflann
 		size_t m_size_at_index_build; //!< Number of points in the dataset when the index was built
 		int dim;  //!< Dimensionality of each data point
 
+		typedef typename nanoflann::KDTreeBaseClass<nanoflann::KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM, IndexType>, Distance, DatasetAdaptor, DIM, IndexType> BaseClassRef;
 
-		typedef typename nanoflann::KDTreeBaseClass<nanoflann::KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM, IndexType>, Distance, DatasetAdaptor, DIM, IndexType>::Node Node;
+		typedef typename BaseClassRef::Node Node;
 		typedef Node* NodePtr;
 
-		typedef typename nanoflann::KDTreeBaseClass<nanoflann::KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM, IndexType>, Distance, DatasetAdaptor, DIM, IndexType>::Interval Interval;
+		typedef typename BaseClassRef::Interval Interval;
 		/** Define "BoundingBox" as a fixed-size or variable-size container depending on "DIM" */
-		typedef typename nanoflann::KDTreeBaseClass<nanoflann::KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM, IndexType>, Distance, DatasetAdaptor, DIM, IndexType>::BoundingBox BoundingBox;
+		typedef typename BaseClassRef::BoundingBox BoundingBox;
 
 		/** Define "distance_vector_t" as a fixed-size or variable-size container depending on "DIM" */
-		typedef typename nanoflann::KDTreeBaseClass<nanoflann::KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM, IndexType>, Distance, DatasetAdaptor, DIM, IndexType>::distance_vector_t distance_vector_t;
+		typedef typename BaseClassRef::distance_vector_t distance_vector_t;
 
 		/** The KD-tree used to find neighbours */
 		NodePtr root_node;
