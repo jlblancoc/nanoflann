@@ -84,9 +84,9 @@ void generateRandomPointCloud(PointCloud<T> &point, const size_t N)
 		theta1 = 2 * M_PI * (((double)rand()) / RAND_MAX);
 		theta2 = 2 * M_PI * (((double)rand()) / RAND_MAX);
 		point.pts[i].w = cos(theta2) * sig2;
-		point.pts[i].x = sin(theta1) * sig1;
-		point.pts[i].y = cos(theta1) * sig1;
-		point.pts[i].z = sin(theta2) * sig2;
+		point.pts[i].x = abs(sin(theta1) * sig1);
+		point.pts[i].y = abs(cos(theta1) * sig1);
+		point.pts[i].z = abs(sin(theta2) * sig2);
 	}
 
 	std::cout << "done\n";
