@@ -78,10 +78,11 @@ void generateRandomPointCloud(PointCloud<T> &point, const size_t N)
 	T theta, X, Y, Z, sinAng, cosAng, mag;
 	for (size_t i=0;i<N;i++)
 	{
-		theta = 2 * M_PI * (((double)rand()) / RAND_MAX);
-		X = (((double)rand()) / RAND_MAX);
-		Y = (((double)rand()) / RAND_MAX);
-		Z = (((double)rand()) / RAND_MAX);
+		theta = M_PI * (((double)rand()) / RAND_MAX);
+		// Generate random value in [-1, 1]
+		X = 2 * (((double)rand()) / RAND_MAX) - 1;
+		Y = 2 * (((double)rand()) / RAND_MAX) - 1;
+		Z = 2 * (((double)rand()) / RAND_MAX) - 1;
 		mag = sqrt(X*X + Y*Y + Z*Z);
 		X /= mag; Y /= mag; Z /= mag;
 		cosAng = cos(theta / 2);
