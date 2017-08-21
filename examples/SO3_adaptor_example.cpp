@@ -75,18 +75,21 @@ void generateRandomPointCloud(PointCloud<T> &point, const size_t N)
 {
 	std::cout << "Generating "<< N << " quaternions...";
 	point.pts.resize(N);
-	T s, sig1, sig2, theta1, theta2;
+	T theta, X, Y, Z, sinAng, cosAng, mag;
 	for (size_t i=0;i<N;i++)
 	{
-		s = ((double)rand()) / RAND_MAX;
-		sig1 = sqrt(1-s);
-		sig2 = sqrt(s);
-		theta1 = 2 * M_PI * (((double)rand()) / RAND_MAX);
-		theta2 = 2 * M_PI * (((double)rand()) / RAND_MAX);
-		point.pts[i].w = cos(theta2) * sig2;
-		point.pts[i].x = abs(sin(theta1) * sig1);
-		point.pts[i].y = abs(cos(theta1) * sig1);
-		point.pts[i].z = abs(sin(theta2) * sig2);
+		theta = 2 * M_PI * (((double)rand()) / RAND_MAX);
+		X = (((double)rand()) / RAND_MAX);
+		Y = (((double)rand()) / RAND_MAX);
+		Z = (((double)rand()) / RAND_MAX);
+		mag = sqrt(X*X + Y*Y + Z*Z);
+		X /= mag; Y /= mag; Z /= mag;
+		cosAng = cos(theta / 2);
+		sinAng = sin(theta / 2);
+		point.pts[i].w = cosAng;
+		point.pts[i].x = X * sinAng;
+		point.pts[i].y = Y * sinAng;
+		point.pts[i].z = Z * sinAng;
 	}
 
 	std::cout << "done\n";
@@ -101,12 +104,11 @@ void kdtree_demo(const size_t N)
 	// Generate points:
 	generateRandomPointCloud(cloud, N);
 
-	//num_t query_pt[4] = { 0.5, 0.5, 0.5, 0.5};
-	num_t query_pt[4] = { cloud.pts[2].w, cloud.pts[2].x, cloud.pts[2].y, cloud.pts[2].z}; // Update this
+	num_t query_pt[4] = { 0.5, 0.5, 0.5, 0.5};
 
 	// construct a kd-tree index:
 	typedef KDTreeSingleIndexAdaptor<
-		SO3_InnerProdQuat_Adaptor<num_t, PointCloud<num_t> > ,
+		SO3_Adaptor<num_t, PointCloud<num_t> > ,
 		PointCloud<num_t>,
 		4 /* dim */
 		> my_kd_tree_t;

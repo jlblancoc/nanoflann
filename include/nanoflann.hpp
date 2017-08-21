@@ -420,37 +420,29 @@ namespace nanoflann
 		}
 	};
 
-	/** Inner Product of Quaternions distance functor (Reference : Metrics for 3D Rotations: Comparison and Analysis by Du Q. Huynh)
-	  *  Corresponding distance traits: nanoflann::metric_SO3_InnerProdQuat
+	/** SO3 distance functor (Uses L2_Simple)
+	  *  Corresponding distance traits: nanoflann::metric_SO3
 	  * \tparam T Type of the elements (e.g. double, float)
 	  * \tparam _DistanceType Type of distance variables (must be signed) (e.g. float, double)
 	  */
 	template<class T, class DataSource, typename _DistanceType = T>
-	struct SO3_InnerProdQuat_Adaptor
+	struct SO3_Adaptor
 	{
 		typedef T ElementType;
 		typedef _DistanceType DistanceType;
 
-		const DataSource &data_source;
+		L2_Simple_Adaptor<T, DataSource > distance_L2_Simple;
 
-		SO3_InnerProdQuat_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
+		SO3_Adaptor(const DataSource &_data_source) : distance_L2_Simple(_data_source) { }
 
 		inline DistanceType evalMetric(const T* a, const size_t b_idx, size_t size) const {
-			DistanceType result = DistanceType();
-			for (int i=0; i<size; ++i) {
-				const DistanceType diff = a[i] * data_source.kdtree_get_pt(b_idx, i);
-				result += diff;
-			}
-			result = 1 - std::abs(result);
-			return result;
+			return distance_L2_Simple.evalMetric(a, b_idx, size);
 		}
 
 		template <typename U, typename V>
 		inline DistanceType accum_dist(const U a, const V b, int idx) const
 		{
-			if(idx == 0)
-				return 1-std::abs(a*b);
-			return -a*b;
+			return distance_L2_Simple.accum_dist(a, b, idx);
 		}
 	};
 
@@ -487,11 +479,11 @@ namespace nanoflann
 		};
 	};
 	/** Metaprogramming helper traits class for the SO3_InnerProdQuat metric */
-	struct metric_SO3_InnerProdQuat : public Metric
+	struct metric_SO3 : public Metric
 	{
 		template<class T, class DataSource>
 		struct traits {
-			typedef SO3_InnerProdQuat_Adaptor<T,DataSource> distance_t;
+			typedef SO3_Adaptor<T,DataSource> distance_t;
 		};
 	};
 
