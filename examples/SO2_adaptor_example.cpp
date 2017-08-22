@@ -49,7 +49,7 @@ struct PointCloud
 	std::vector<Point>  pts;
 
 	// Must return the number of data points
-	inline size_t kdtree_get_point_count() const { return pts.size(); }\
+	inline size_t kdtree_get_point_count() const { return pts.size(); }
 
 	// Returns the dim'th component of the idx'th point in the class:
 	// Since this is inlined and the "dim" argument is typically an immediate value, the

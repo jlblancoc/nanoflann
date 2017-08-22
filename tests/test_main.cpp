@@ -145,6 +145,44 @@ void generateRandomPointCloud(PointCloud_Quat<T> &point, const size_t N)
 	}
 }
 
+// This is an exampleof a custom data set class
+template <typename T>
+struct PointCloud_Orient
+{
+	struct Point
+	{
+		T  theta;
+	};
+
+	std::vector<Point>  pts;
+
+	// Must return the number of data points
+	inline size_t kdtree_get_point_count() const { return pts.size(); }
+
+	// Returns the dim'th component of the idx'th point in the class:
+	// Since this is inlined and the "dim" argument is typically an immediate value, the
+	//  "if/else's" are actually solved at compile time.
+	inline T kdtree_get_pt(const size_t idx, int dim = 0) const
+	{
+		return pts[idx].theta;
+	}
+
+	// Optional bounding-box computation: return false to default to a standard bbox computation loop.
+	//   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
+	//   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3 for point clouds)
+	template <class BBOX>
+	bool kdtree_get_bbox(BBOX& /* bb */) const { return false; }
+};
+
+template <typename T>
+void generateRandomPointCloud(PointCloud_Orient<T> &point, const size_t N)
+{
+	point.pts.resize(N);
+	for (size_t i=0;i<N;i++) {
+		point.pts[i].theta = ( 2 * M_PI * (((double)rand()) / RAND_MAX) ) - M_PI;
+	}
+}
+
 template <typename num_t>
 void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
 {
@@ -362,6 +400,61 @@ void SO3_vs_bruteforce_test(const size_t nSamples)
 	EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
 }
 
+template <typename NUM>
+void SO2_vs_bruteforce_test(const size_t nSamples)
+{
+
+	PointCloud_Orient<NUM> cloud;
+
+	// Generate points:
+	generateRandomPointCloud(cloud, nSamples);
+
+	NUM query_pt[1] = { 0.5};
+
+	// construct a kd-tree index:
+	typedef KDTreeSingleIndexAdaptor<
+		SO2_Adaptor<NUM, PointCloud_Orient<NUM> > ,
+		PointCloud_Orient<NUM>,
+		1 /* dim */
+		> my_kd_tree_t;
+
+	my_kd_tree_t   index(1 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
+	index.buildIndex();
+	// do a knn search
+	const size_t num_results = 1;
+	std::vector<size_t>   ret_indexes(num_results);
+	std::vector<NUM> out_dists_sqr(num_results);
+
+	nanoflann::KNNResultSet<NUM> resultSet(num_results);
+
+	resultSet.init(&ret_indexes[0], &out_dists_sqr[0] );
+	index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10) );
+
+	// Brute force:
+	double min_dist_SO2 = std::numeric_limits<double>::max();
+	int    min_idx = -1;
+	{
+		for (size_t i=0;i<nSamples;i++)
+		{
+			double dist=0.0;
+			dist = cloud.kdtree_get_pt(i,0) - query_pt[0];
+			if (dist > M_PI)
+				dist -= 2. * M_PI;
+			else if (dist < -M_PI)
+				dist += 2. * M_PI;
+			if (dist<min_dist_SO2)
+			{
+				min_dist_SO2=dist;
+				min_idx = i;
+			}
+		}
+		ASSERT_TRUE(min_idx!=-1);
+	}
+	// Compare:
+	EXPECT_EQ(min_idx,ret_indexes[0]);
+	EXPECT_NEAR(min_dist_SO2,out_dists_sqr[0],1e-3);
+}
+
 // First add nSamples/2 points, find the closest point 
 // Then add remaining points and find closest point 
 // Compare both with closest point using brute force approach
@@ -494,6 +587,21 @@ TEST(kdtree,SO3_vs_bruteforce)
 		SO3_vs_bruteforce_test<double>(100);
 		SO3_vs_bruteforce_test<double>(100);
 		SO3_vs_bruteforce_test<double>(100);
+	}
+}
+
+TEST(kdtree,SO2_vs_bruteforce)
+{
+	srand(time(NULL));
+	for (int i=0;i<10;i++)
+	{
+		SO2_vs_bruteforce_test<float>(100);
+		SO2_vs_bruteforce_test<float>(100);
+		SO2_vs_bruteforce_test<float>(100);
+
+		SO2_vs_bruteforce_test<double>(100);
+		SO2_vs_bruteforce_test<double>(100);
+		SO2_vs_bruteforce_test<double>(100);
 	}
 }
 
