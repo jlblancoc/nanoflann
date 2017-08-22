@@ -110,7 +110,8 @@ void kdtree_demo(const size_t N)
 	int chunk_size = 100;
 	for(int i=0;i<N;i=i+chunk_size)
 	{
-		size_t end = min(size_t(i+chunk_size),N);
+		size_t end = min(size_t(i+chunk_size), N-1);
+		// Inserts all points from [i, end]
 		index.addPoints(i, end);
 	}
 

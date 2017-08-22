@@ -256,6 +256,111 @@ void L2_vs_bruteforce_test(const size_t nSamples,const int DIM)
 }
 
 
+// First add nSamples/2 points, find the closest point 
+// Then add remaining points and find closest point 
+// Compare both with closest point using brute force approach
+template <typename NUM>
+void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
+{
+	PointCloud<NUM> cloud;
+
+	const NUM max_range = NUM(20.0);
+
+	// construct a kd-tree index:
+	typedef KDTreeSingleIndexDynamicAdaptor<
+		L2_Simple_Adaptor<NUM, PointCloud<NUM> > ,
+		PointCloud<NUM>,
+		3 /* dim */
+		> my_kd_tree_t;
+
+	my_kd_tree_t   index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
+
+	// Generate points:
+	generateRandomPointCloud(cloud, nSamples, max_range);
+
+	NUM query_pt[3] = { 0.5, 0.5, 0.5};
+
+	// add points in chunks at a time
+	size_t chunk_size = 100;
+	size_t end;
+	for(int i=0; i<nSamples/2; i=i+chunk_size)
+	{
+		end = min(size_t(i+chunk_size), nSamples/2-1);
+		index.addPoints(i, end);
+	}
+
+	{
+		// do a knn search
+		const size_t num_results = 1;
+		std::vector<size_t>   ret_indexes(num_results);
+		std::vector<NUM> out_dists_sqr(num_results);
+		
+		nanoflann::KNNResultSet<NUM> resultSet(num_results);
+		
+		resultSet.init(&ret_indexes[0], &out_dists_sqr[0] );
+		index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
+
+		// Brute force:
+		double min_dist_L2 = std::numeric_limits<double>::max();
+		int    min_idx = -1;
+		{
+			for (size_t i=0;i<nSamples/2;i++)
+			{
+				double dist=0.0;
+				for (int d=0;d<3;d++)
+					dist+= (query_pt[d]-cloud.kdtree_get_pt(i,d))*(query_pt[d]-cloud.kdtree_get_pt(i,d));
+				if (dist<min_dist_L2)
+				{
+					min_dist_L2=dist;
+					min_idx = i;
+				}
+			}
+			ASSERT_TRUE(min_idx!=-1);
+		}
+		// Compare:
+		EXPECT_EQ(min_idx,ret_indexes[0]);
+		EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
+	}
+	for(int i=end+1; i<nSamples; i=i+chunk_size)
+	{
+		end = min(size_t(i+chunk_size), nSamples-1);
+		index.addPoints(i, end);
+	}
+
+	{
+		// do a knn search
+		const size_t num_results = 1;
+		std::vector<size_t>   ret_indexes(num_results);
+		std::vector<NUM> out_dists_sqr(num_results);
+		
+		nanoflann::KNNResultSet<NUM> resultSet(num_results);
+		
+		resultSet.init(&ret_indexes[0], &out_dists_sqr[0] );
+		index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
+
+		// Brute force:
+		double min_dist_L2 = std::numeric_limits<double>::max();
+		int    min_idx = -1;
+		{
+			for (size_t i=0;i<nSamples;i++)
+			{
+				double dist=0.0;
+				for (int d=0;d<3;d++)
+					dist+= (query_pt[d]-cloud.kdtree_get_pt(i,d))*(query_pt[d]-cloud.kdtree_get_pt(i,d));
+				if (dist<min_dist_L2)
+				{
+					min_dist_L2=dist;
+					min_idx = i;
+				}
+			}
+			ASSERT_TRUE(min_idx!=-1);
+		}
+		// Compare:
+		EXPECT_EQ(min_idx,ret_indexes[0]);
+		EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
+	}
+}
+
 TEST(kdtree,L2_vs_bruteforce)
 {
 	srand(time(NULL));
@@ -271,4 +376,17 @@ TEST(kdtree,L2_vs_bruteforce)
 	}
 }
 
+TEST(kdtree,L2_dynamic_vs_bruteforce)
+{
+	srand(time(NULL));
+	for (int i=0;i<10;i++)
+	{
+		L2_dynamic_vs_bruteforce_test<float>(100);
+		L2_dynamic_vs_bruteforce_test<float>(100);
+		L2_dynamic_vs_bruteforce_test<float>(100);
 
+		L2_dynamic_vs_bruteforce_test<double>(100);
+		L2_dynamic_vs_bruteforce_test<double>(100);
+		L2_dynamic_vs_bruteforce_test<double>(100);
+	}
+}
