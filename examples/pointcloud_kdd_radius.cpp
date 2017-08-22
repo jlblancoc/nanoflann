@@ -27,60 +27,13 @@
  *************************************************************************/
 
 #include <nanoflann.hpp>
-
+#include "utils.h"
 #include <ctime>
 #include <cstdlib>
 #include <iostream>
 
 using namespace std;
 using namespace nanoflann;
-
-// This is an example of a custom data set class
-template <typename T>
-struct PointCloud
-{
-	struct Point
-	{
-		T  x,y,z;
-	};
-
-	std::vector<Point>  pts;
-
-	// Must return the number of data points
-	inline size_t kdtree_get_point_count() const { return pts.size(); }
-
-	// Returns the dim'th component of the idx'th point in the class:
-	// Since this is inlined and the "dim" argument is typically an immediate value, the
-	//  "if/else's" are actually solved at compile time.
-	inline T kdtree_get_pt(const size_t idx, int dim) const
-	{
-		if (dim==0) return pts[idx].x;
-		else if (dim==1) return pts[idx].y;
-		else return pts[idx].z;
-	}
-
-	// Optional bounding-box computation: return false to default to a standard bbox computation loop.
-	//   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
-	//   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3 for point clouds)
-	template <class BBOX>
-	bool kdtree_get_bbox(BBOX& /*bb*/) const { return false; }
-
-};
-
-template <typename T>
-void generateRandomPointCloud(PointCloud<T> &point, const size_t N, const T max_range = 10)
-{
-	std::cout << "Generating "<< N << " point cloud...";
-	point.pts.resize(N);
-	for (size_t i=0;i<N;i++)
-	{
-		point.pts[i].x = max_range * (rand() % 1000) / T(1000);
-		point.pts[i].y = max_range * (rand() % 1000) / T(1000);
-		point.pts[i].z = max_range * (rand() % 1000) / T(1000);
-	}
-
-	std::cout << "done\n";
-}
 
 template <typename num_t>
 void kdtree_demo(const size_t N)
@@ -123,7 +76,7 @@ void kdtree_demo(const size_t N)
 		out_dist_sqr.resize(num_results);
 
 		cout << "knnSearch(): num_results=" << num_results << "\n";
-		for (size_t i=0;i<num_results;i++)
+		for (size_t i = 0; i < num_results; i++)
 			cout << "idx["<< i << "]=" << ret_index[i] << " dist["<< i << "]=" << out_dist_sqr[i] << endl;
 		cout << "\n";
 	}
@@ -138,10 +91,10 @@ void kdtree_demo(const size_t N)
 		nanoflann::SearchParams params;
 		//params.sorted = false;
 
-		const size_t nMatches = index.radiusSearch(&query_pt[0],search_radius, ret_matches, params);
+		const size_t nMatches = index.radiusSearch(&query_pt[0], search_radius, ret_matches, params);
 
 		cout << "radiusSearch(): radius=" << search_radius << " -> " << nMatches << " matches\n";
-		for (size_t i=0;i<nMatches;i++)
+		for (size_t i = 0; i < nMatches; i++)
 			cout << "idx["<< i << "]=" << ret_matches[i].first << " dist["<< i << "]=" << ret_matches[i].second << endl;
 		cout << "\n";
 	}
@@ -156,4 +109,3 @@ void kdtree_demo(const size_t N)
 	kdtree_demo<double>(100000);
 	return 0;
 }
-

@@ -41,31 +41,31 @@ using namespace nanoflann;
 const int SAMPLES_DIM = 15;
 
 template <typename Der>
-void generateRandomPointCloud(Eigen::MatrixBase<Der> &mat, const size_t N,const size_t dim, const typename Der::Scalar max_range = 10)
+void generateRandomPointCloud(Eigen::MatrixBase<Der> &mat, const size_t N, const size_t dim, const typename Der::Scalar max_range = 10)
 {
 	std::cout << "Generating "<< N << " random points...";
 	mat.resize(N,dim);
-	for (size_t i=0;i<N;i++)
-		for (size_t d=0;d<dim;d++)
-			mat(i,d)= max_range * (rand() % 1000) / typename Der::Scalar(1000);
+	for (size_t i = 0; i < N; i++)
+		for (size_t d = 0; d < dim; d++)
+			mat(i,d) = max_range * (rand() % 1000) / typename Der::Scalar(1000);
 	std::cout << "done\n";
 }
 
 template <typename num_t>
-void kdtree_demo(const size_t nSamples,const size_t dim)
+void kdtree_demo(const size_t nSamples, const size_t dim)
 {
-	Eigen::Matrix<num_t,Dynamic,Dynamic>  mat(nSamples,dim);
+	Eigen::Matrix<num_t, Dynamic, Dynamic>  mat(nSamples, dim);
 
 	const num_t max_range = 20;
 
 	// Generate points:
-	generateRandomPointCloud(mat, nSamples,dim, max_range);
+	generateRandomPointCloud(mat, nSamples, dim, max_range);
 
 //	cout << mat << endl;
 
 	// Query point:
 	std::vector<num_t> query_pt(dim);
-	for (size_t d=0;d<dim;d++)
+	for (size_t d = 0; d < dim; d++)
 		query_pt[d] = max_range * (rand() % 1000) / num_t(1000);
 
 
@@ -74,7 +74,7 @@ void kdtree_demo(const size_t nSamples,const size_t dim)
 	//    Some of the different possibilities (uncomment just one)
 	// ------------------------------------------------------------
 	// Dimensionality set at run-time (default: L2)
-	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic> >  my_kd_tree_t;
+	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t, Dynamic, Dynamic> >  my_kd_tree_t;
 
 	// Dimensionality set at compile-time
 //	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic>, SAMPLES_DIM>  my_kd_tree_t;
@@ -102,7 +102,7 @@ void kdtree_demo(const size_t nSamples,const size_t dim)
 	mat_index.index->findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
 
 	std::cout << "knnSearch(nn="<<num_results<<"): \n";
-	for (size_t i=0;i<num_results;i++)
+	for (size_t i=0; i<num_results; i++)
 		std::cout << "ret_index["<<i<<"]=" << ret_indexes[i] << " out_dist_sqr=" << out_dists_sqr[i] << endl;
 
 }
@@ -115,4 +115,3 @@ int main(int argc, char** argv)
 
 	return 0;
 }
-

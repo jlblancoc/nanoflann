@@ -27,7 +27,7 @@
  *************************************************************************/
 
 #include <nanoflann.hpp>
-
+#include "utils.h"
 #include <ctime>
 #include <cstdlib>
 #include <iostream>
@@ -35,65 +35,20 @@
 using namespace std;
 using namespace nanoflann;
 
-void dump_mem_usage();
-
-// This is an exampleof a custom data set class
-template <typename T>
-struct PointCloud
-{
-	struct Point
-	{
-		T  theta;
-	};
-
-	std::vector<Point>  pts;
-
-	// Must return the number of data points
-	inline size_t kdtree_get_point_count() const { return pts.size(); }
-
-	// Returns the dim'th component of the idx'th point in the class:
-	// Since this is inlined and the "dim" argument is typically an immediate value, the
-	//  "if/else's" are actually solved at compile time.
-	inline T kdtree_get_pt(const size_t idx, int dim = 0) const
-	{
-		return pts[idx].theta;
-	}
-
-	// Optional bounding-box computation: return false to default to a standard bbox computation loop.
-	//   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
-	//   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3 for point clouds)
-	template <class BBOX>
-	bool kdtree_get_bbox(BBOX& /* bb */) const { return false; }
-
-};
-
-template <typename T>
-void generateRandomPointCloud(PointCloud<T> &point, const size_t N)
-{
-	std::cout << "Generating "<< N << " orientations...";
-	point.pts.resize(N);
-	for (size_t i=0;i<N;i++) {
-		point.pts[i].theta = ( 2 * M_PI * (((double)rand()) / RAND_MAX) ) - M_PI;
-	}
-
-	std::cout << "done\n";
-}
-
-
 template <typename num_t>
 void kdtree_demo(const size_t N)
 {
-	PointCloud<num_t> cloud;
+	PointCloud_Orient<num_t> cloud;
 
 	// Generate points:
-	generateRandomPointCloud(cloud, N);
+	generateRandomPointCloud_Orient(cloud, N);
 
 	num_t query_pt[1] = { 0.5 };
 
 	// construct a kd-tree index:
 	typedef KDTreeSingleIndexAdaptor<
-		SO2_Adaptor<num_t, PointCloud<num_t> > ,
-		PointCloud<num_t>,
+		SO2_Adaptor<num_t, PointCloud_Orient<num_t> > ,
+		PointCloud_Orient<num_t>,
 		1 /* dim */
 		> my_kd_tree_t;
 
@@ -115,19 +70,6 @@ void kdtree_demo(const size_t N)
 		std::cout << "knnSearch(nn="<<num_results<<"): \n";
 		std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr << endl;
 	}
-	{
-		// Unsorted radius search:
-		const num_t radius = 1;
-		std::vector<std::pair<size_t,num_t> > indices_dists;
-		RadiusResultSet<num_t,size_t> resultSet(radius,indices_dists);
-
-		index.findNeighbors(resultSet, query_pt, nanoflann::SearchParams());
-
-		// Get worst (furthest) point, without sorting:
-		std::pair<size_t,num_t> worst_pair = resultSet.worst_item();
-		cout << "Worst pair: idx=" << worst_pair.first << " dist=" << worst_pair.second << endl;
-	}
-
 }
 
 int main()
@@ -137,15 +79,4 @@ int main()
 	kdtree_demo<float>(1000000);
 	kdtree_demo<double>(1000000);
 	return 0;
-}
-
-void dump_mem_usage()
-{
-	FILE* f=fopen("/proc/self/statm","rt");
-	if (!f) return;
-	char str[300];
-	size_t n=fread(str,1,200,f);
-	str[n]=0;
-	printf("MEM: %s\n",str);
-	fclose(f);
 }

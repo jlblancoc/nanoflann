@@ -31,7 +31,7 @@
 #include <gtest/gtest.h>
 
 #include <nanoflann.hpp>
-
+#include "../examples/utils.h"
 #include <cstdlib>
 #include <iostream>
 
@@ -43,144 +43,6 @@ int main(int argc, char **argv)
 	testing::InitGoogleTest(&argc, argv);
 
 	return RUN_ALL_TESTS();
-}
-
-// This is an exampleof a custom data set class
-template <typename T>
-struct PointCloud
-{
-	struct Point
-	{
-		T  x,y,z;
-	};
-
-	std::vector<Point>  pts;
-
-	// Must return the number of data points
-	inline size_t kdtree_get_point_count() const { return pts.size(); }
-
-	// Returns the dim'th component of the idx'th point in the class:
-	// Since this is inlined and the "dim" argument is typically an immediate value, the
-	//  "if/else's" are actually solved at compile time.
-	inline T kdtree_get_pt(const size_t idx, int dim) const
-	{
-		if (dim==0) return pts[idx].x;
-		else if (dim==1) return pts[idx].y;
-		else return pts[idx].z;
-	}
-
-	// Optional bounding-box computation: return false to default to a standard bbox computation loop.
-	//   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
-	//   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3 for point clouds)
-	template <class BBOX>
-	bool kdtree_get_bbox(BBOX & /* bb*/ ) const { return false; }
-
-};
-
-template <typename T>
-void generateRandomPointCloud(PointCloud<T> &point, const size_t N, const T max_range = 10)
-{
-	point.pts.resize(N);
-	for (size_t i=0;i<N;i++)
-	{
-		point.pts[i].x = max_range * (rand() % 1000) / T(1000);
-		point.pts[i].y = max_range * (rand() % 1000) / T(1000);
-		point.pts[i].z = max_range * (rand() % 1000) / T(1000);
-	}
-}
-
-// This is an exampleof a custom data set class
-template <typename T>
-struct PointCloud_Quat
-{
-	struct Point
-	{
-		T  w,x,y,z;
-	};
-
-	std::vector<Point>  pts;
-
-	// Must return the number of data points
-	inline size_t kdtree_get_point_count() const { return pts.size(); }\
-
-	// Returns the dim'th component of the idx'th point in the class:
-	// Since this is inlined and the "dim" argument is typically an immediate value, the
-	//  "if/else's" are actually solved at compile time.
-	inline T kdtree_get_pt(const size_t idx, int dim) const
-	{
-		if (dim==0) return pts[idx].w;
-		else if (dim==1) return pts[idx].x;
-		else if (dim==2) return pts[idx].y;
-		else return pts[idx].z;
-	}
-
-	// Optional bounding-box computation: return false to default to a standard bbox computation loop.
-	//   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
-	//   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3 for point clouds)
-	template <class BBOX>
-	bool kdtree_get_bbox(BBOX& /* bb */) const { return false; }
-
-};
-
-template <typename T>
-void generateRandomPointCloud(PointCloud_Quat<T> &point, const size_t N)
-{
-	point.pts.resize(N);
-	T theta, X, Y, Z, sinAng, cosAng, mag;
-	for (size_t i=0;i<N;i++)
-	{
-		theta = M_PI * (((double)rand()) / RAND_MAX);
-		// Generate random value in [-1, 1]
-		X = 2 * (((double)rand()) / RAND_MAX) - 1;
-		Y = 2 * (((double)rand()) / RAND_MAX) - 1;
-		Z = 2 * (((double)rand()) / RAND_MAX) - 1;
-		mag = sqrt(X*X + Y*Y + Z*Z);
-		X /= mag; Y /= mag; Z /= mag;
-		cosAng = cos(theta / 2);
-		sinAng = sin(theta / 2);
-		point.pts[i].w = cosAng;
-		point.pts[i].x = X * sinAng;
-		point.pts[i].y = Y * sinAng;
-		point.pts[i].z = Z * sinAng;
-	}
-}
-
-// This is an exampleof a custom data set class
-template <typename T>
-struct PointCloud_Orient
-{
-	struct Point
-	{
-		T  theta;
-	};
-
-	std::vector<Point>  pts;
-
-	// Must return the number of data points
-	inline size_t kdtree_get_point_count() const { return pts.size(); }
-
-	// Returns the dim'th component of the idx'th point in the class:
-	// Since this is inlined and the "dim" argument is typically an immediate value, the
-	//  "if/else's" are actually solved at compile time.
-	inline T kdtree_get_pt(const size_t idx, int dim = 0) const
-	{
-		return pts[idx].theta;
-	}
-
-	// Optional bounding-box computation: return false to default to a standard bbox computation loop.
-	//   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
-	//   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3 for point clouds)
-	template <class BBOX>
-	bool kdtree_get_bbox(BBOX& /* bb */) const { return false; }
-};
-
-template <typename T>
-void generateRandomPointCloud(PointCloud_Orient<T> &point, const size_t N)
-{
-	point.pts.resize(N);
-	for (size_t i=0;i<N;i++) {
-		point.pts[i].theta = ( 2 * M_PI * (((double)rand()) / RAND_MAX) ) - M_PI;
-	}
 }
 
 template <typename num_t>
@@ -233,54 +95,12 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
 	}
 }
 
-TEST(kdtree,L2_vs_L2_simple)
-{
-	for (int nResults=1;nResults<10;nResults++)
-	{
-		L2_vs_L2_simple_test<float>(100, nResults);
-		L2_vs_L2_simple_test<double>(100, nResults);
-	}
-}
-
-
-TEST(kdtree,robust_empty_tree)
-{
-	// Try to build a tree with 0 data points, to test
-	// robustness against this situation:
-	PointCloud<double> cloud;
-
-	double query_pt[3] = { 0.5, 0.5, 0.5};
-
-	// construct a kd-tree index:
-	typedef KDTreeSingleIndexAdaptor<
-		L2_Simple_Adaptor<double, PointCloud<double> > ,
-		PointCloud<double>,
-		3 /* dim */
-		> my_kd_tree_simple_t;
-
-	my_kd_tree_simple_t   index1(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
-	index1.buildIndex();
-
-
-	// Now we will try to search in the tree, and WE EXPECT a result of
-	// no neighbors found if the error detection works fine:
-	const size_t num_results = 1;
-	std::vector<size_t>   ret_index(num_results);
-	std::vector<double> out_dist_sqr(num_results);
-	nanoflann::KNNResultSet<double> resultSet(num_results);
-	resultSet.init(&ret_index[0], &out_dist_sqr[0] );
-	bool result = index1.findNeighbors(resultSet, &query_pt[0],
-		nanoflann::SearchParams(10));
-	EXPECT_EQ(result, false);
-}
-
 using namespace nanoflann;
 #include "../examples/KDTreeVectorOfVectorsAdaptor.h"
 
 template <typename NUM>
 void generateRandomPointCloud(std::vector<std::vector<NUM> > &samples, const size_t N,const size_t dim, const NUM max_range)
 {
-	//std::cout << "Generating "<< N << " random points...";
 	samples.resize(N);
 	for (size_t i=0;i<N;i++)
 	{
@@ -288,7 +108,6 @@ void generateRandomPointCloud(std::vector<std::vector<NUM> > &samples, const siz
 		for (size_t d=0;d<dim;d++)
 			samples[i][d] = max_range * (rand() % 1000) / NUM(1000.0);
 	}
-	//std::cout << "done\n";
 }
 
 template <typename NUM>
@@ -354,7 +173,7 @@ void SO3_vs_bruteforce_test(const size_t nSamples)
 	PointCloud_Quat<NUM> cloud;
 
 	// Generate points:
-	generateRandomPointCloud(cloud, nSamples);
+	generateRandomPointCloud_Quat(cloud, nSamples);
 
 	NUM query_pt[4] = { 0.5, 0.5, 0.5, 0.5};
 
@@ -407,7 +226,7 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
 	PointCloud_Orient<NUM> cloud;
 
 	// Generate points:
-	generateRandomPointCloud(cloud, nSamples);
+	generateRandomPointCloud_Orient(cloud, nSamples);
 
 	NUM query_pt[1] = { 0.5};
 
@@ -558,6 +377,46 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
 		EXPECT_EQ(min_idx,ret_indexes[0]);
 		EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
 	}
+}
+
+TEST(kdtree,L2_vs_L2_simple)
+{
+	for (int nResults=1;nResults<10;nResults++)
+	{
+		L2_vs_L2_simple_test<float>(100, nResults);
+		L2_vs_L2_simple_test<double>(100, nResults);
+	}
+}
+
+TEST(kdtree,robust_empty_tree)
+{
+	// Try to build a tree with 0 data points, to test
+	// robustness against this situation:
+	PointCloud<double> cloud;
+
+	double query_pt[3] = { 0.5, 0.5, 0.5};
+
+	// construct a kd-tree index:
+	typedef KDTreeSingleIndexAdaptor<
+		L2_Simple_Adaptor<double, PointCloud<double> > ,
+		PointCloud<double>,
+		3 /* dim */
+		> my_kd_tree_simple_t;
+
+	my_kd_tree_simple_t   index1(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
+	index1.buildIndex();
+
+
+	// Now we will try to search in the tree, and WE EXPECT a result of
+	// no neighbors found if the error detection works fine:
+	const size_t num_results = 1;
+	std::vector<size_t>   ret_index(num_results);
+	std::vector<double> out_dist_sqr(num_results);
+	nanoflann::KNNResultSet<double> resultSet(num_results);
+	resultSet.init(&ret_index[0], &out_dist_sqr[0] );
+	bool result = index1.findNeighbors(resultSet, &query_pt[0],
+		nanoflann::SearchParams(10));
+	EXPECT_EQ(result, false);
 }
 
 TEST(kdtree,L2_vs_bruteforce)
