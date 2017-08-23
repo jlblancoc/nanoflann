@@ -883,6 +883,11 @@ namespace nanoflann
 			return static_cast<size_t>(DIM>0 ? DIM : obj.dim);
 		}
 
+		/// Helper accessor to the dataset points:
+		inline ElementType dataset_get(const Derived &obj, size_t idx, int component) const{
+			return obj.dataset.kdtree_get_pt(idx, component);
+		}
+
 		/**
 		 * Computes the inde memory usage
 		 * Returns: memory used by the index
@@ -894,10 +899,10 @@ namespace nanoflann
 
 		void computeMinMax(const Derived &obj, IndexType* ind, IndexType count, int element, ElementType& min_elem, ElementType& max_elem)
 		{
-			min_elem = obj.dataset_get(ind[0],element);
-			max_elem = obj.dataset_get(ind[0],element);
+			min_elem = dataset_get(obj, ind[0],element);
+			max_elem = dataset_get(obj, ind[0],element);
 			for (IndexType i = 1; i < count; ++i) {
-				ElementType val = obj.dataset_get(ind[i], element);
+				ElementType val = dataset_get(obj, ind[i], element);
 				if (val < min_elem) min_elem = val;
 				if (val > max_elem) max_elem = val;
 			}
@@ -922,13 +927,13 @@ namespace nanoflann
 
 				// compute bounding-box of leaf points
 				for (int i = 0; i < (DIM > 0 ? DIM : obj.dim); ++i) {
-					bbox[i].low = obj.dataset_get(obj.vind[left], i);
-					bbox[i].high = obj.dataset_get(obj.vind[left], i);
+					bbox[i].low = dataset_get(obj, obj.vind[left], i);
+					bbox[i].high = dataset_get(obj, obj.vind[left], i);
 				}
 				for (IndexType k = left + 1; k < right; ++k) {
 					for (int i = 0; i < (DIM > 0 ? DIM : obj.dim); ++i) {
-						if (bbox[i].low > obj.dataset_get(obj.vind[k], i)) bbox[i].low = obj.dataset_get(obj.vind[k], i);
-						if (bbox[i].high < obj.dataset_get(obj.vind[k], i)) bbox[i].high = obj.dataset_get(obj.vind[k], i);
+						if (bbox[i].low > dataset_get(obj, obj.vind[k], i)) bbox[i].low = dataset_get(obj, obj.vind[k], i);
+						if (bbox[i].high < dataset_get(obj, obj.vind[k], i)) bbox[i].high = dataset_get(obj, obj.vind[k], i);
 					}
 				}
 			}
@@ -1016,8 +1021,8 @@ namespace nanoflann
 			IndexType left = 0;
 			IndexType right = count-1;
 			for (;; ) {
-				while (left <= right && obj.dataset_get(ind[left], cutfeat) < cutval) ++left;
-				while (right && left <= right && obj.dataset_get(ind[right], cutfeat) >= cutval) --right;
+				while (left <= right && dataset_get(obj, ind[left], cutfeat) < cutval) ++left;
+				while (right && left <= right && dataset_get(obj, ind[right], cutfeat) >= cutval) --right;
 				if (left > right || !right) break;  // "!right" was added to support unsigned Index types
 				std::swap(ind[left], ind[right]);
 				++left;
@@ -1029,8 +1034,8 @@ namespace nanoflann
 			lim1 = left;
 			right = count-1;
 			for (;; ) {
-				while (left <= right && obj.dataset_get(ind[left], cutfeat) <= cutval) ++left;
-				while (right && left <= right && obj.dataset_get(ind[right], cutfeat) > cutval) --right;
+				while (left <= right && dataset_get(obj, ind[left], cutfeat) <= cutval) ++left;
+				while (right && left <= right && dataset_get(obj, ind[right], cutfeat) > cutval) --right;
 				if (left > right || !right) break;  // "!right" was added to support unsigned Index types
 				std::swap(ind[left], ind[right]);
 				++left;
@@ -1055,6 +1060,58 @@ namespace nanoflann
 				}
 			}
 			return distsq;
+		}
+
+		void save_tree(Derived &obj, FILE* stream, NodePtr tree)
+		{
+			save_value(stream, *tree);
+			if (tree->child1 != NULL) {
+				save_tree(obj, stream, tree->child1);
+			}
+			if (tree->child2 != NULL) {
+				save_tree(obj, stream, tree->child2);
+			}
+		}
+
+
+		void load_tree(Derived &obj, FILE* stream, NodePtr& tree)
+		{
+			tree = obj.pool.allocate<Node>();
+			load_value(stream, *tree);
+			if (tree->child1 != NULL) {
+				load_tree(obj, stream, tree->child1);
+			}
+			if (tree->child2 != NULL) {
+				load_tree(obj, stream, tree->child2);
+			}
+		}
+
+		/**  Stores the index in a binary file.
+		  *   IMPORTANT NOTE: The set of data points is NOT stored in the file, so when loading the index object it must be constructed associated to the same source of data points used while building it.
+		  * See the example: examples/saveload_example.cpp
+		  * \sa loadIndex  */
+		void saveIndex_(Derived &obj, FILE* stream)
+		{
+			save_value(stream, obj.m_size);
+			save_value(stream, obj.dim);
+			save_value(stream, obj.root_bbox);
+			save_value(stream, obj.m_leaf_max_size);
+			save_value(stream, obj.vind);
+			save_tree(obj, stream, obj.root_node);
+		}
+
+		/**  Loads a previous index from a binary file.
+		  *   IMPORTANT NOTE: The set of data points is NOT stored in the file, so the index object must be constructed associated to the same source of data points used while building the index.
+		  * See the example: examples/saveload_example.cpp
+		  * \sa loadIndex  */
+		void loadIndex_(Derived &obj, FILE* stream)
+		{
+			load_value(stream, obj.m_size);
+			load_value(stream, obj.dim);
+			load_value(stream, obj.root_bbox);
+			load_value(stream, obj.m_leaf_max_size);
+			load_value(stream, obj.vind);
+			load_tree(obj, stream, obj.root_node);
 		}
 
 	};
@@ -1265,36 +1322,6 @@ namespace nanoflann
 			for (size_t i = 0; i < BaseClassRef::m_size; i++) BaseClassRef::vind[i] = i;
 		}
 
-		/// Helper accessor to the dataset points:
-		inline ElementType dataset_get(size_t idx, int component) const {
-			return dataset.kdtree_get_pt(idx, component);
-		}
-
-
-		void save_tree(FILE* stream, NodePtr tree)
-		{
-			save_value(stream, *tree);
-			if (tree->child1 != NULL) {
-				save_tree(stream, tree->child1);
-			}
-			if (tree->child2 != NULL) {
-				save_tree(stream, tree->child2);
-			}
-		}
-
-
-		void load_tree(FILE* stream, NodePtr& tree)
-		{
-			tree = BaseClassRef::pool.allocate<Node>();
-			load_value(stream, *tree);
-			if (tree->child1 != NULL) {
-				load_tree(stream, tree->child1);
-			}
-			if (tree->child2 != NULL) {
-				load_tree(stream, tree->child2);
-			}
-		}
-
 		void computeBoundingBox(BoundingBox& bbox)
 		{
 			bbox.resize((DIM > 0 ? DIM : BaseClassRef::dim));
@@ -1308,12 +1335,12 @@ namespace nanoflann
 				if (!N) throw std::runtime_error("[nanoflann] computeBoundingBox() called but no data points found.");
 				for (int i = 0; i < (DIM > 0 ? DIM : BaseClassRef::dim); ++i) {
 					bbox[i].low =
-					bbox[i].high = dataset_get(0, i);
+					bbox[i].high = this->dataset_get(*this, 0, i);
 				}
 				for (size_t k = 1; k < N; ++k) {
 					for (int i = 0; i < (DIM > 0 ? DIM : BaseClassRef::dim); ++i) {
-						if (dataset_get(k, i) < bbox[i].low) bbox[i].low = dataset_get(k, i);
-						if (dataset_get(k, i) > bbox[i].high) bbox[i].high = dataset_get(k, i);
+						if (this->dataset_get(*this, k, i) < bbox[i].low) bbox[i].low = this->dataset_get(*this, k, i);
+						if (this->dataset_get(*this, k, i) > bbox[i].high) bbox[i].high = this->dataset_get(*this, k, i);
 					}
 				}
 			}
@@ -1391,12 +1418,7 @@ namespace nanoflann
 		  * \sa loadIndex  */
 		void saveIndex(FILE* stream)
 		{
-			save_value(stream, BaseClassRef::m_size);
-			save_value(stream, BaseClassRef::dim);
-			save_value(stream, BaseClassRef::root_bbox);
-			save_value(stream, BaseClassRef::m_leaf_max_size);
-			save_value(stream, BaseClassRef::vind);
-			save_tree(stream, BaseClassRef::root_node);
+			this->saveIndex_(*this, stream);
 		}
 
 		/**  Loads a previous index from a binary file.
@@ -1405,12 +1427,7 @@ namespace nanoflann
 		  * \sa loadIndex  */
 		void loadIndex(FILE* stream)
 		{
-			load_value(stream, BaseClassRef::m_size);
-			load_value(stream, BaseClassRef::dim);
-			load_value(stream, BaseClassRef::root_bbox);
-			load_value(stream, BaseClassRef::m_leaf_max_size);
-			load_value(stream, BaseClassRef::vind);
-			load_tree(stream, BaseClassRef::root_node);
+			this->loadIndex_(*this, stream);
 		}
 
 	};   // class KDTree
@@ -1620,35 +1637,6 @@ namespace nanoflann
 		/** @} */
 
 	public:
-		/// Helper accessor to the dataset points:
-		inline ElementType dataset_get(size_t idx, int component) const {
-			return dataset.kdtree_get_pt(idx, component);
-		}
-
-
-		void save_tree(FILE* stream, NodePtr tree)
-		{
-			save_value(stream, *tree);
-			if (tree->child1 != NULL) {
-				save_tree(stream, tree->child1);
-			}
-			if (tree->child2 != NULL) {
-				save_tree(stream, tree->child2);
-			}
-		}
-
-
-		void load_tree(FILE* stream, NodePtr& tree)
-		{
-			tree = BaseClassRef::pool.allocate<Node>();
-			load_value(stream, *tree);
-			if (tree->child1 != NULL) {
-				load_tree(stream, tree->child1);
-			}
-			if (tree->child2 != NULL) {
-				load_tree(stream, tree->child2);
-			}
-		}
 
 
 		void computeBoundingBox(BoundingBox& bbox)
@@ -1664,12 +1652,12 @@ namespace nanoflann
 				if (!N) throw std::runtime_error("[nanoflann] computeBoundingBox() called but no data points found.");
 				for (int i = 0; i < (DIM > 0 ? DIM : BaseClassRef::dim); ++i) {
 					bbox[i].low =
-					bbox[i].high = dataset_get(BaseClassRef::vind[0], i);
+					bbox[i].high = this->dataset_get(*this, BaseClassRef::vind[0], i);
 				}
 				for (size_t k = 1; k < N; ++k) {
 					for (int i = 0; i < (DIM > 0 ? DIM : BaseClassRef::dim); ++i) {
-						if (dataset_get(BaseClassRef::vind[k], i) < bbox[i].low) bbox[i].low = dataset_get(BaseClassRef::vind[k], i);
-						if (dataset_get(BaseClassRef::vind[k], i) > bbox[i].high) bbox[i].high = dataset_get(BaseClassRef::vind[k], i);
+						if (this->dataset_get(*this, BaseClassRef::vind[k], i) < bbox[i].low) bbox[i].low = this->dataset_get(*this, BaseClassRef::vind[k], i);
+						if (this->dataset_get(*this, BaseClassRef::vind[k], i) > bbox[i].high) bbox[i].high = this->dataset_get(*this, BaseClassRef::vind[k], i);
 					}
 				}
 			}
@@ -1708,7 +1696,7 @@ namespace nanoflann
 			NodePtr bestChild;
 			NodePtr otherChild;
 			DistanceType cut_dist;
-			if ((diff1+diff2) < 0) {
+			if ((diff1 + diff2) < 0) {
 				bestChild = node->child1;
 				otherChild = node->child2;
 				cut_dist = distance.accum_dist(val, node->node_type.sub.divhigh, idx);
@@ -1738,12 +1726,7 @@ namespace nanoflann
 		  * \sa loadIndex  */
 		void saveIndex(FILE* stream)
 		{
-			save_value(stream, BaseClassRef::m_size);
-			save_value(stream, BaseClassRef::dim);
-			save_value(stream, BaseClassRef::root_bbox);
-			save_value(stream, BaseClassRef::m_leaf_max_size);
-			save_value(stream, BaseClassRef::vind);
-			save_tree(stream, BaseClassRef::root_node);
+			this->saveIndex_(*this, stream);
 		}
 
 		/**  Loads a previous index from a binary file.
@@ -1752,12 +1735,7 @@ namespace nanoflann
 		  * \sa loadIndex  */
 		void loadIndex(FILE* stream)
 		{
-			load_value(stream, BaseClassRef::m_size);
-			load_value(stream, BaseClassRef::dim);
-			load_value(stream, BaseClassRef::root_bbox);
-			load_value(stream, BaseClassRef::m_leaf_max_size);
-			load_value(stream, BaseClassRef::vind);
-			load_tree(stream, BaseClassRef::root_node);
+			this->loadIndex_(*this, stream);
 		}
 
 	};
@@ -1812,11 +1790,6 @@ namespace nanoflann
 				pos++;
 			}
 			return pos;
-		}
-
-		/// Helper accessor to the dataset points:
-		inline ElementType dataset_get(size_t idx, int component) const {
-			return dataset.kdtree_get_pt(idx,component);
 		}
 
 		/** Creates multiple empty trees to handle dynamic support */
