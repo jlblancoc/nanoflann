@@ -1076,7 +1076,7 @@ namespace nanoflann
 
 		void load_tree(Derived &obj, FILE* stream, NodePtr& tree)
 		{
-			tree = obj.pool.allocate<Node>();
+			tree = obj.pool.template allocate<Node>();
 			load_value(stream, *tree);
 			if (tree->child1 != NULL) {
 				load_tree(obj, stream, tree->child1);
