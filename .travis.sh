@@ -11,14 +11,14 @@ function build ()
 {
   mkdir $BUILD_DIR && cd $BUILD_DIR
   cmake $SRC_DIR
-  make -j2
+  sudo make -j2
 }
 
 function test ()
 {
   mkdir $BUILD_DIR && cd $BUILD_DIR
   cmake $SRC_DIR
-  make test
+  sudo make test
 }
 
 function build_docs ()
