@@ -17,4 +17,4 @@ set(libkdtree_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/3rdparty/libkdtree")
 include_directories(${libkdtree_INCLUDE_DIRS})
 ADD_EXECUTABLE(libkdtree_testReal libkdtree_testReal.cpp)
 
-set_target_properties(nanoflann_testReal flann_testReal fastann_testReal libkdtree_testReal PROPERTIES FOLDER "./")
+set_target_properties(nanoflann_testReal flann_testReal fastann_testReal libkdtree_testReal PROPERTIES FOLDER "RealTests")
