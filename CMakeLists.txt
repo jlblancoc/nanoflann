@@ -50,7 +50,7 @@ file(WRITE "${nanoflann_BINARY_DIR}/version" "${NANOFLANN_VERSION_MAJOR}.${NANOF
 
 # Compiler options:
 IF(CMAKE_COMPILER_IS_GNUCXX)
-	 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fopenmp -mtune=native -Wall")
+	 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -mtune=native -Wall")
 ENDIF()
 
 IF(MSVC)
