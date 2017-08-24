@@ -36,6 +36,11 @@ mkdir -p $OUT_DIR;
 
 doxygen
 
+# Only publish docs on merge to master
+if [ $TRAVIS_PULL_REQUEST ]; then
+  return
+fi
+
 cd $OUT_DIR
 git init
 

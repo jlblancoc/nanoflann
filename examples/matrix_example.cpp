@@ -77,18 +77,18 @@ void kdtree_demo(const size_t nSamples, const size_t dim)
 	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t, Dynamic, Dynamic> >  my_kd_tree_t;
 
 	// Dimensionality set at compile-time
-//	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic>, SAMPLES_DIM>  my_kd_tree_t;
+//	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic> >  my_kd_tree_t;
 
 	// Dimensionality set at compile-time: Explicit selection of the distance metric: L2
-//	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic>, SAMPLES_DIM,nanoflann::metric_L2>  my_kd_tree_t;
+//	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic>,nanoflann::metric_L2>  my_kd_tree_t;
 
 	// Dimensionality set at compile-time: Explicit selection of the distance metric: L2_simple
-//	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic>, SAMPLES_DIM,nanoflann::metric_L2_Simple>  my_kd_tree_t;
+//	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic>,nanoflann::metric_L2_Simple>  my_kd_tree_t;
 
 	// Dimensionality set at compile-time: Explicit selection of the distance metric: L1
-//	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic>, SAMPLES_DIM,nanoflann::metric_L1>  my_kd_tree_t;
+//	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic>,nanoflann::metric_L1>  my_kd_tree_t;
 
-	my_kd_tree_t   mat_index(dim /*dim*/, mat, 10 /* max leaf */ );
+	my_kd_tree_t   mat_index(mat, 10 /* max leaf */ );
 	mat_index.index->buildIndex();
 
 	// do a knn search
