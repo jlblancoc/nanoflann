@@ -74,6 +74,10 @@ ENDIF()
 # Benchmarks
 OPTION(BUILD_BENCHMARKS "Build benchmarks" ON)
 IF(BUILD_BENCHMARKS)
+        # 3rdparty Libraries
+        include(3rdparty/CMakeLists-flann.txt)
+        include(3rdparty/CMakeLists-fastann.txt)
+        include(3rdparty/CMakeLists-libkdtree.txt)
 	add_subdirectory(benchmarkTool/realTests)
 	add_subdirectory(benchmarkTool/randomTests)
 ENDIF()
@@ -116,10 +120,6 @@ set(INSTALL_PKGCONFIG_DIR "lib${LIB_SUFFIX}/pkgconfig")
 set(INSTALL_CMAKE_DIR "lib${LIB_SUFFIX}/cmake/nanoflann")
 set(INSTALL_COPYRIGHT_DIR "share/doc/libnanoflann-dev")
 
-# 3rdparty Libraries
-include(3rdparty/CMakeLists-flann.txt)
-include(3rdparty/CMakeLists-fastann.txt)
-include(3rdparty/CMakeLists-libkdtree.txt)
 
 # Generate the cmake config and cmake config-version file:
 SET(RELATIVE_INCLUDE_DIR "../../../include")

@@ -10,7 +10,7 @@ CMAKE_CXX_FLAGS="-Wall -Wextra -Wabi -O2"
 function build ()
 {
   mkdir $BUILD_DIR && cd $BUILD_DIR
-  cmake $SRC_DIR
+  cmake -DBUILD_BENCHMARKS=OFF $SRC_DIR
   sudo make -j2
 }
 
