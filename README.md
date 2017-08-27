@@ -14,7 +14,7 @@ Cite as:
 ```
 @misc{blanco2014nanoflann,
   title        = {nanoflann: a {C}++ header-only fork of {FLANN}, a library for Nearest Neighbor ({NN}) wih KD-trees},
-  author       = {Blanco, Jose Luis},
+  author       = {Blanco, Jose Luis and Rai, Pranjal Kumar},
   howpublished = {\url{https://github.com/jlblancoc/nanoflann}},
   year         = {2014}
 }
@@ -43,6 +43,9 @@ Although nanoflann itself doesn't have to be compiled, you can build some exampl
 
   * KD-tree look-up with `kdd_search()` and `radius_search()`: [pointcloud_kdd_radius.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_kdd_radius.cpp)
   * KD-tree look-up on a point cloud dataset: [pointcloud_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_example.cpp)
+  * KD-tree look-up on a dynamic point cloud dataset: [pointcloud_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/dynamic_pointcloud_example.cpp)
+  * KD-tree look-up on a rotaion group (SO2): [pointcloud_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/SO2_example.cpp)
+  * KD-tree look-up on a rotaion group (SO3): [pointcloud_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/SO3_example.cpp)
   * KD-tree look-up on a point cloud dataset with an external adaptor class: [pointcloud_adaptor_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_adaptor_example.cpp)
   * KD-tree look-up directly on an `Eigen::Matrix<>`: [matrix_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/matrix_example.cpp)
   * KD-tree look-up directly on `std::vector<std::vector<T> >` or `std::vector<Eigen::VectorXd>`: [vector_of_vectors_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/vector_of_vectors_example.cpp)
@@ -76,18 +79,22 @@ Refer to the examples below or to the C++ API of [nanoflann::KDTreeSingleIndexAd
 	  * Can be used to receive a callback for each point found in range. This may be more efficient in some situations instead of building a huge vector of pairs with the results.
   * Works with 2D and 3D point clouds or N-dimensional data sets.
   * Works directly with `Eigen::Matrix<>` classes (matrices and vectors-of-vectors).
+  * Works with dynamic point clouds without a need to rebuild entire kd-tree index.
   * Works with the distance metrics: 
     * `L1` (Manhattan) 
     * `L2` (Euclidean, favoring SSE2 optimization). 
     * `L2_Simple` (Euclidean, for low-dimensionality data sets like point clouds).
+    * `SO2` (for rotational groups SO2).
+    * `SO3` (Euclidean, for rotational groups SO3).
   * Saves and load the built indices to disk.
+  * GUI based support for benchmarking multiple kd-tree libraries namely nanoflann, flann, fastann and libkdtree.
 
 ### 1.6. What can't *nanoflann* do?
 
-  * Use other distance metrics apart from L1 and L2.
+  * Use other distance metrics apart from L1, L2, SO2 and SO3.
+  * Support for SE(3) groups.
   * Only the C++ interface exists: there is no support for C, MATLAB or Python.
   * There is no automatic algorithm configuration (as described in the original Muja & Lowe's paper).
-  * The data in the source (data set) object is assumed *not to vary* during the execution of kd-tree queries. If this cannot be assured, the data set should be duplicated by the user and `nanoflann` applied to the copy. However, this is not the case in many practical applications.
 
 
 ------
