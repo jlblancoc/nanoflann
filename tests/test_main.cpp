@@ -31,7 +31,7 @@
 #include <gtest/gtest.h>
 
 #include <nanoflann.hpp>
-
+#include "../examples/utils.h"
 #include <cstdlib>
 #include <iostream>
 
@@ -43,61 +43,6 @@ int main(int argc, char **argv)
 	testing::InitGoogleTest(&argc, argv);
 
 	return RUN_ALL_TESTS();
-}
-
-
-
-// This is an exampleof a custom data set class
-template <typename T>
-struct PointCloud
-{
-	struct Point
-	{
-		T  x,y,z;
-	};
-
-	std::vector<Point>  pts;
-
-	// Must return the number of data points
-	inline size_t kdtree_get_point_count() const { return pts.size(); }
-
-	// Returns the distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
-	inline T kdtree_distance(const T *p1, const size_t idx_p2,size_t /* size*/) const
-	{
-		const T d0=p1[0]-pts[idx_p2].x;
-		const T d1=p1[1]-pts[idx_p2].y;
-		const T d2=p1[2]-pts[idx_p2].z;
-		return d0*d0+d1*d1+d2*d2;
-	}
-
-	// Returns the dim'th component of the idx'th point in the class:
-	// Since this is inlined and the "dim" argument is typically an immediate value, the
-	//  "if/else's" are actually solved at compile time.
-	inline T kdtree_get_pt(const size_t idx, int dim) const
-	{
-		if (dim==0) return pts[idx].x;
-		else if (dim==1) return pts[idx].y;
-		else return pts[idx].z;
-	}
-
-	// Optional bounding-box computation: return false to default to a standard bbox computation loop.
-	//   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
-	//   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3 for point clouds)
-	template <class BBOX>
-	bool kdtree_get_bbox(BBOX & /* bb*/ ) const { return false; }
-
-};
-
-template <typename T>
-void generateRandomPointCloud(PointCloud<T> &point, const size_t N, const T max_range = 10)
-{
-	point.pts.resize(N);
-	for (size_t i=0;i<N;i++)
-	{
-		point.pts[i].x = max_range * (rand() % 1000) / T(1000);
-		point.pts[i].y = max_range * (rand() % 1000) / T(1000);
-		point.pts[i].z = max_range * (rand() % 1000) / T(1000);
-	}
 }
 
 template <typename num_t>
@@ -150,54 +95,12 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
 	}
 }
 
-TEST(kdtree,L2_vs_L2_simple)
-{
-	for (int nResults=1;nResults<10;nResults++)
-	{
-		L2_vs_L2_simple_test<float>(100, nResults);
-		L2_vs_L2_simple_test<double>(100, nResults);
-	}
-}
-
-
-TEST(kdtree,robust_empty_tree)
-{
-	// Try to build a tree with 0 data points, to test
-	// robustness against this situation:
-	PointCloud<double> cloud;
-
-	double query_pt[3] = { 0.5, 0.5, 0.5};
-
-	// construct a kd-tree index:
-	typedef KDTreeSingleIndexAdaptor<
-		L2_Simple_Adaptor<double, PointCloud<double> > ,
-		PointCloud<double>,
-		3 /* dim */
-		> my_kd_tree_simple_t;
-
-	my_kd_tree_simple_t   index1(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
-	index1.buildIndex();
-
-
-	// Now we will try to search in the tree, and WE EXPECT a result of
-	// no neighbors found if the error detection works fine:
-	const size_t num_results = 1;
-	std::vector<size_t>   ret_index(num_results);
-	std::vector<double> out_dist_sqr(num_results);
-	nanoflann::KNNResultSet<double> resultSet(num_results);
-	resultSet.init(&ret_index[0], &out_dist_sqr[0] );
-	bool result = index1.findNeighbors(resultSet, &query_pt[0],
-		nanoflann::SearchParams(10));
-	EXPECT_EQ(result, false);
-}
-
 using namespace nanoflann;
 #include "../examples/KDTreeVectorOfVectorsAdaptor.h"
 
 template <typename NUM>
 void generateRandomPointCloud(std::vector<std::vector<NUM> > &samples, const size_t N,const size_t dim, const NUM max_range)
 {
-	//std::cout << "Generating "<< N << " random points...";
 	samples.resize(N);
 	for (size_t i=0;i<N;i++)
 	{
@@ -205,7 +108,6 @@ void generateRandomPointCloud(std::vector<std::vector<NUM> > &samples, const siz
 		for (size_t d=0;d<dim;d++)
 			samples[i][d] = max_range * (rand() % 1000) / NUM(1000.0);
 	}
-	//std::cout << "done\n";
 }
 
 template <typename NUM>
@@ -264,6 +166,258 @@ void L2_vs_bruteforce_test(const size_t nSamples,const int DIM)
 	EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
 }
 
+template <typename NUM>
+void SO3_vs_bruteforce_test(const size_t nSamples)
+{
+
+	PointCloud_Quat<NUM> cloud;
+
+	// Generate points:
+	generateRandomPointCloud_Quat(cloud, nSamples);
+
+	NUM query_pt[4] = { 0.5, 0.5, 0.5, 0.5};
+
+	// construct a kd-tree index:
+	typedef KDTreeSingleIndexAdaptor<
+		SO3_Adaptor<NUM, PointCloud_Quat<NUM> > ,
+		PointCloud_Quat<NUM>,
+		4 /* dim */
+		> my_kd_tree_t;
+
+	my_kd_tree_t   index(4 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
+	index.buildIndex();
+	// do a knn search
+	const size_t num_results = 1;
+	std::vector<size_t>   ret_indexes(num_results);
+	std::vector<NUM> out_dists_sqr(num_results);
+
+	nanoflann::KNNResultSet<NUM> resultSet(num_results);
+
+	resultSet.init(&ret_indexes[0], &out_dists_sqr[0] );
+	index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10) );
+
+	// Brute force:
+	double min_dist_L2 = std::numeric_limits<double>::max();
+	int    min_idx = -1;
+	{
+		for (size_t i=0;i<nSamples;i++)
+		{
+			double dist=0.0;
+			for (int d=0;d<4;d++)
+				dist+= (query_pt[d]-cloud.kdtree_get_pt(i,d))*(query_pt[d]-cloud.kdtree_get_pt(i,d));
+			if (dist<min_dist_L2)
+			{
+				min_dist_L2=dist;
+				min_idx = i;
+			}
+		}
+		ASSERT_TRUE(min_idx!=-1);
+	}
+
+	// Compare:
+	EXPECT_EQ(min_idx,ret_indexes[0]);
+	EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
+}
+
+template <typename NUM>
+void SO2_vs_bruteforce_test(const size_t nSamples)
+{
+
+	PointCloud_Orient<NUM> cloud;
+
+	// Generate points:
+	generateRandomPointCloud_Orient(cloud, nSamples);
+
+	NUM query_pt[1] = { 0.5};
+
+	// construct a kd-tree index:
+	typedef KDTreeSingleIndexAdaptor<
+		SO2_Adaptor<NUM, PointCloud_Orient<NUM> > ,
+		PointCloud_Orient<NUM>,
+		1 /* dim */
+		> my_kd_tree_t;
+
+	my_kd_tree_t   index(1 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
+	index.buildIndex();
+	// do a knn search
+	const size_t num_results = 1;
+	std::vector<size_t>   ret_indexes(num_results);
+	std::vector<NUM> out_dists_sqr(num_results);
+
+	nanoflann::KNNResultSet<NUM> resultSet(num_results);
+
+	resultSet.init(&ret_indexes[0], &out_dists_sqr[0] );
+	index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10) );
+
+	// Brute force:
+	double min_dist_SO2 = std::numeric_limits<double>::max();
+	int    min_idx = -1;
+	{
+		for (size_t i=0;i<nSamples;i++)
+		{
+			double dist=0.0;
+			dist = cloud.kdtree_get_pt(i,0) - query_pt[0];
+			if (dist > M_PI)
+				dist -= 2. * M_PI;
+			else if (dist < -M_PI)
+				dist += 2. * M_PI;
+			if (dist<min_dist_SO2)
+			{
+				min_dist_SO2=dist;
+				min_idx = i;
+			}
+		}
+		ASSERT_TRUE(min_idx!=-1);
+	}
+	// Compare:
+	EXPECT_EQ(min_idx,ret_indexes[0]);
+	EXPECT_NEAR(min_dist_SO2,out_dists_sqr[0],1e-3);
+}
+
+// First add nSamples/2 points, find the closest point 
+// Then add remaining points and find closest point 
+// Compare both with closest point using brute force approach
+template <typename NUM>
+void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
+{
+	PointCloud<NUM> cloud;
+
+	const NUM max_range = NUM(20.0);
+
+	// construct a kd-tree index:
+	typedef KDTreeSingleIndexDynamicAdaptor<
+		L2_Simple_Adaptor<NUM, PointCloud<NUM> > ,
+		PointCloud<NUM>,
+		3 /* dim */
+		> my_kd_tree_t;
+
+	my_kd_tree_t   index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
+
+	// Generate points:
+	generateRandomPointCloud(cloud, nSamples, max_range);
+
+	NUM query_pt[3] = { 0.5, 0.5, 0.5};
+
+	// add points in chunks at a time
+	size_t chunk_size = 100;
+	size_t end;
+	for(int i=0; i<nSamples/2; i=i+chunk_size)
+	{
+		end = min(size_t(i+chunk_size), nSamples/2-1);
+		index.addPoints(i, end);
+	}
+
+	{
+		// do a knn search
+		const size_t num_results = 1;
+		std::vector<size_t>   ret_indexes(num_results);
+		std::vector<NUM> out_dists_sqr(num_results);
+		
+		nanoflann::KNNResultSet<NUM> resultSet(num_results);
+		
+		resultSet.init(&ret_indexes[0], &out_dists_sqr[0] );
+		index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
+
+		// Brute force:
+		double min_dist_L2 = std::numeric_limits<double>::max();
+		int    min_idx = -1;
+		{
+			for (size_t i=0;i<nSamples/2;i++)
+			{
+				double dist=0.0;
+				for (int d=0;d<3;d++)
+					dist+= (query_pt[d]-cloud.kdtree_get_pt(i,d))*(query_pt[d]-cloud.kdtree_get_pt(i,d));
+				if (dist<min_dist_L2)
+				{
+					min_dist_L2=dist;
+					min_idx = i;
+				}
+			}
+			ASSERT_TRUE(min_idx!=-1);
+		}
+		// Compare:
+		EXPECT_EQ(min_idx,ret_indexes[0]);
+		EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
+	}
+	for(int i=end+1; i<nSamples; i=i+chunk_size)
+	{
+		end = min(size_t(i+chunk_size), nSamples-1);
+		index.addPoints(i, end);
+	}
+
+	{
+		// do a knn search
+		const size_t num_results = 1;
+		std::vector<size_t>   ret_indexes(num_results);
+		std::vector<NUM> out_dists_sqr(num_results);
+		
+		nanoflann::KNNResultSet<NUM> resultSet(num_results);
+		
+		resultSet.init(&ret_indexes[0], &out_dists_sqr[0] );
+		index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
+
+		// Brute force:
+		double min_dist_L2 = std::numeric_limits<double>::max();
+		int    min_idx = -1;
+		{
+			for (size_t i=0;i<nSamples;i++)
+			{
+				double dist=0.0;
+				for (int d=0;d<3;d++)
+					dist+= (query_pt[d]-cloud.kdtree_get_pt(i,d))*(query_pt[d]-cloud.kdtree_get_pt(i,d));
+				if (dist<min_dist_L2)
+				{
+					min_dist_L2=dist;
+					min_idx = i;
+				}
+			}
+			ASSERT_TRUE(min_idx!=-1);
+		}
+		// Compare:
+		EXPECT_EQ(min_idx,ret_indexes[0]);
+		EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
+	}
+}
+
+TEST(kdtree,L2_vs_L2_simple)
+{
+	for (int nResults=1;nResults<10;nResults++)
+	{
+		L2_vs_L2_simple_test<float>(100, nResults);
+		L2_vs_L2_simple_test<double>(100, nResults);
+	}
+}
+
+TEST(kdtree,robust_empty_tree)
+{
+	// Try to build a tree with 0 data points, to test
+	// robustness against this situation:
+	PointCloud<double> cloud;
+
+	double query_pt[3] = { 0.5, 0.5, 0.5};
+
+	// construct a kd-tree index:
+	typedef KDTreeSingleIndexAdaptor<
+		L2_Simple_Adaptor<double, PointCloud<double> > ,
+		PointCloud<double>,
+		3 /* dim */
+		> my_kd_tree_simple_t;
+
+	my_kd_tree_simple_t   index1(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
+	index1.buildIndex();
+
+
+	// Now we will try to search in the tree, and WE EXPECT a result of
+	// no neighbors found if the error detection works fine:
+	const size_t num_results = 1;
+	std::vector<size_t>   ret_index(num_results);
+	std::vector<double> out_dist_sqr(num_results);
+	nanoflann::KNNResultSet<double> resultSet(num_results);
+	resultSet.init(&ret_index[0], &out_dist_sqr[0] );
+	bool result = index1.findNeighbors(resultSet, &query_pt[0],
+		nanoflann::SearchParams(10));
+	EXPECT_EQ(result, false);
+}
 
 TEST(kdtree,L2_vs_bruteforce)
 {
@@ -280,4 +434,47 @@ TEST(kdtree,L2_vs_bruteforce)
 	}
 }
 
+TEST(kdtree,SO3_vs_bruteforce)
+{
+	srand(time(NULL));
+	for (int i=0;i<10;i++)
+	{
+		SO3_vs_bruteforce_test<float>(100);
+		SO3_vs_bruteforce_test<float>(100);
+		SO3_vs_bruteforce_test<float>(100);
 
+		SO3_vs_bruteforce_test<double>(100);
+		SO3_vs_bruteforce_test<double>(100);
+		SO3_vs_bruteforce_test<double>(100);
+	}
+}
+
+TEST(kdtree,SO2_vs_bruteforce)
+{
+	srand(time(NULL));
+	for (int i=0;i<10;i++)
+	{
+		SO2_vs_bruteforce_test<float>(100);
+		SO2_vs_bruteforce_test<float>(100);
+		SO2_vs_bruteforce_test<float>(100);
+
+		SO2_vs_bruteforce_test<double>(100);
+		SO2_vs_bruteforce_test<double>(100);
+		SO2_vs_bruteforce_test<double>(100);
+	}
+}
+
+TEST(kdtree,L2_dynamic_vs_bruteforce)
+{
+	srand(time(NULL));
+	for (int i=0;i<10;i++)
+	{
+		L2_dynamic_vs_bruteforce_test<float>(100);
+		L2_dynamic_vs_bruteforce_test<float>(100);
+		L2_dynamic_vs_bruteforce_test<float>(100);
+
+		L2_dynamic_vs_bruteforce_test<double>(100);
+		L2_dynamic_vs_bruteforce_test<double>(100);
+		L2_dynamic_vs_bruteforce_test<double>(100);
+	}
+}

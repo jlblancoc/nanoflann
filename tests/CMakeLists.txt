@@ -37,6 +37,8 @@ ENDIF (UNIX)
 # Test project:
 ADD_EXECUTABLE(unit_tests test_main.cpp)
 
+set_target_properties(unit_tests PROPERTIES FOLDER "./")
+
 # Add the required libraries for linking:
 TARGET_LINK_LIBRARIES(unit_tests gtest nanoflann)
 

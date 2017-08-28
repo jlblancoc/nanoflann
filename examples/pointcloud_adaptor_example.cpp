@@ -68,22 +68,13 @@ struct PointCloudAdaptor
 	// Must return the number of data points
 	inline size_t kdtree_get_point_count() const { return derived().pts.size(); }
 
-	// Returns the distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
-	inline coord_t kdtree_distance(const coord_t *p1, const size_t idx_p2,size_t /*size*/) const
-	{
-		const coord_t d0=p1[0]-derived().pts[idx_p2].x;
-		const coord_t d1=p1[1]-derived().pts[idx_p2].y;
-		const coord_t d2=p1[2]-derived().pts[idx_p2].z;
-		return d0*d0+d1*d1+d2*d2;
-	}
-
 	// Returns the dim'th component of the idx'th point in the class:
 	// Since this is inlined and the "dim" argument is typically an immediate value, the
 	//  "if/else's" are actually solved at compile time.
 	inline coord_t kdtree_get_pt(const size_t idx, int dim) const
 	{
-		if (dim==0) return derived().pts[idx].x;
-		else if (dim==1) return derived().pts[idx].y;
+		if (dim == 0) return derived().pts[idx].x;
+		else if (dim == 1) return derived().pts[idx].y;
 		else return derived().pts[idx].z;
 	}
 
@@ -101,7 +92,7 @@ void generateRandomPointCloud(PointCloud<T> &point, const size_t N, const T max_
 {
 	std::cout << "Generating "<< N << " point cloud...";
 	point.pts.resize(N);
-	for (size_t i=0;i<N;i++)
+	for (size_t i = 0; i < N;i++)
 	{
 		point.pts[i].x = max_range * (rand() % 1000) / T(1000);
 		point.pts[i].y = max_range * (rand() % 1000) / T(1000);
@@ -119,7 +110,7 @@ void kdtree_demo(const size_t N)
 	// Generate points:
 	generateRandomPointCloud(cloud, N);
 
-	num_t query_pt[3] = { 0.5, 0.5, 0.5};
+	num_t query_pt[3] = { 0.5, 0.5, 0.5 };
 
 	typedef PointCloudAdaptor<PointCloud<num_t> > PC2KD;
 	const PC2KD  pc2kd(cloud); // The adaptor
@@ -159,6 +150,7 @@ int main()
 	kdtree_demo<double>(1000000);
 	return 0;
 }
+
 void dump_mem_usage()
 {
 	FILE* f=fopen("/proc/self/statm","rt");
@@ -169,4 +161,3 @@ void dump_mem_usage()
 	printf("MEM: %s\n",str);
 	fclose(f);
 }
-

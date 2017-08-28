@@ -1,16 +1,30 @@
 # ----------------------------------------------------------------------------
 # Root CMake file for nanoflann
-#
-#  2011-2016 - Jose Luis Blanco 
 # ----------------------------------------------------------------------------
 cmake_minimum_required(VERSION 2.8.12)
 
 PROJECT(nanoflann)
 
-# --------------------------------------------------------------
-# Indicate CMake 2.7 and above that we don't want to mix relative
-#  and absolute paths in lib lists. Run "cmake --help-policy CMP0003" for info
-# --------------------------------------------------------------
+cmake_policy(SET CMP0003 NEW) # dont mix relative and absolute paths in lib lists
+if (POLICY CMP0037)
+	cmake_policy(SET CMP0037 OLD) # allow target "test"
+endif()
+
+# Enable a high level of warnings.
+if (CMAKE_COMPILER_IS_GNUCXX)
+	# The -Wno-long-long is required in 64bit systems when including sytem headers.
+	# The -Wno-variadic-macros was needed for Eigen3, StdVector.h
+	add_compile_options(-Wall -Wno-long-long -Wno-variadic-macros)
+	# Workaround: Eigen <3.4 produces *tons* of warnings in GCC >=6. See http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1221
+	if (NOT ${CMAKE_CXX_COMPILER_VERSION} LESS "6.0")
+		add_compile_options(-Wno-ignored-attributes -Wno-int-in-bool-context)
+	endif()
+endif()
+
+# Solution Folder options:
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
+
 if(COMMAND cmake_policy)
       cmake_policy(SET CMP0003 NEW)
       if (POLICY CMP0037)
@@ -18,7 +32,7 @@ if(COMMAND cmake_policy)
 	  endif()
 endif()
 SET( EXECUTABLE_OUTPUT_PATH ${nanoflann_BINARY_DIR}/bin CACHE PATH "Output directory for programs" )
-
+add_definitions ( -DNANOFLANN_PATH="${CMAKE_SOURCE_DIR}" )
 
 # Extract library version into "NANOFLANN_VERSION"
 # -----------------------------------------------------
@@ -36,7 +50,7 @@ file(WRITE "${nanoflann_BINARY_DIR}/version" "${NANOFLANN_VERSION_MAJOR}.${NANOF
 
 # Compiler options:
 IF(CMAKE_COMPILER_IS_GNUCXX)
-	 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -mtune=native -Wall -pedantic")
+	 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -mtune=native -Wall")
 ENDIF()
 
 IF(MSVC)
@@ -50,11 +64,22 @@ target_include_directories(nanoflann
 	INTERFACE
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 		$<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>/include)
-		
+
 # Examples
 OPTION(BUILD_EXAMPLES "Build examples" ON)
 IF(BUILD_EXAMPLES)
 	add_subdirectory(examples)
+ENDIF()
+
+# Benchmarks
+OPTION(BUILD_BENCHMARKS "Build benchmarks" ON)
+IF(BUILD_BENCHMARKS)
+        # 3rdparty Libraries
+        include(3rdparty/CMakeLists-flann.txt)
+        include(3rdparty/CMakeLists-fastann.txt)
+        include(3rdparty/CMakeLists-libkdtree.txt)
+	add_subdirectory(benchmarkTool/realTests)
+	add_subdirectory(benchmarkTool/randomTests)
 ENDIF()
 
 # Tests
@@ -84,7 +109,7 @@ ENDIF(CMAKE_USE_DEB_POSTFIXS)
 
 # Generate the pkg-config file:
 CONFIGURE_FILE(
-	"${nanoflann_SOURCE_DIR}/scripts/nanoflann.pc.in" 
+	"${nanoflann_SOURCE_DIR}/scripts/nanoflann.pc.in"
 	"${nanoflann_BINARY_DIR}/nanoflann.pc" @ONLY IMMEDIATE )
 
 
@@ -137,4 +162,3 @@ IF(CMAKE_USE_DEB_POSTFIXS)
 		FILES "${nanoflann_SOURCE_DIR}/copyright"
 		DESTINATION "${libnanoflann_dev_INSTALL_PREFIX}${INSTALL_COPYRIGHT_DIR}" )
 ENDIF(CMAKE_USE_DEB_POSTFIXS)
-
