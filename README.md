@@ -6,9 +6,9 @@
 
 ## 1. About 
 
-*nanoflann* is a **C++ [header-only](http://en.wikipedia.org/wiki/Header-only) library** for building KD-Trees, mostly optimized for 2D or 3D point clouds. *nanoflann* does not require compiling or installing.  You just need to `#include <nanoflann.hpp>` in your code.
+*nanoflann* is a **C++ [header-only](http://en.wikipedia.org/wiki/Header-only) library** for building KD-Trees of datasets with different topologies: R<sup>2</sup>, R<sup>3</sup> (point clouds), SO(2) and SO(3) (2D and 3D rotation groups). *nanoflann* does not require compiling or installing.  You just need to `#include <nanoflann.hpp>` in your code.
 
-This library is a *fork (and a subset)* of the [flann library](http://people.cs.ubc.ca/~mariusm/index.php/FLANN/FLANN) by Marius Muja and David G. Lowe, and born as a child project of [MRPT](http://www.mrpt.org/). Following the original license terms, *nanoflann* is distributed under the BSD license. Please, for bugs use the issues button or fork and open a pull request.
+This library is a *fork* of the [flann library](http://people.cs.ubc.ca/~mariusm/index.php/FLANN/FLANN) by Marius Muja and David G. Lowe, and born as a child project of [MRPT](https://www.mrpt.org/). Following the original license terms, *nanoflann* is distributed under the BSD license. Please, for bugs use the issues button or fork and open a pull request.
 
 Cite as:
 ```
@@ -18,7 +18,6 @@ Cite as:
   howpublished = {\url{https://github.com/jlblancoc/nanoflann}},
   year         = {2014}
 }
-
 ```
 
 ### 1.1. Obtaining the code
