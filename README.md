@@ -22,9 +22,17 @@ Cite as:
 
 ### 1.1. Obtaining the code
 
-  * Clone this GIT repository. 
-  * OSX users can install it with [HomeBrew](https://brew.sh/index_es.html) with: `brew install nanoflann`
-  * List of [**stable releases**](https://github.com/jlblancoc/nanoflann/releases). Check out the [CHANGELOG](https://raw.githubusercontent.com/jlblancoc/nanoflann/master/CHANGELOG.txt)
+* Clone this GIT repository.
+* OSX users can install it with [Homebrew](https://brew.sh) with:
+  ```shell
+  $ brew install homebrew/science/nanoflann
+  ```
+  or
+  ```shell
+  $ brew tap homebrew/science
+  $ brew install nanoflann
+  ```
+* List of [**stable releases**](https://github.com/jlblancoc/nanoflann/releases). Check out the [CHANGELOG](https://raw.githubusercontent.com/jlblancoc/nanoflann/master/CHANGELOG.txt)
 
 Although nanoflann itself doesn't have to be compiled, you can build some examples and tests with:
 
