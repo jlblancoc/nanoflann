@@ -22,8 +22,8 @@ Cite as:
 
 ### 1.1. Obtaining the code
 
-* Clone this GIT repository.
-* OSX users can install it with [Homebrew](https://brew.sh) with:
+* Easiest way: clone this GIT repository and take the `include/nanoflann.hpp` file for use where you need it.
+* OSX users can install `nanoflann` with [Homebrew](https://brew.sh) with:
   ```shell
   $ brew install homebrew/science/nanoflann
   ```
@@ -32,6 +32,7 @@ Cite as:
   $ brew tap homebrew/science
   $ brew install nanoflann
   ```
+* Linux users can install it with [Linuxbrew](https://linuxbrew.sh/) with: `brew install homebrew/science/nanoflann`
 * List of [**stable releases**](https://github.com/jlblancoc/nanoflann/releases). Check out the [CHANGELOG](https://raw.githubusercontent.com/jlblancoc/nanoflann/master/CHANGELOG.txt)
 
 Although nanoflann itself doesn't have to be compiled, you can build some examples and tests with:
