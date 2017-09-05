@@ -170,8 +170,6 @@ namespace nanoflann
 			init();
 		}
 
-		inline ~RadiusResultSet() { }
-
 		inline void init() { clear(); }
 		inline void clear() { m_indices_dists.clear(); }
 
@@ -1213,9 +1211,6 @@ namespace nanoflann
 			init_vind();
 		}
 
-		/** Standard destructor */
-		~KDTreeSingleIndexAdaptor() { }
-
 		/**
 		 * Builds the index
 		 */
@@ -1537,9 +1532,6 @@ namespace nanoflann
 		      return *this;
 		 }
 
-		/** Standard destructor */
-		~KDTreeSingleIndexDynamicAdaptor_() { }
-
 		/**
 		 * Builds the index
 		 */
@@ -1762,8 +1754,8 @@ namespace nanoflann
 	protected:
 
 		size_t m_leaf_max_size;
-		int treeCount;
-		int pointCount;
+		size_t treeCount;
+		size_t pointCount;
 
 		/**
 		 * The dataset used by this index
@@ -1776,8 +1768,15 @@ namespace nanoflann
 
 		int dim;  //!< Dimensionality of each data point
 
-		std::vector<KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM> > index;
+		typedef KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM> index_container_t;
+		std::vector<index_container_t> index;
 
+	public:
+		/** Get a const ref to the internal list of indices; the number of indices is adapted dynamically as 
+		  * the dataset grows in size. */
+		const std::vector<index_container_t> & getAllIndices() const {
+			return index;
+		}
 
 	private:
 		/** finds position of least significant unset bit */
@@ -1817,12 +1816,12 @@ namespace nanoflann
 		 * @param inputData Dataset with the input features
 		 * @param params Basically, the maximum leaf node size
 		 */
-		KDTreeSingleIndexDynamicAdaptor(const int dimensionality, DatasetAdaptor& inputData, const KDTreeSingleIndexAdaptorParams& params = KDTreeSingleIndexAdaptorParams() , const int maximumPointCount = 1e9) :
+		KDTreeSingleIndexDynamicAdaptor(const int dimensionality, DatasetAdaptor& inputData, const KDTreeSingleIndexAdaptorParams& params = KDTreeSingleIndexAdaptorParams() , const size_t maximumPointCount = 1000000000U) :
 			dataset(inputData), index_params(params), distance(inputData)
 		{
 			if (dataset.kdtree_get_point_count()) throw std::runtime_error("[nanoflann] cannot handle non empty point cloud.");
 			treeCount = log2(maximumPointCount);
-			pointCount = 0;
+			pointCount = 0U;
 			dim = dimensionality;
 			treeIndex.clear();
 			if (DIM > 0) dim = DIM;
@@ -1830,8 +1829,6 @@ namespace nanoflann
 			init();
 		}
 
-		/** Standard destructor */
-		~KDTreeSingleIndexDynamicAdaptor() { }
 
 		/** Add points to the set, Inserts all points from [start, end] */
 		void addPoints(IndexType start, IndexType end)
@@ -1857,9 +1854,9 @@ namespace nanoflann
 		}
 
 		/** Remove a point from the set (Lazy Deletion) */
-		void removePoint(int idx)
+		void removePoint(size_t idx)
 		{
-			if(idx < 0 || idx >= pointCount)
+			if(idx >= pointCount)
 				return;
 			treeIndex[idx] = -1;
 		}
@@ -1879,7 +1876,7 @@ namespace nanoflann
 		template <typename RESULTSET>
 		bool findNeighbors(RESULTSET& result, const ElementType* vec, const SearchParams& searchParams) const
 		{
-			for(int i = 0; i < treeCount; i++)
+			for(size_t i = 0; i < treeCount; i++)
 			{
 				index[i].findNeighbors(result, &vec[0], searchParams);
 			}
