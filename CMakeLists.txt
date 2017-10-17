@@ -72,7 +72,7 @@ IF(BUILD_EXAMPLES)
 ENDIF()
 
 # Benchmarks
-OPTION(BUILD_BENCHMARKS "Build benchmarks" ON)
+OPTION(BUILD_BENCHMARKS "Build benchmarks" OFF)
 IF(BUILD_BENCHMARKS)
         # 3rdparty Libraries
         include(3rdparty/CMakeLists-flann.txt)
