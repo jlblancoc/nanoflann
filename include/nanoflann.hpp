@@ -1959,17 +1959,6 @@ namespace nanoflann
 			return m_data_matrix.rows();
 		}
 
-		// Returns the L2 distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class:
-		inline num_t kdtree_distance(const num_t *p1, const IndexType idx_p2, IndexType size) const
-		{
-			num_t s = 0;
-			for (IndexType i = 0; i < size; i++) {
-				const num_t d = p1[i] - m_data_matrix.coeff(idx_p2, i);
-				s += d * d;
-			}
-			return s;
-		}
-
 		// Returns the dim'th component of the idx'th point in the class:
 		inline num_t kdtree_get_pt(const IndexType idx, int dim) const {
 			return m_data_matrix.coeff(idx, IndexType(dim));
