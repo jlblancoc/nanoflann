@@ -1216,6 +1216,8 @@ namespace nanoflann
 		 */
 		void buildIndex()
 		{
+			BaseClassRef::m_size = dataset.kdtree_get_point_count();
+			BaseClassRef::m_size_at_index_build = BaseClassRef::m_size;
 			init_vind();
 			this->freeIndex(*this);
 			BaseClassRef::m_size_at_index_build = BaseClassRef::m_size;
