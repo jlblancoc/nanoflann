@@ -11,7 +11,7 @@ endif(MSVC)
 IF(NOT TARGET gtest)
 	# Treat this directory as "system" to ignore pedantic warnings.
 	IF(CMAKE_COMPILER_IS_GNUCXX)
-		SET(CMAKE_CXX_FLAGS "-isystem gtest-1.7.0/fused-src")
+		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem gtest-1.7.0/fused-src")
 	ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 
 	# Compile gtest from sources:
