@@ -57,8 +57,8 @@ void kdtree_demo(const size_t N)
 	num_t query_pt[3] = { 0.5, 0.5, 0.5 };
 
 	// add points in chunks at a time
-	int chunk_size = 100;
-	for(int i = 0; i < N; i = i + chunk_size)
+	size_t chunk_size = 100;
+	for(size_t i = 0; i < N; i = i + chunk_size)
 	{
 		size_t end = min(size_t(i + chunk_size), N - 1);
 		// Inserts all points from [i, end]

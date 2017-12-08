@@ -114,7 +114,7 @@ void generateRandomPointCloud(std::vector<std::vector<NUM> > &samples, const siz
 }
 
 template <typename NUM>
-void L2_vs_bruteforce_test(const size_t nSamples,const int DIM)
+void L2_vs_bruteforce_test(const size_t nSamples,const size_t DIM)
 {
 	std::vector<std::vector<NUM> > samples;
 
@@ -153,7 +153,7 @@ void L2_vs_bruteforce_test(const size_t nSamples,const int DIM)
 		for (size_t i=0;i<nSamples;i++)
 		{
 			double dist=0.0;
-			for (int d=0;d<DIM;d++)
+			for (size_t d=0;d<DIM;d++)
 				dist+= (query_pt[d]-samples[i][d])*(query_pt[d]-samples[i][d]);
 			if (dist<min_dist_L2)
 			{
@@ -165,7 +165,7 @@ void L2_vs_bruteforce_test(const size_t nSamples,const int DIM)
 	}
 
 	// Compare:
-	EXPECT_EQ(min_idx,ret_indexes[0]);
+	EXPECT_EQ(static_cast<size_t>(min_idx),ret_indexes[0]);
 	EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
 }
 
@@ -218,7 +218,7 @@ void SO3_vs_bruteforce_test(const size_t nSamples)
 	}
 
 	// Compare:
-	EXPECT_EQ(min_idx,ret_indexes[0]);
+	EXPECT_EQ(static_cast<size_t>(min_idx),ret_indexes[0]);
 	EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
 }
 
@@ -273,7 +273,7 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
 		ASSERT_TRUE(min_idx!=-1);
 	}
 	// Compare:
-	EXPECT_EQ(min_idx,ret_indexes[0]);
+	EXPECT_EQ(static_cast<size_t>(min_idx),ret_indexes[0]);
 	EXPECT_NEAR(min_dist_SO2,out_dists_sqr[0],1e-3);
 }
 
@@ -304,7 +304,7 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
 	// add points in chunks at a time
 	size_t chunk_size = 100;
 	size_t end;
-	for(int i=0; i<nSamples/2; i=i+chunk_size)
+	for(size_t i=0; i<nSamples/2; i=i+chunk_size)
 	{
 		end = min(size_t(i+chunk_size), nSamples/2-1);
 		index.addPoints(i, end);
@@ -339,10 +339,10 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
 			ASSERT_TRUE(min_idx!=-1);
 		}
 		// Compare:
-		EXPECT_EQ(min_idx,ret_indexes[0]);
+		EXPECT_EQ(static_cast<size_t>(min_idx),ret_indexes[0]);
 		EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
 	}
-	for(int i=end+1; i<nSamples; i=i+chunk_size)
+	for(size_t i=end+1; i<nSamples; i=i+chunk_size)
 	{
 		end = min(size_t(i+chunk_size), nSamples-1);
 		index.addPoints(i, end);
@@ -377,7 +377,7 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
 			ASSERT_TRUE(min_idx!=-1);
 		}
 		// Compare:
-		EXPECT_EQ(min_idx,ret_indexes[0]);
+		EXPECT_EQ(static_cast<size_t>(min_idx),ret_indexes[0]);
 		EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
 	}
 }
