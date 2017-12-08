@@ -303,7 +303,7 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
 
 	// add points in chunks at a time
 	size_t chunk_size = 100;
-	size_t end;
+	size_t end = 0;
 	for(size_t i=0; i<nSamples/2; i=i+chunk_size)
 	{
 		end = min(size_t(i+chunk_size), nSamples/2-1);
