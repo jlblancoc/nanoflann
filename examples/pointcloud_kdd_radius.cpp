@@ -82,7 +82,7 @@ void kdtree_demo(const size_t N)
 	}
 
 	// ----------------------------------------------------------------
-	// radiusSearch():  Perform a search for the N closest points
+	// radiusSearch(): Perform a search for the points within search_radius
 	// ----------------------------------------------------------------
 	{
 		const num_t search_radius = static_cast<num_t>(0.1);
