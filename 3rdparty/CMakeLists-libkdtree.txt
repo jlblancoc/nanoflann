@@ -10,4 +10,6 @@ ExternalProject_Add(
   PATCH_COMMAND ""
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/3rdparty/libkdtree"
   TEST_COMMAND ""
+  BUILD_COMMAND "" # hdr only lib
+  INSTALL_COMMAND "" # hdr only lib
   )

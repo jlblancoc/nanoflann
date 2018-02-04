@@ -25,25 +25,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *************************************************************************/
-
-#include <flann/flann.hpp>
+ 
+#include <fastann.hpp>
 #include <ctime>
 #include <cstdlib>
 #include <iostream>
- 
+#include <fstream>
+#include <string>
+#include <vector>
+
 using namespace std;
-using namespace flann;
+using namespace fastann;
 
 template <typename T>
-Matrix<T> generateRandomPointCloud(const size_t N, const T max_range = 10)
+T* generateRandomPointCloud(const size_t N, const T max_range = 10)
 {
-    size_t dim=3;
-    Matrix<T> point(new T[N*dim], N, 3);
-    for (size_t i=0;i<N;i++)
+    T* point = new T[N*3];
+    for (size_t n=0;n<N;n++)
     {
-        for(size_t j=0;j<dim;j++)
+        for (size_t d=0; d < 3; ++d) 
         {
-            point[i][j] = max_range * (rand() % 1000) / T(1000);
+            point[n*3 + d] = max_range * (rand() % 1000) / T(1000);
         }
     }
     return point;
@@ -52,24 +54,22 @@ Matrix<T> generateRandomPointCloud(const size_t N, const T max_range = 10)
 template <typename num_t>
 void kdtree_demo(const size_t N, double &buildTimer, double &queryTimer)
 {
-    Matrix<num_t> cloudS = generateRandomPointCloud<num_t>(N);
-    Matrix<num_t> cloudT = generateRandomPointCloud<num_t>(N);
-
-    size_t nn=1;
+    num_t* cloudS = generateRandomPointCloud<num_t>(N);
+    num_t* cloudT = generateRandomPointCloud<num_t>(N);
 
     clock_t begin = clock();
     // construct a kd-tree index:
-    Index<L2<num_t> > index(cloudS, flann::KDTreeIndexParams(1));
-    index.buildIndex();
+    nn_obj<num_t>* nnobj_exact = nn_obj_build_exact(cloudS, N, 3);
     clock_t end = clock();
-    buildTimer += double(end - begin) / CLOCKS_PER_SEC;
-    
+    double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+    buildTimer += elapsed_secs;
+
     {
-        Matrix<int> indices(new int[cloudT.rows*nn], cloudT.rows, nn);
-        Matrix<num_t> dists(new num_t[cloudT.rows*nn], cloudT.rows, nn);
+        vector<num_t> mins_exact(N);
+        vector<unsigned> argmins_exact(N);
         clock_t begin = clock();
         // do a knn search
-        index.knnSearch(cloudT, indices, dists, nn, flann::SearchParams(-1));
+        nnobj_exact->search_nn(cloudT, N, &argmins_exact[0], &mins_exact[0]);
         clock_t end = clock();
         double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
         queryTimer += elapsed_secs/N;
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
     }
     else
     {
-        cerr << "**Running Instructions:**\n ./flann_testRandom numPoints seed\nExample:\n ./flann_testRandom 10000 1" << endl;
+        cerr << "**Running Instructions:**\n ./benchmark_fastann_random numPoints seed\nExample:\n ./benchmark_fastann_random 10000 1" << endl;
         return 0;
     }
 

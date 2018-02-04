@@ -74,19 +74,19 @@ if __name__ == '__main__':
 	dir_path = os.path.dirname(os.path.realpath(__file__))
     	dir_path = dir_path + '/../../build/bin/'
 	if(nanoflannFlag):
-		xaxis, nanoflannBuildTimeFinal, nanoflannBuildTimeError, nanoflannQueryTimeFinal, nanoflannQueryTimeError = plotTime(dir_path + './nanoflann_testRandom', numRepetitions, numDivisions, numPoints)
+		xaxis, nanoflannBuildTimeFinal, nanoflannBuildTimeError, nanoflannQueryTimeFinal, nanoflannQueryTimeError = plotTime(dir_path + './benchmark_nanoflann_random', numRepetitions, numDivisions, numPoints)
 		plt.plot(xaxis, nanoflannBuildTimeFinal, 'r', label='nanoflann', linewidth=3.0)
 		plt.errorbar(xaxis, nanoflannBuildTimeFinal, color='k', yerr=nanoflannBuildTimeError, fmt='o')
 	if(flannFlag):
-		xaxis, flannBuildTimeFinal, flannBuildTimeError, flannQueryTimeFinal, flannQueryTimeError = plotTime(dir_path + './flann_testRandom', numRepetitions, numDivisions, numPoints)
+		xaxis, flannBuildTimeFinal, flannBuildTimeError, flannQueryTimeFinal, flannQueryTimeError = plotTime(dir_path + './benchmark_flann_random', numRepetitions, numDivisions, numPoints)
 		plt.plot(xaxis, flannBuildTimeFinal, 'g', label='flann', linewidth=3.0)
 		plt.errorbar(xaxis, flannBuildTimeFinal, color='k', yerr=flannBuildTimeError, fmt='o')
 	if(fastannFlag):
-		xaxis, fastannBuildTimeFinal, fastannBuildTimeError, fastannQueryTimeFinal, fastannQueryTimeError = plotTime(dir_path + './fastann_testRandom', numRepetitions, numDivisions, numPoints)
+		xaxis, fastannBuildTimeFinal, fastannBuildTimeError, fastannQueryTimeFinal, fastannQueryTimeError = plotTime(dir_path + './benchmark_fastann_random', numRepetitions, numDivisions, numPoints)
 		plt.plot(xaxis, fastannBuildTimeFinal, 'b', label='fastann', linewidth=3.0)
 		plt.errorbar(xaxis, fastannBuildTimeFinal, color='k', yerr=fastannBuildTimeError, fmt='o')
 	if(libkdtreeFlag):
-		xaxis, libkdtreeBuildTimeFinal, libkdtreeBuildTimeError, libkdtreeQueryTimeFinal, libkdtreeQueryTimeError = plotTime(dir_path + './libkdtree_testRandom', numRepetitions, numDivisions, numPoints)
+		xaxis, libkdtreeBuildTimeFinal, libkdtreeBuildTimeError, libkdtreeQueryTimeFinal, libkdtreeQueryTimeError = plotTime(dir_path + './benchmark_libkdtree_random', numRepetitions, numDivisions, numPoints)
 		plt.plot(xaxis, libkdtreeBuildTimeFinal, 'k', label='libkdtree', linewidth=3.0)
 		plt.errorbar(xaxis, libkdtreeBuildTimeFinal, color='k', yerr=libkdtreeBuildTimeError, fmt='o')
 

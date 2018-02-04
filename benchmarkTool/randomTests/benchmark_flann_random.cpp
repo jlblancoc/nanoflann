@@ -26,96 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *************************************************************************/
 
-#include <nanoflann.hpp>
+#include <flann/flann.hpp>
 #include <ctime>
 #include <cstdlib>
 #include <iostream>
-
+ 
 using namespace std;
-using namespace nanoflann;
-
-// This is an exampleof a custom data set class
-template <typename T>
-struct PointCloud
-{
-    struct Point
-    {
-        T  x,y,z;
-    };
-
-    std::vector<Point>  pts;
-
-    // Must return the number of data points
-    inline size_t kdtree_get_point_count() const { return pts.size(); }
-
-    // Returns the dim'th component of the idx'th point in the class:
-    // Since this is inlined and the "dim" argument is typically an immediate value, the
-    //  "if/else's" are actually solved at compile time.
-    inline T kdtree_get_pt(const size_t idx, int dim) const
-    {
-        if (dim==0) return pts[idx].x;
-        else if (dim==1) return pts[idx].y;
-        else return pts[idx].z;
-    }
-
-    // Optional bounding-box computation: return false to default to a standard bbox computation loop.
-    //   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
-    //   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3 for point clouds)
-    template <class BBOX>
-    bool kdtree_get_bbox(BBOX& /* bb */) const { return false; }
-
-};
+using namespace flann;
 
 template <typename T>
-PointCloud<T> generateRandomPointCloud(const size_t N, const T max_range = 10)
+Matrix<T> generateRandomPointCloud(const size_t N, const T max_range = 10)
 {
-    PointCloud<T> point;
-    point.pts.resize(N);
+    size_t dim=3;
+    Matrix<T> point(new T[N*dim], N, 3);
     for (size_t i=0;i<N;i++)
     {
-        point.pts[i].x = max_range * (rand() % 1000) / T(1000);
-        point.pts[i].y = max_range * (rand() % 1000) / T(1000);
-        point.pts[i].z = max_range * (rand() % 1000) / T(1000);
+        for(size_t j=0;j<dim;j++)
+        {
+            point[i][j] = max_range * (rand() % 1000) / T(1000);
+        }
     }
     return point;
 }
 
-
 template <typename num_t>
 void kdtree_demo(const size_t N, double &buildTimer, double &queryTimer)
 {
-    PointCloud<num_t> cloudS = generateRandomPointCloud<num_t>(N);
-    PointCloud<num_t> cloudT = generateRandomPointCloud<num_t>(N);
+    Matrix<num_t> cloudS = generateRandomPointCloud<num_t>(N);
+    Matrix<num_t> cloudT = generateRandomPointCloud<num_t>(N);
+
+    size_t nn=1;
 
     clock_t begin = clock();
     // construct a kd-tree index:
-    typedef KDTreeSingleIndexAdaptor<
-        L2_Simple_Adaptor<num_t, PointCloud<num_t> > ,
-        PointCloud<num_t>,
-        3 /* dim */
-        > my_kd_tree_t;
-    my_kd_tree_t   index(3 /*dim*/, cloudS, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
+    Index<L2<num_t> > index(cloudS, flann::KDTreeIndexParams(1));
     index.buildIndex();
     clock_t end = clock();
     buildTimer += double(end - begin) / CLOCKS_PER_SEC;
     
     {
-        double elapsed_secs=0;
-        for(size_t i=0;i<N;i++)
-        {
-            num_t query_pt[3] = {cloudT.pts[i].x, cloudT.pts[i].y, cloudT.pts[i].z};
-            // do a knn search
-            const size_t num_results = 1;
-            size_t ret_index;
-            num_t out_dist_sqr;
-            clock_t begin = clock();
-            nanoflann::KNNResultSet<num_t> resultSet(num_results);
-            resultSet.init(&ret_index, &out_dist_sqr);
-            index.findNeighbors(resultSet, query_pt, nanoflann::SearchParams(10));
-            clock_t end = clock();
-            elapsed_secs += double(end - begin);
-        }
-        elapsed_secs = elapsed_secs/CLOCKS_PER_SEC;        
+        Matrix<int> indices(new int[cloudT.rows*nn], cloudT.rows, nn);
+        Matrix<num_t> dists(new num_t[cloudT.rows*nn], cloudT.rows, nn);
+        clock_t begin = clock();
+        // do a knn search
+        index.knnSearch(cloudT, indices, dists, nn, flann::SearchParams(-1));
+        clock_t end = clock();
+        double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
         queryTimer += elapsed_secs/N;
     }
 }
@@ -124,7 +80,7 @@ int main(int argc, char *argv[])
 {
     size_t plotCount = 10;
     size_t maxSize = 10000;
-
+    
     if(argc == 3)
     {
         srand(atoi(argv[2]));
@@ -132,7 +88,7 @@ int main(int argc, char *argv[])
     }
     else
     {
-        cerr << "**Running Instructions:**\n ./nanoflann_testRandom numPoints seed\nExample:\n ./nanoflann_testRandom 10000 1" << endl;
+        cerr << "**Running Instructions:**\n ./benchmark_flann_random numPoints seed\nExample:\n ./benchmark_flann_random 10000 1" << endl;
         return 0;
     }
 

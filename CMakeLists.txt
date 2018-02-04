@@ -81,8 +81,7 @@ IF(BUILD_BENCHMARKS)
         include(3rdparty/CMakeLists-flann.txt)
         include(3rdparty/CMakeLists-fastann.txt)
         include(3rdparty/CMakeLists-libkdtree.txt)
-	add_subdirectory(benchmarkTool/realTests)
-	add_subdirectory(benchmarkTool/randomTests)
+	add_subdirectory(benchmarkTool)
 ENDIF()
 
 # Tests
