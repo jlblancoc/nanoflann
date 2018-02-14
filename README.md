@@ -73,18 +73,18 @@ Although nanoflann itself doesn't have to be compiled, you can build some exampl
 
   * **Memory efficiency**: Instead of making a copy of the entire dataset into a custom `flann`-like matrix before building a KD-tree index, `nanoflann` allows direct access to your data via an **adaptor interface** which must be implemented in your class. 
 
-Refer to the examples below or to the C++ API of [nanoflann::KDTreeSingleIndexAdaptor<>](http://nanoflann-reference.mrpt.org/svn/classnanoflann_1_1KDTreeSingleIndexAdaptor.html) for more info.
+Refer to the examples below or to the C++ API of [nanoflann::KDTreeSingleIndexAdaptor<>](http://jlblancoc.github.io/nanoflann/classnanoflann_1_1KDTreeSingleIndexAdaptor.html) for more info.
 
 
 ### 1.5. What can *nanoflann* do?
 
   * Building KD-trees with a single index (no randomized KD-trees, no approximate searches).
   * Fast, thread-safe querying for closest neighbors on KD-trees. The entry points are:
-    * [nanoflann::KDTreeSingleIndexAdaptor<>](http://nanoflann-reference.mrpt.org/svn/classnanoflann_1_1KDTreeSingleIndexAdaptor.html)`::knnSearch()`
+    * [nanoflann::KDTreeSingleIndexAdaptor<>](http://jlblancoc.github.io/nanoflann/classnanoflann_1_1KDTreeSingleIndexAdaptor.html)`::knnSearch()`
       * Finds the `num_closest` nearest neighbors to `query_point[0:dim-1]`. Their indices are stored inside the result object. See an [example usage code](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_kdd_radius.cpp#L119).
-    * [nanoflann::KDTreeSingleIndexAdaptor<>](http://nanoflann-reference.mrpt.org/svn/classnanoflann_1_1KDTreeSingleIndexAdaptor.html)`::radiusSearch()`
+    * [nanoflann::KDTreeSingleIndexAdaptor<>](http://jlblancoc.github.io/nanoflann/classnanoflann_1_1KDTreeSingleIndexAdaptor.html)`::radiusSearch()`
       * Finds all the neighbors to `query_point[0:dim-1]` within a maximum radius. The output is given as a vector of pairs, of which the first element is a point index and the second the corresponding distance. See an [example usage code](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_kdd_radius.cpp#L141).
-    * [nanoflann::KDTreeSingleIndexAdaptor<>](http://nanoflann-reference.mrpt.org/svn/classnanoflann_1_1KDTreeSingleIndexAdaptor.html)`::radiusSearchCustomCallback()`
+    * [nanoflann::KDTreeSingleIndexAdaptor<>](http://jlblancoc.github.io/nanoflann/classnanoflann_1_1KDTreeSingleIndexAdaptor.html)`::radiusSearchCustomCallback()`
 	  * Can be used to receive a callback for each point found in range. This may be more efficient in some situations instead of building a huge vector of pairs with the results.
   * Works with 2D and 3D point clouds or N-dimensional data sets.
   * Works directly with `Eigen::Matrix<>` classes (matrices and vectors-of-vectors).
