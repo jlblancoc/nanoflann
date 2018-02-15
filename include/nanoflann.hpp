@@ -1155,10 +1155,9 @@ namespace nanoflann
 	template <typename Distance, class DatasetAdaptor, int DIM = -1, typename IndexType = size_t>
 	class KDTreeSingleIndexAdaptor : public KDTreeBaseClass<KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, IndexType>, Distance, DatasetAdaptor, DIM, IndexType>
 	{
-	private:
-		/** Hidden copy constructor, to disallow copying indices (Not implemented) */
-		KDTreeSingleIndexAdaptor(const KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, IndexType>&);
 	public:
+		/** Deleted copy constructor*/
+		KDTreeSingleIndexAdaptor(const KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, IndexType>&) = delete;
 		
 		/**
 		 * The dataset used by this index
@@ -1801,10 +1800,6 @@ namespace nanoflann
 			index=index_;
 		}
 
-	private:
-		/** Hidden copy constructor, to disallow copying indices (Not implemented) */
-		KDTreeSingleIndexDynamicAdaptor(const KDTreeSingleIndexDynamicAdaptor<Distance, DatasetAdaptor, DIM, IndexType>&);
-
 	public:
 
 		Distance distance;
@@ -1837,6 +1832,9 @@ namespace nanoflann
 				addPoints(0, num_initial_points - 1);
 			}
 		}
+
+		/** Deleted copy constructor*/
+		KDTreeSingleIndexDynamicAdaptor(const KDTreeSingleIndexDynamicAdaptor<Distance, DatasetAdaptor, DIM, IndexType>&) = delete;
 
 
 		/** Add points to the set, Inserts all points from [start, end] */
@@ -1930,10 +1928,9 @@ namespace nanoflann
 			index = new index_t( dims, *this /* adaptor */, nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size ) );
 			index->buildIndex();
 		}
-	private:
-		/** Hidden copy constructor, to disallow copying this class (Not implemented) */
-		KDTreeEigenMatrixAdaptor(const self_t&);
 	public:
+		/** Deleted copy constructor */
+		KDTreeEigenMatrixAdaptor(const self_t&) = delete;
 
 		~KDTreeEigenMatrixAdaptor() {
 			delete index;

@@ -499,8 +499,7 @@ TEST(kdtree,robust_nonempty_tree)
 
 	my_kd_tree_simple_t index1(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
 
-	// Now we will try to search in the tree, and WE EXPECT a result of
-	// no neighbors found if the error detection works fine:
+	// Try a search and expect a neighbor to exist because the dynamic tree was passed a non-empty cloud
 	const size_t num_results = 1;
 	std::vector<size_t>   ret_index(num_results);
 	std::vector<double> out_dist_sqr(num_results);
