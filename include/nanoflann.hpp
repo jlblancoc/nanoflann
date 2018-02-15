@@ -1801,6 +1801,10 @@ namespace nanoflann
 			index=index_;
 		}
 
+	private:
+		/** Hidden copy constructor, to disallow copying indices (Not implemented) */
+		KDTreeSingleIndexDynamicAdaptor(const KDTreeSingleIndexDynamicAdaptor<Distance, DatasetAdaptor, DIM, IndexType>&);
+
 	public:
 
 		Distance distance;
