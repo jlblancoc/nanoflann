@@ -1155,10 +1155,9 @@ namespace nanoflann
 	template <typename Distance, class DatasetAdaptor, int DIM = -1, typename IndexType = size_t>
 	class KDTreeSingleIndexAdaptor : public KDTreeBaseClass<KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, IndexType>, Distance, DatasetAdaptor, DIM, IndexType>
 	{
-	private:
-		/** Hidden copy constructor, to disallow copying indices (Not implemented) */
-		KDTreeSingleIndexAdaptor(const KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, IndexType>&);
 	public:
+		/** Deleted copy constructor*/
+		KDTreeSingleIndexAdaptor(const KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, IndexType>&) = delete;
 		
 		/**
 		 * The dataset used by this index
@@ -1471,7 +1470,7 @@ namespace nanoflann
 		/**
 		 * The dataset used by this index
 		 */
-		DatasetAdaptor &dataset; //!< The source of our data
+		const DatasetAdaptor &dataset; //!< The source of our data
 
 		KDTreeSingleIndexAdaptorParams index_params;
 
@@ -1507,7 +1506,7 @@ namespace nanoflann
 		 * @param inputData Dataset with the input features
 		 * @param params Basically, the maximum leaf node size
 		 */
-		KDTreeSingleIndexDynamicAdaptor_(const int dimensionality, DatasetAdaptor& inputData, std::vector<int>& treeIndex_, const KDTreeSingleIndexAdaptorParams& params = KDTreeSingleIndexAdaptorParams()) :
+		KDTreeSingleIndexDynamicAdaptor_(const int dimensionality, const DatasetAdaptor& inputData, std::vector<int>& treeIndex_, const KDTreeSingleIndexAdaptorParams& params = KDTreeSingleIndexAdaptorParams()) :
 			dataset(inputData), index_params(params), treeIndex(treeIndex_), distance(inputData)
 		{
 			BaseClassRef::root_node = NULL;
@@ -1762,7 +1761,7 @@ namespace nanoflann
 		/**
 		 * The dataset used by this index
 		 */
-		DatasetAdaptor &dataset; //!< The source of our data
+		const DatasetAdaptor &dataset; //!< The source of our data
 
 		std::vector<int> treeIndex; //!< treeIndex[idx] is the index of tree in which point at idx is stored. treeIndex[idx]=-1 means that point has been removed.
 
@@ -1818,10 +1817,9 @@ namespace nanoflann
 		 * @param inputData Dataset with the input features
 		 * @param params Basically, the maximum leaf node size
 		 */
-		KDTreeSingleIndexDynamicAdaptor(const int dimensionality, DatasetAdaptor& inputData, const KDTreeSingleIndexAdaptorParams& params = KDTreeSingleIndexAdaptorParams() , const size_t maximumPointCount = 1000000000U) :
+		KDTreeSingleIndexDynamicAdaptor(const int dimensionality, const DatasetAdaptor& inputData, const KDTreeSingleIndexAdaptorParams& params = KDTreeSingleIndexAdaptorParams() , const size_t maximumPointCount = 1000000000U) :
 			dataset(inputData), index_params(params), distance(inputData)
 		{
-			if (dataset.kdtree_get_point_count()) throw std::runtime_error("[nanoflann] cannot handle non empty point cloud.");
 			treeCount = std::log2(maximumPointCount);
 			pointCount = 0U;
 			dim = dimensionality;
@@ -1829,7 +1827,14 @@ namespace nanoflann
 			if (DIM > 0) dim = DIM;
 			m_leaf_max_size = params.leaf_max_size;
 			init();
+			int num_initial_points = dataset.kdtree_get_point_count();
+			if (num_initial_points > 0) {
+				addPoints(0, num_initial_points - 1);
+			}
 		}
+
+		/** Deleted copy constructor*/
+		KDTreeSingleIndexDynamicAdaptor(const KDTreeSingleIndexDynamicAdaptor<Distance, DatasetAdaptor, DIM, IndexType>&) = delete;
 
 
 		/** Add points to the set, Inserts all points from [start, end] */
@@ -1923,10 +1928,9 @@ namespace nanoflann
 			index = new index_t( dims, *this /* adaptor */, nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size ) );
 			index->buildIndex();
 		}
-	private:
-		/** Hidden copy constructor, to disallow copying this class (Not implemented) */
-		KDTreeEigenMatrixAdaptor(const self_t&);
 	public:
+		/** Deleted copy constructor */
+		KDTreeEigenMatrixAdaptor(const self_t&) = delete;
 
 		~KDTreeEigenMatrixAdaptor() {
 			delete index;
