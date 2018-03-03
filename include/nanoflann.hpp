@@ -74,9 +74,15 @@ namespace nanoflann
 
 	/** @addtogroup result_sets_grp Result set classes
 	  *  @{ */
-	template <typename DistanceType, typename IndexType = size_t, typename CountType = size_t>
+	template <typename _DistanceType, typename _IndexType = size_t, typename _CountType = size_t>
 	class KNNResultSet
 	{
+	public:
+		typedef _DistanceType DistanceType;
+		typedef _IndexType IndexType;
+		typedef _CountType CountType;
+
+	private:
 		IndexType * indices;
 		DistanceType* dists;
 		CountType capacity;
@@ -156,9 +162,13 @@ namespace nanoflann
 	/**
 	 * A result-set class used when performing a radius based search.
 	 */
-	template <typename DistanceType, typename IndexType = size_t>
+	template <typename _DistanceType, typename _IndexType = size_t>
 	class RadiusResultSet
 	{
+	public:
+		typedef _DistanceType DistanceType;
+		typedef _IndexType IndexType;
+
 	public:
 		const DistanceType radius;
 
@@ -1221,7 +1231,7 @@ namespace nanoflann
 					const IndexType index = vind[i];// reorder... : i;
 					DistanceType dist = distance(vec, index, (DIM>0 ? DIM : dim));
 					if (dist<worst_dist) {
-                                                if(!result_set.addPoint(dist,vind[i])) {
+                                                if(!result_set.addPoint(static_cast<RESULTSET::DistanceType>(dist),static_cast<RESULTSET::IndexType>(vind[i]))) {
                                                     // the resultset doesn't want to receive any more points, we're done searching!
                                                     return false;
                                                 }
@@ -1333,11 +1343,11 @@ namespace nanoflann
 		/// Constructor: takes a const ref to the matrix object with the data points
 		KDTreeEigenMatrixAdaptor(const int dimensionality, const MatrixType &mat, const int leaf_max_size = 10) : m_data_matrix(mat)
 		{
-			const IndexType dims = mat.cols();
+			const int dims = static_cast<int>(mat.cols());
 			if (dims!=dimensionality) throw std::runtime_error("Error: 'dimensionality' must match column count in data matrix");
 			if (DIM>0 && static_cast<int>(dims)!=DIM)
 				throw std::runtime_error("Data set dimensionality does not match the 'DIM' template argument");
-			index = new index_t( dims, *this /* adaptor */, nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size ) );
+			index = new index_t(dims, *this /* adaptor */, nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size ) );
 			index->buildIndex();
 		}
 	private:
