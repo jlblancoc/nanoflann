@@ -1231,7 +1231,7 @@ namespace nanoflann
 					const IndexType index = vind[i];// reorder... : i;
 					DistanceType dist = distance(vec, index, (DIM>0 ? DIM : dim));
 					if (dist<worst_dist) {
-                                                if(!result_set.addPoint(static_cast<RESULTSET::DistanceType>(dist),static_cast<RESULTSET::IndexType>(vind[i]))) {
+                                                if(!result_set.addPoint(static_cast<typename RESULTSET::DistanceType>(dist), static_cast<typename RESULTSET::IndexType>(vind[i]))) {
                                                     // the resultset doesn't want to receive any more points, we're done searching!
                                                     return false;
                                                 }
