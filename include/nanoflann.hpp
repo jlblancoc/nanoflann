@@ -72,23 +72,28 @@ namespace nanoflann
   *  @{ */
 
 	/**
-	 * Traits if object is resizable (typically has a resize method)
+	 * Traits if object is resizable and assignable (typically has a resize | assign method)
 	 */
   	template <typename T, typename = int>
-	struct is_resizable : std::false_type {};
+	struct has_resize : std::false_type {};
 
 	template <typename T>
-	struct is_resizable <T, decltype((void) &T::resize, 0)> : std::true_type {};
+	struct has_resize <T, decltype((void) std::declval<T>().resize(1), 0)> : std::true_type {};
 
+	template <typename T, typename = int>
+	struct has_assign : std::false_type {};
+
+	template <typename T>
+	struct has_assign <T, decltype((void) std::declval<T>().assign(1, 0), 0)> : std::true_type {};
 
 	/**
 	 * Free function to resize a resizable object
 	 */
 	template <typename Container>
-	inline auto resize(Container& c, const size_t nElements) 
-		-> typename std::enable_if<is_resizable<Container>::value>::type
+	inline typename std::enable_if<has_resize<Container>::value, void>::type
+	resize(Container& c, const size_t nElements)
 	{ 
-		c.resize(nElements);		
+		c.resize(nElements);
 	}
 
 	/**
@@ -96,12 +101,34 @@ namespace nanoflann
 	 * It raises an exception if the expected size does not match
 	 */
 	template <typename Container>
-	inline auto resize(Container& c, const size_t nElements) 
-		-> typename std::enable_if<!is_resizable<Container>::value>::type
-	{ 
+	inline typename std::enable_if<!has_resize<Container>::value, void>::type
+	resize(Container& c, const size_t nElements)
+	{
 		if(nElements != c.size())
 			throw std::logic_error("Try to change the size of a std::array.");
 	}
+
+	/**
+	 * Free function to assign to a container
+	 */
+	template <typename Container, typename T>
+	inline typename std::enable_if<has_assign<Container>::value, void>::type
+	assign(Container& c, const size_t nElements, const T& value)
+	{
+		c.assign(nElements, value);
+	}
+
+	/**
+	 * Free function to assign to a std::array
+	 */
+	template <typename Container, typename T>
+	inline typename std::enable_if<!has_assign<Container>::value, void>::type
+	assign(Container& c, const size_t nElements, const T& value)
+	{
+		for (size_t i=0;i<nElements;i++)
+			c[i]=value;
+	}
+
 
   	/** Library version: 0xMmP (M=Major,m=minor,P=patch) */
 	#define NANOFLANN_VERSION 0x123
@@ -1179,7 +1206,7 @@ namespace nanoflann
 			float epsError = 1 + searchParams.eps;
 
 			distance_vector_t dists; // fixed or variable-sized container (depending on DIM)
-			std::fill(dists.begin(), dists.end(), 0); // Fill it with zeros.
+			assign(dists, (DIM > 0 ? DIM : BaseClassRef::dim), 0); // Fill it with zeros.
 			DistanceType distsq = this->computeInitialDistances(*this, vec, dists);
 			searchLevel(result, vec, BaseClassRef::root_node, distsq, dists, epsError);  // "count_leaf" parameter removed since was neither used nor returned to the user.
             return result.full();
@@ -1500,7 +1527,7 @@ namespace nanoflann
 			float epsError = 1 + searchParams.eps;
 
 			distance_vector_t dists; // fixed or variable-sized container (depending on DIM)			
-			std::fill(dists.begin(), dists.end(), 0); // Fill it with zeros.
+			assign(dists, (DIM > 0 ? DIM : BaseClassRef::dim), 0); // Fill it with zeros.
 			DistanceType distsq = this->computeInitialDistances(*this, vec, dists);
 			searchLevel(result, vec, BaseClassRef::root_node, distsq, dists, epsError);  // "count_leaf" parameter removed since was neither used nor returned to the user.
             return result.full();
