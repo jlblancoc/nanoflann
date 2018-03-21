@@ -23,13 +23,13 @@ Cite as:
 ### 1.1. Obtaining the code
 
 * Easiest way: clone this GIT repository and take the `include/nanoflann.hpp` file for use where you need it.
-* OSX users can install `nanoflann` with [Homebrew](https://brew.sh) with:
+* macOS users can install `nanoflann` with [Homebrew](https://brew.sh) with:
   ```shell
-  $ brew install homebrew/science/nanoflann
+  $ brew install brewsci/science/nanoflann
   ```
   or
   ```shell
-  $ brew tap homebrew/science
+  $ brew tap brewsci/science
   $ brew install nanoflann
   ```
 * Linux users can install it with [Linuxbrew](https://linuxbrew.sh/) with: `brew install homebrew/science/nanoflann`
