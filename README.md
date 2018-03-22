@@ -86,12 +86,12 @@ Refer to the examples below or to the C++ API of [nanoflann::KDTreeSingleIndexAd
       * Finds all the neighbors to `query_point[0:dim-1]` within a maximum radius. The output is given as a vector of pairs, of which the first element is a point index and the second the corresponding distance. See an [example usage code](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_kdd_radius.cpp#L141).
     * [nanoflann::KDTreeSingleIndexAdaptor<>](http://jlblancoc.github.io/nanoflann/classnanoflann_1_1KDTreeSingleIndexAdaptor.html)`::radiusSearchCustomCallback()`
 	  * Can be used to receive a callback for each point found in range. This may be more efficient in some situations instead of building a huge vector of pairs with the results.
-  * Works with 2D and 3D point clouds or N-dimensional data sets.
-  * Works directly with `Eigen::Matrix<>` classes (matrices and vectors-of-vectors).
-  * Works with dynamic point clouds without a need to rebuild entire kd-tree index.
-  * Works with the distance metrics: 
-    * `L1` (Manhattan) 
-    * `L2` (Euclidean, favoring SSE2 optimization). 
+  * Working with 2D and 3D point clouds or N-dimensional data sets.
+  * Working directly with `Eigen::Matrix<>` classes (matrices and vectors-of-vectors).
+  * Working with dynamic point clouds without a need to rebuild entire kd-tree index.
+  * Working with the distance metrics:
+    * `L1` (Manhattan)
+    * `L2` (Euclidean, favoring SSE2 optimization).
     * `L2_Simple` (Euclidean, for low-dimensionality data sets like point clouds).
     * `SO2` (for rotational groups SO2).
     * `SO3` (Euclidean, for rotational groups SO3).
