@@ -55,6 +55,8 @@
 #include <cstdlib> // for abs()
 #include <limits>
 
+#include <Eigen/Dense>
+
 // Avoid conflicting declaration of min/max macros in windows headers
 #if !defined(NOMINMAX) && (defined(_WIN32) || defined(_WIN32_)  || defined(WIN32) || defined(_WIN64))
 # define NOMINMAX
@@ -1341,7 +1343,7 @@ namespace nanoflann
 		index_t* index; //! The kd-tree index for the user to call its methods as usual with any other FLANN index.
 
 		/// Constructor: takes a const ref to the matrix object with the data points
-		KDTreeEigenMatrixAdaptor(const int dimensionality, const MatrixType &mat, const int leaf_max_size = 10) : m_data_matrix(mat)
+		KDTreeEigenMatrixAdaptor(const int dimensionality, const Eigen::Ref<const MatrixType> &mat, const int leaf_max_size = 10) : m_data_matrix(mat)
 		{
 			const int dims = static_cast<int>(mat.cols());
 			if (dims!=dimensionality) throw std::runtime_error("Error: 'dimensionality' must match column count in data matrix");
@@ -1359,7 +1361,7 @@ namespace nanoflann
 			delete index;
 		}
 
-		const MatrixType &m_data_matrix;
+		const Eigen::Ref<const MatrixType> m_data_matrix;
 
 		/** Query for the \a num_closest closest points to a given point (entered as query_point[0:dim-1]).
 		  *  Note that this is a short-cut method for index->findNeighbors().
