@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------
 # Root CMake file for nanoflann
 # ----------------------------------------------------------------------------
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.0)
 
 PROJECT(nanoflann)
 
@@ -60,13 +60,26 @@ IF(MSVC)
 	 add_definitions( "/W3 /D_CRT_SECURE_NO_WARNINGS /wd4267 /wd4244 /nologo" )
 ENDIF()
 
+
+# Set relative install directories
+set(INSTALL_INCLUDE_DIR "include")
+set(INSTALL_PKGCONFIG_DIR "lib${LIB_SUFFIX}/pkgconfig")
+set(INSTALL_CMAKE_DIR "lib${LIB_SUFFIX}/cmake/nanoflann")
+set(INSTALL_COPYRIGHT_DIR "share/doc/libnanoflann-dev")
+
+
 # Define nanoflann lib (header-only)
 add_library(nanoflann INTERFACE)
 
 target_include_directories(nanoflann
 	INTERFACE
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-		$<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>/include)
+		$<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>)
+
+install(TARGETS nanoflann
+        EXPORT nanoflannTargets)
+
+add_library(nanoflann::nanoflann ALIAS nanoflann)
 
 # Examples
 OPTION(BUILD_EXAMPLES "Build examples" ON)
@@ -116,13 +129,6 @@ CONFIGURE_FILE(
 
 
 
-# Set relative install directories
-set(INSTALL_INCLUDE_DIR "include")
-set(INSTALL_PKGCONFIG_DIR "lib${LIB_SUFFIX}/pkgconfig")
-set(INSTALL_CMAKE_DIR "lib${LIB_SUFFIX}/cmake/nanoflann")
-set(INSTALL_COPYRIGHT_DIR "share/doc/libnanoflann-dev")
-
-
 # Generate the cmake config and cmake config-version file:
 SET(RELATIVE_INCLUDE_DIR "../../../include")
 SET(CONFIG_INCLUDE_DIRS "\${nanoflann_CMAKE_DIR}/${RELATIVE_INCLUDE_DIR}")
@@ -145,6 +151,16 @@ CONFIGURE_FILE(
 ADD_CUSTOM_TARGET(uninstall
   "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
 
+
+export(EXPORT nanoflannTargets
+       NAMESPACE nanoflann::
+       FILE "${CMAKE_CURRENT_BINARY_DIR}/nanoflannTargets.cmake")
+
+export(PACKAGE nanoflann)
+
+install(EXPORT nanoflannTargets
+        NAMESPACE nanoflann::
+        DESTINATION "${libnanoflann_dev_INSTALL_PREFIX}${INSTALL_CMAKE_DIR}")
 
 INSTALL(
 	FILES "${nanoflann_BINARY_DIR}/nanoflann.pc"
