@@ -4,10 +4,10 @@ libdir=${exec_prefix}/lib@LIB_SUFFIX@
 includedir=${prefix}/include
 
 Name: The ANN nanoflann library
-Description: nanoflann - A C++ header-only library for kd-trees
-URL: http://code.google.com/p/nanoflann/
+Description: nanoflann - A C++11 header-only library for kd-trees
+URL: https://github.com/jlblancoc/nanoflann
 Requires: 
-Version: @NANOFLANN_VERSION_MAJOR@.@NANOFLANN_VERSION_MINOR@.@NANOFLANN_VERSION_PATCH@
+Version: @nanoflann_VERSION@
 Libs:
 Libs.private:
 Cflags: -I${includedir}
