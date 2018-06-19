@@ -1206,7 +1206,8 @@ namespace nanoflann
 			float epsError = 1 + searchParams.eps;
 
 			distance_vector_t dists; // fixed or variable-sized container (depending on DIM)
-			assign(dists, (DIM > 0 ? DIM : BaseClassRef::dim), 0); // Fill it with zeros.
+			auto zero = static_cast<decltype(result.worstDist())>(0);
+			assign(dists, (DIM > 0 ? DIM : BaseClassRef::dim), zero); // Fill it with zeros.
 			DistanceType distsq = this->computeInitialDistances(*this, vec, dists);
 			searchLevel(result, vec, BaseClassRef::root_node, distsq, dists, epsError);  // "count_leaf" parameter removed since was neither used nor returned to the user.
             return result.full();
