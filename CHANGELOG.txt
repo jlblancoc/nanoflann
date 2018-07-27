@@ -1,4 +1,5 @@
 nanoflann 1.3.0: (Unreleased)
+  * Eigen::Matrix datasets: now uses std::cref() to store a reference to matrix.
   * GSOC2017 contributions by Pranjal Kumar Rai:
     * Support for dynamic datasets.
     * Support for non-Euclidean spaces: SO(2), SO(3)

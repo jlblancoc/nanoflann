@@ -1704,10 +1704,11 @@ public:
         if (dist < worst_dist) {
           if (!result_set.addPoint(
                   static_cast<typename RESULTSET::DistanceType>(dist),
-                  static_cast<typename RESULTSET::IndexType>(vind[i]))) {
+                  static_cast<typename RESULTSET::IndexType>(
+                      BaseClassRef::vind[i]))) {
             // the resultset doesn't want to receive any more points, we're done
             // searching!
-            return false;
+            return; // false;
           }
         }
       }
@@ -1941,9 +1942,9 @@ public:
  * Distance The distance metric to use: nanoflann::metric_L1,
  * nanoflann::metric_L2, nanoflann::metric_L2_Simple, etc.
  */
-template <class MatrixType, class Distance = nanoflann::metric_L2>
+template <class MatrixType, int DIM = -1, class Distance = nanoflann::metric_L2>
 struct KDTreeEigenMatrixAdaptor {
-  typedef KDTreeEigenMatrixAdaptor<MatrixType, Distance> self_t;
+  typedef KDTreeEigenMatrixAdaptor<MatrixType, DIM, Distance> self_t;
   typedef typename MatrixType::Scalar num_t;
   typedef typename MatrixType::Index IndexType;
   typedef
@@ -1960,7 +1961,7 @@ struct KDTreeEigenMatrixAdaptor {
                            const std::reference_wrapper<const MatrixType> &mat,
                            const int leaf_max_size = 10)
       : m_data_matrix(mat) {
-    const int dims = static_cast<int>(mat.cols());
+    const int dims = static_cast<int>(mat.get().cols());
     if (dims != dimensionality)
       throw std::runtime_error(
           "Error: 'dimensionality' must match column count in data matrix");
@@ -2002,11 +2003,13 @@ public:
   self_t &derived() { return *this; }
 
   // Must return the number of data points
-  inline size_t kdtree_get_point_count() const { return m_data_matrix.rows(); }
+  inline size_t kdtree_get_point_count() const {
+    return m_data_matrix.get().rows();
+  }
 
   // Returns the dim'th component of the idx'th point in the class:
   inline num_t kdtree_get_pt(const IndexType idx, int dim) const {
-    return m_data_matrix.coeff(idx, IndexType(dim));
+    return m_data_matrix.get().coeff(idx, IndexType(dim));
   }
 
   // Optional bounding-box computation: return false to default to a standard
