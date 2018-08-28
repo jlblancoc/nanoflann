@@ -50,13 +50,13 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstdio> // for fwrite()
-#include <stdexcept>
-#include <vector>
-#include <cmath>          // for abs()
-#include <cstdlib>        // for abs()
+#include <cmath>   // for abs()
+#include <cstdio>  // for fwrite()
+#include <cstdlib> // for abs()
 #include <functional>
 #include <limits> // std::reference_wrapper
+#include <stdexcept>
+#include <vector>
 
 /** Library version: 0xMmP (M=Major,m=minor,P=patch) */
 #define NANOFLANN_VERSION 0x130
@@ -360,7 +360,7 @@ struct L1_Adaptor {
   }
 
   template <typename U, typename V>
-  inline DistanceType accum_dist(const U a, const V b, const size_t ) const {
+  inline DistanceType accum_dist(const U a, const V b, const size_t) const {
     return std::abs(a - b);
   }
 };
@@ -1968,10 +1968,10 @@ struct KDTreeEigenMatrixAdaptor {
                            const int leaf_max_size = 10)
       : m_data_matrix(mat) {
     const auto dims = mat.get().cols();
-    if (dims != dimensionality)
+    if (size_t(dims) != dimensionality)
       throw std::runtime_error(
           "Error: 'dimensionality' must match column count in data matrix");
-    if (DIM > 0 && dims != DIM)
+    if (DIM > 0 && int(dims) != DIM)
       throw std::runtime_error(
           "Data set dimensionality does not match the 'DIM' template argument");
     index =
@@ -1979,6 +1979,7 @@ struct KDTreeEigenMatrixAdaptor {
                     nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size));
     index->buildIndex();
   }
+
 public:
   /** Deleted copy constructor */
   KDTreeEigenMatrixAdaptor(const self_t &) = delete;
