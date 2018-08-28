@@ -360,7 +360,7 @@ struct L1_Adaptor {
   }
 
   template <typename U, typename V>
-  inline DistanceType accum_dist(const U a, const V b, int) const {
+  inline DistanceType accum_dist(const U a, const V b, const size_t ) const {
     return std::abs(a - b);
   }
 };
@@ -408,7 +408,7 @@ struct L2_Adaptor {
   }
 
   template <typename U, typename V>
-  inline DistanceType accum_dist(const U a, const V b, int) const {
+  inline DistanceType accum_dist(const U a, const V b, const size_t) const {
     return (a - b) * (a - b);
   }
 };
@@ -440,7 +440,7 @@ struct L2_Simple_Adaptor {
   }
 
   template <typename U, typename V>
-  inline DistanceType accum_dist(const U a, const V b, int) const {
+  inline DistanceType accum_dist(const U a, const V b, const size_t) const {
     return (a - b) * (a - b);
   }
 };
@@ -468,7 +468,7 @@ struct SO2_Adaptor {
 
   /** Note: this assumes that input angles are already in the range [-pi,pi] */
   template <typename U, typename V>
-  inline DistanceType accum_dist(const U a, const V b, int) const {
+  inline DistanceType accum_dist(const U a, const V b, const size_t) const {
     DistanceType result = DistanceType(), PI = pi_const<DistanceType>();
     result = b - a;
     if (result > PI)
@@ -501,7 +501,7 @@ struct SO3_Adaptor {
   }
 
   template <typename U, typename V>
-  inline DistanceType accum_dist(const U a, const V b, int idx) const {
+  inline DistanceType accum_dist(const U a, const V b, const size_t idx) const {
     return distance_L2_Simple.accum_dist(a, b, idx);
   }
 };
@@ -1088,7 +1088,7 @@ public:
  *
  *
  *   // Must return the dim'th component of the idx'th point in the class:
- *   inline T kdtree_get_pt(const size_t idx, int dim) const { ... }
+ *   inline T kdtree_get_pt(const size_t idx, const size_t dim) const { ... }
  *
  *   // Optional bounding-box computation: return false to default to a standard
  * bbox computation loop.
@@ -1438,7 +1438,7 @@ public:
  *   inline size_t kdtree_get_point_count() const { ... }
  *
  *   // Must return the dim'th component of the idx'th point in the class:
- *   inline T kdtree_get_pt(const size_t idx, int dim) const { ... }
+ *   inline T kdtree_get_pt(const size_t idx, const size_t dim) const { ... }
  *
  *   // Optional bounding-box computation: return false to default to a standard
  * bbox computation loop.
@@ -1588,10 +1588,11 @@ public:
       return false;
     float epsError = 1 + searchParams.eps;
 
-    distance_vector_t
-        dists; // fixed or variable-sized container (depending on DIM)
+    // fixed or variable-sized container (depending on DIM)
+    distance_vector_t dists;
+    // Fill it with zeros.
     assign(dists, (DIM > 0 ? DIM : BaseClassRef::dim),
-           0); // Fill it with zeros.
+           static_cast<typename distance_vector_t::value_type>(0));
     DistanceType distsq = this->computeInitialDistances(*this, vec, dists);
     searchLevel(result, vec, BaseClassRef::root_node, distsq, dists,
                 epsError); // "count_leaf" parameter removed since was neither
@@ -1858,7 +1859,7 @@ public:
                                       KDTreeSingleIndexAdaptorParams(),
                                   const size_t maximumPointCount = 1000000000U)
       : dataset(inputData), index_params(params), distance(inputData) {
-    treeCount = std::log2(maximumPointCount);
+    treeCount = static_cast<size_t>(std::log2(maximumPointCount));
     pointCount = 0U;
     dim = dimensionality;
     treeIndex.clear();
@@ -1866,7 +1867,7 @@ public:
       dim = DIM;
     m_leaf_max_size = params.leaf_max_size;
     init();
-    int num_initial_points = dataset.kdtree_get_point_count();
+    const size_t num_initial_points = dataset.kdtree_get_point_count();
     if (num_initial_points > 0) {
       addPoints(0, num_initial_points - 1);
     }
@@ -1879,7 +1880,7 @@ public:
 
   /** Add points to the set, Inserts all points from [start, end] */
   void addPoints(IndexType start, IndexType end) {
-    int count = end - start + 1;
+    size_t count = end - start + 1;
     treeIndex.resize(treeIndex.size() + count);
     for (IndexType idx = start; idx <= end; idx++) {
       int pos = First0Bit(pointCount);
@@ -1962,23 +1963,22 @@ struct KDTreeEigenMatrixAdaptor {
                   //! usual with any other FLANN index.
 
   /// Constructor: takes a const ref to the matrix object with the data points
-  KDTreeEigenMatrixAdaptor(const int dimensionality,
+  KDTreeEigenMatrixAdaptor(const size_t dimensionality,
                            const std::reference_wrapper<const MatrixType> &mat,
                            const int leaf_max_size = 10)
       : m_data_matrix(mat) {
-    const int dims = static_cast<int>(mat.get().cols());
+    const auto dims = mat.get().cols();
     if (dims != dimensionality)
       throw std::runtime_error(
           "Error: 'dimensionality' must match column count in data matrix");
-    if (DIM > 0 && static_cast<int>(dims) != DIM)
+    if (DIM > 0 && dims != DIM)
       throw std::runtime_error(
           "Data set dimensionality does not match the 'DIM' template argument");
     index =
-        new index_t(dims, *this /* adaptor */,
+        new index_t(static_cast<int>(dims), *this /* adaptor */,
                     nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size));
     index->buildIndex();
   }
-
 public:
   /** Deleted copy constructor */
   KDTreeEigenMatrixAdaptor(const self_t &) = delete;
@@ -2013,7 +2013,7 @@ public:
   }
 
   // Returns the dim'th component of the idx'th point in the class:
-  inline num_t kdtree_get_pt(const IndexType idx, int dim) const {
+  inline num_t kdtree_get_pt(const IndexType idx, size_t dim) const {
     return m_data_matrix.get().coeff(idx, IndexType(dim));
   }
 

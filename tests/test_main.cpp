@@ -125,7 +125,7 @@ void L2_vs_bruteforce_test(const size_t nSamples,const size_t DIM)
 	// Query point:
 	std::vector<NUM> query_pt(DIM);
 	for (size_t d=0;d<DIM;d++)
-		query_pt[d] = max_range * (rand() % 1000) / (1000.0);
+		query_pt[d] = static_cast<NUM>(max_range * (rand() % 1000) / (1000.0));
 
 	// construct a kd-tree index:
 	// Dimensionality set at run-time (default: L2)
@@ -147,7 +147,7 @@ void L2_vs_bruteforce_test(const size_t nSamples,const size_t DIM)
 
 	// Brute force:
 	double min_dist_L2 = std::numeric_limits<double>::max();
-	int    min_idx = -1;
+	size_t min_idx = std::numeric_limits<size_t>::max();
 	{
 		for (size_t i=0;i<nSamples;i++)
 		{
@@ -160,11 +160,11 @@ void L2_vs_bruteforce_test(const size_t nSamples,const size_t DIM)
 				min_idx = i;
 			}
 		}
-		ASSERT_TRUE(min_idx!=-1);
+		ASSERT_TRUE(min_idx!= std::numeric_limits<size_t>::max());
 	}
 
 	// Compare:
-	EXPECT_EQ(static_cast<size_t>(min_idx),ret_indexes[0]);
+	EXPECT_EQ(min_idx,ret_indexes[0]);
 	EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
 }
 
@@ -200,7 +200,7 @@ void SO3_vs_bruteforce_test(const size_t nSamples)
 
 	// Brute force:
 	double min_dist_L2 = std::numeric_limits<double>::max();
-	int    min_idx = -1;
+	size_t min_idx = std::numeric_limits<size_t>::max();
 	{
 		for (size_t i=0;i<nSamples;i++)
 		{
@@ -213,11 +213,11 @@ void SO3_vs_bruteforce_test(const size_t nSamples)
 				min_idx = i;
 			}
 		}
-		ASSERT_TRUE(min_idx!=-1);
+		ASSERT_TRUE(min_idx!= std::numeric_limits<size_t>::max());
 	}
 
 	// Compare:
-	EXPECT_EQ(static_cast<size_t>(min_idx),ret_indexes[0]);
+	EXPECT_EQ(min_idx,ret_indexes[0]);
 	EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
 }
 
@@ -253,7 +253,7 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
 
 	// Brute force:
 	double min_dist_SO2 = std::numeric_limits<double>::max();
-	int    min_idx = -1;
+	size_t min_idx = std::numeric_limits<size_t>::max();
 	{
 		for (size_t i=0;i<nSamples;i++)
 		{
@@ -269,10 +269,10 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
 				min_idx = i;
 			}
 		}
-		ASSERT_TRUE(min_idx!=-1);
+		ASSERT_TRUE(min_idx!= std::numeric_limits<size_t>::max());
 	}
 	// Compare:
-	EXPECT_EQ(static_cast<size_t>(min_idx),ret_indexes[0]);
+	EXPECT_EQ(min_idx,ret_indexes[0]);
 	EXPECT_NEAR(min_dist_SO2,out_dists_sqr[0],1e-3);
 }
 
@@ -322,7 +322,7 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
 
 		// Brute force:
 		double min_dist_L2 = std::numeric_limits<double>::max();
-		int    min_idx = -1;
+		size_t min_idx = std::numeric_limits<size_t>::max();
 		{
 			for (size_t i=0;i<nSamples/2;i++)
 			{
@@ -335,10 +335,10 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
 					min_idx = i;
 				}
 			}
-			ASSERT_TRUE(min_idx!=-1);
+			ASSERT_TRUE(min_idx!= std::numeric_limits<size_t>::max());
 		}
 		// Compare:
-		EXPECT_EQ(static_cast<size_t>(min_idx),ret_indexes[0]);
+		EXPECT_EQ(min_idx,ret_indexes[0]);
 		EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
 	}
 	for(size_t i=end+1; i<nSamples; i=i+chunk_size)
@@ -360,7 +360,7 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
 
 		// Brute force:
 		double min_dist_L2 = std::numeric_limits<double>::max();
-		int    min_idx = -1;
+		size_t min_idx = std::numeric_limits<size_t>::max();
 		{
 			for (size_t i=0;i<nSamples;i++)
 			{
@@ -373,10 +373,10 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
 					min_idx = i;
 				}
 			}
-			ASSERT_TRUE(min_idx!=-1);
+			ASSERT_TRUE(min_idx!= std::numeric_limits<size_t>::max());
 		}
 		// Compare:
-		EXPECT_EQ(static_cast<size_t>(min_idx),ret_indexes[0]);
+		EXPECT_EQ(min_idx,ret_indexes[0]);
 		EXPECT_NEAR(min_dist_L2,out_dists_sqr[0],1e-3);
 	}
 }
@@ -423,7 +423,7 @@ TEST(kdtree,robust_empty_tree)
 
 TEST(kdtree,L2_vs_bruteforce)
 {
-	srand(time(NULL));
+	srand(static_cast<unsigned int>(time(nullptr)));
 	for (int i=0;i<10;i++)
 	{
 		L2_vs_bruteforce_test<float>(100, 2);
@@ -438,7 +438,7 @@ TEST(kdtree,L2_vs_bruteforce)
 
 TEST(kdtree,SO3_vs_bruteforce)
 {
-	srand(time(NULL));
+	srand(static_cast<unsigned int>(time(nullptr)));
 	for (int i=0;i<10;i++)
 	{
 		SO3_vs_bruteforce_test<float>(100);
@@ -453,7 +453,7 @@ TEST(kdtree,SO3_vs_bruteforce)
 
 TEST(kdtree,SO2_vs_bruteforce)
 {
-	srand(time(NULL));
+	srand(static_cast<unsigned int>(time(nullptr)));
 	for (int i=0;i<10;i++)
 	{
 		SO2_vs_bruteforce_test<float>(100);
@@ -468,7 +468,7 @@ TEST(kdtree,SO2_vs_bruteforce)
 
 TEST(kdtree,L2_dynamic_vs_bruteforce)
 {
-	srand(time(NULL));
+	srand(static_cast<unsigned int>(time(nullptr)));
 	for (int i=0;i<10;i++)
 	{
 		L2_dynamic_vs_bruteforce_test<float>(100);

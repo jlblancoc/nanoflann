@@ -1,4 +1,5 @@
 nanoflann 1.3.0: (Unreleased)
+  * Fix all (?) MSVC conversion warnings (Closes: #95).
   * Avoid need for _USE_MATH_DEFINES in MSVC (Closes: #96)
   * Eigen::Matrix datasets: now uses std::cref() to store a reference to matrix.
   * GSOC2017 contributions by Pranjal Kumar Rai:

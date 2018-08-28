@@ -51,7 +51,7 @@ struct PointCloud
     // Returns the dim'th component of the idx'th point in the class:
     // Since this is inlined and the "dim" argument is typically an immediate value, the
     //  "if/else's" are actually solved at compile time.
-    inline T kdtree_get_pt(const size_t idx, int dim) const
+    inline T kdtree_get_pt(const size_t idx, const size_t dim) const
     {
         if (dim==0) return pts[idx].x;
         else if (dim==1) return pts[idx].y;
@@ -98,7 +98,7 @@ void kdtree_demo(const size_t N, double &buildTimer, double &queryTimer)
     index.buildIndex();
     clock_t end = clock();
     buildTimer += double(end - begin) / CLOCKS_PER_SEC;
-    
+
     {
         double elapsed_secs=0;
         for(size_t i=0;i<N;i++)
@@ -115,7 +115,7 @@ void kdtree_demo(const size_t N, double &buildTimer, double &queryTimer)
             clock_t end = clock();
             elapsed_secs += double(end - begin);
         }
-        elapsed_secs = elapsed_secs/CLOCKS_PER_SEC;        
+        elapsed_secs = elapsed_secs/CLOCKS_PER_SEC;
         queryTimer += elapsed_secs/N;
     }
 }

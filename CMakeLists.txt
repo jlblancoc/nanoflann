@@ -37,7 +37,7 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 if(MSVC)
-	 add_definitions( "/W3 /D_CRT_SECURE_NO_WARNINGS /wd4267 /wd4244 /nologo" )
+	 add_definitions( "/W3 /D_CRT_SECURE_NO_WARNINGS /nologo" )
 endif()
 
 # Solution Folder options:

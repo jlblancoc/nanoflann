@@ -118,8 +118,8 @@ void kdtree_demo(const size_t nSamples, const size_t dim) {
 
 int main(int argc, char **argv) {
   // Randomize Seed
-  srand(time(NULL));
-  kdtree_demo<float>(1e3 /* samples */, SAMPLES_DIM /* dim */);
+  srand(static_cast<unsigned int>(time(nullptr)));
+  kdtree_demo<float>(1000 /* samples */, SAMPLES_DIM /* dim */);
 
   return 0;
 }

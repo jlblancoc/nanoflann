@@ -66,7 +66,7 @@ struct PointCloud
 	// Returns the dim'th component of the idx'th point in the class:
 	// Since this is inlined and the "dim" argument is typically an immediate value, the
 	//  "if/else's" are actually solved at compile time.
-	inline float kdtree_get_pt(const size_t idx, int dim) const
+	inline float kdtree_get_pt(const size_t idx, const size_t dim) const
 	{
 		if (dim==0) return pts[idx].x;
 		else if (dim==1) return pts[idx].y;

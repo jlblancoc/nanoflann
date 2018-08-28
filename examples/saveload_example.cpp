@@ -95,7 +95,7 @@ void kdtree_save_load_demo(const size_t N)
 int main()
 {
 	// Randomize Seed
-	srand(time(NULL));
+	srand(static_cast<unsigned int>(time(nullptr)));
 	kdtree_save_load_demo(100000);
 	return 0;
 }

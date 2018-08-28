@@ -71,7 +71,7 @@ struct PointCloudAdaptor
 	// Returns the dim'th component of the idx'th point in the class:
 	// Since this is inlined and the "dim" argument is typically an immediate value, the
 	//  "if/else's" are actually solved at compile time.
-	inline coord_t kdtree_get_pt(const size_t idx, int dim) const
+	inline coord_t kdtree_get_pt(const size_t idx, const size_t dim) const
 	{
 		if (dim == 0) return derived().pts[idx].x;
 		else if (dim == 1) return derived().pts[idx].y;
@@ -145,7 +145,7 @@ void kdtree_demo(const size_t N)
 int main()
 {
 	// Randomize Seed
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 	kdtree_demo<float>(1000000);
 	kdtree_demo<double>(1000000);
 	return 0;

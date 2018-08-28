@@ -45,7 +45,7 @@ struct PointCloud
 	// Returns the dim'th component of the idx'th point in the class:
 	// Since this is inlined and the "dim" argument is typically an immediate value, the
 	//  "if/else's" are actually solved at compile time.
-	inline T kdtree_get_pt(const size_t idx, int dim) const
+	inline T kdtree_get_pt(const size_t idx, const size_t dim) const
 	{
 		if (dim == 0) return pts[idx].x;
 		else if (dim == 1) return pts[idx].y;
@@ -90,7 +90,7 @@ struct PointCloud_Quat
 	// Returns the dim'th component of the idx'th point in the class:
 	// Since this is inlined and the "dim" argument is typically an immediate value, the
 	//  "if/else's" are actually solved at compile time.
-	inline T kdtree_get_pt(const size_t idx, int dim) const
+	inline T kdtree_get_pt(const size_t idx, const size_t dim) const
 	{
 		if (dim==0) return pts[idx].w;
 		else if (dim==1) return pts[idx].x;
@@ -114,11 +114,11 @@ void generateRandomPointCloud_Quat(PointCloud_Quat<T> &point, const size_t N)
 	T theta, X, Y, Z, sinAng, cosAng, mag;
 	for (size_t i=0;i<N;i++)
 	{
-		theta = nanoflann::pi_const<double>() * (((double)rand()) / RAND_MAX);
+		theta = static_cast<T>(nanoflann::pi_const<double>() * (((double)rand()) / RAND_MAX));
 		// Generate random value in [-1, 1]
-		X = 2 * (((double)rand()) / RAND_MAX) - 1;
-		Y = 2 * (((double)rand()) / RAND_MAX) - 1;
-		Z = 2 * (((double)rand()) / RAND_MAX) - 1;
+		X = static_cast<T>(2 * (((double)rand()) / RAND_MAX) - 1);
+		Y = static_cast<T>(2 * (((double)rand()) / RAND_MAX) - 1);
+		Z = static_cast<T>(2 * (((double)rand()) / RAND_MAX) - 1);
 		mag = sqrt(X*X + Y*Y + Z*Z);
 		X /= mag; Y /= mag; Z /= mag;
 		cosAng = cos(theta / 2);
@@ -147,7 +147,7 @@ struct PointCloud_Orient
 	// Returns the dim'th component of the idx'th point in the class:
 	// Since this is inlined and the "dim" argument is typically an immediate value, the
 	//  "if/else's" are actually solved at compile time.
-	inline T kdtree_get_pt(const size_t idx, int dim = 0) const
+	inline T kdtree_get_pt(const size_t idx, const size_t dim = 0) const
 	{
 		return pts[idx].theta;
 	}
@@ -166,7 +166,7 @@ void generateRandomPointCloud_Orient(PointCloud_Orient<T> &point, const size_t N
 	// Generating Random Orientations
 	point.pts.resize(N);
 	for (size_t i=0;i<N;i++) {
-		point.pts[i].theta = ( 2 * nanoflann::pi_const<double>() * (((double)rand()) / RAND_MAX) ) - nanoflann::pi_const<double>();
+		point.pts[i].theta = static_cast<T>(( 2 * nanoflann::pi_const<double>() * (((double)rand()) / RAND_MAX) ) - nanoflann::pi_const<double>());
 	}
 }
 

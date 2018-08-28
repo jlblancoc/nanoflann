@@ -56,13 +56,13 @@ struct KDTreeVectorOfVectorsAdaptor
 	index_t* index; //! The kd-tree index for the user to call its methods as usual with any other FLANN index.
 
 	/// Constructor: takes a const ref to the vector of vectors object with the data points
-	KDTreeVectorOfVectorsAdaptor(const int /* dimensionality */, const VectorOfVectorsType &mat, const int leaf_max_size = 10) : m_data(mat)
+	KDTreeVectorOfVectorsAdaptor(const size_t /* dimensionality */, const VectorOfVectorsType &mat, const int leaf_max_size = 10) : m_data(mat)
 	{
 		assert(mat.size() != 0 && mat[0].size() != 0);
 		const size_t dims = mat[0].size();
 		if (DIM>0 && static_cast<int>(dims) != DIM)
 			throw std::runtime_error("Data set dimensionality does not match the 'DIM' template argument");
-		index = new index_t( dims, *this /* adaptor */, nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size ) );
+		index = new index_t( static_cast<int>(dims), *this /* adaptor */, nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size ) );
 		index->buildIndex();
 	}
 
@@ -100,7 +100,7 @@ struct KDTreeVectorOfVectorsAdaptor
 	}
 
 	// Returns the dim'th component of the idx'th point in the class:
-	inline num_t kdtree_get_pt(const size_t idx, int dim) const {
+	inline num_t kdtree_get_pt(const size_t idx, const size_t dim) const {
 		return m_data[idx][dim];
 	}
 
