@@ -14,7 +14,7 @@ include_directories(".")
 add_library(mygtest STATIC src/gtest-all.cc)
 
 if(CMAKE_COMPILER_IS_GNUCXX AND UNIX)
-  add_compiler_options("-fPIC")
+	add_compile_options("-fPIC")
 endif()
 
 set_target_properties(mygtest PROPERTIES FOLDER "3rd party")
