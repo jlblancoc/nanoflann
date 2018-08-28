@@ -28,7 +28,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *************************************************************************/
 
-#define _USE_MATH_DEFINES // Required by MSVC to define M_PI,etc. in <cmath>
 #include <cmath>   // for abs()
 
 #include <gtest/gtest.h>
@@ -260,10 +259,10 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
 		{
 			double dist=0.0;
 			dist = cloud.kdtree_get_pt(i,0) - query_pt[0];
-			if (dist > M_PI)
-				dist -= 2. * M_PI;
-			else if (dist < -M_PI)
-				dist += 2. * M_PI;
+			if (dist > nanoflann::pi_const<double>())
+				dist -= 2 * nanoflann::pi_const<double>();
+			else if (dist < -nanoflann::pi_const<double>())
+				dist += 2 * nanoflann::pi_const<double>();
 			if (dist<min_dist_SO2)
 			{
 				min_dist_SO2=dist;
@@ -277,8 +276,8 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
 	EXPECT_NEAR(min_dist_SO2,out_dists_sqr[0],1e-3);
 }
 
-// First add nSamples/2 points, find the closest point 
-// Then add remaining points and find closest point 
+// First add nSamples/2 points, find the closest point
+// Then add remaining points and find closest point
 // Compare both with closest point using brute force approach
 template <typename NUM>
 void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
@@ -315,9 +314,9 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
 		const size_t num_results = 1;
 		std::vector<size_t>   ret_indexes(num_results);
 		std::vector<NUM> out_dists_sqr(num_results);
-		
+
 		nanoflann::KNNResultSet<NUM> resultSet(num_results);
-		
+
 		resultSet.init(&ret_indexes[0], &out_dists_sqr[0] );
 		index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
 
@@ -353,9 +352,9 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
 		const size_t num_results = 1;
 		std::vector<size_t>   ret_indexes(num_results);
 		std::vector<NUM> out_dists_sqr(num_results);
-		
+
 		nanoflann::KNNResultSet<NUM> resultSet(num_results);
-		
+
 		resultSet.init(&ret_indexes[0], &out_dists_sqr[0] );
 		index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
 

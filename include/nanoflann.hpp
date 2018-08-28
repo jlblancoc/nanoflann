@@ -53,7 +53,6 @@
 #include <cstdio> // for fwrite()
 #include <stdexcept>
 #include <vector>
-#define _USE_MATH_DEFINES // Required by MSVC to define M_PI,etc. in <cmath>
 #include <cmath>          // for abs()
 #include <cstdlib>        // for abs()
 #include <functional>
@@ -72,6 +71,11 @@
 namespace nanoflann {
 /** @addtogroup nanoflann_grp nanoflann C++ library for ANN
  *  @{ */
+
+/** the PI constant (required to avoid MSVC missing symbols) */
+template <typename T> T pi_const() {
+  return static_cast<T>(3.14159265358979323846);
+}
 
 /**
  * Traits if object is resizable and assignable (typically has a resize | assign
@@ -462,14 +466,15 @@ struct SO2_Adaptor {
                       size - 1);
   }
 
+  /** Note: this assumes that input angles are already in the range [-pi,pi] */
   template <typename U, typename V>
   inline DistanceType accum_dist(const U a, const V b, int) const {
-    DistanceType result = DistanceType();
+    DistanceType result = DistanceType(), PI = pi_const<DistanceType>();
     result = b - a;
-    if (result > M_PI)
-      result -= 2. * M_PI;
-    else if (result < -M_PI)
-      result += 2. * M_PI;
+    if (result > PI)
+      result -= 2 * PI;
+    else if (result < -PI)
+      result += 2 * PI;
     return result;
   }
 };
