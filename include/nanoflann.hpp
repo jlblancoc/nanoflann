@@ -58,6 +58,9 @@
 #include <functional>
 #include <limits> // std::reference_wrapper
 
+/** Library version: 0xMmP (M=Major,m=minor,P=patch) */
+#define NANOFLANN_VERSION 0x130
+
 // Avoid conflicting declaration of min/max macros in windows headers
 #if !defined(NOMINMAX) &&                                                      \
     (defined(_WIN32) || defined(_WIN32_) || defined(WIN32) || defined(_WIN64))
@@ -131,9 +134,6 @@ assign(Container &c, const size_t nElements, const T &value) {
   for (size_t i = 0; i < nElements; i++)
     c[i] = value;
 }
-
-/** Library version: 0xMmP (M=Major,m=minor,P=patch) */
-#define NANOFLANN_VERSION 0x123
 
 /** @addtogroup result_sets_grp Result set classes
  *  @{ */
