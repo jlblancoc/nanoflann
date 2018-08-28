@@ -53,7 +53,6 @@
 #include <cstdio> // for fwrite()
 #include <stdexcept>
 #include <vector>
-#define _USE_MATH_DEFINES // Required by MSVC to define M_PI,etc. in <cmath>
 #include <cmath>          // for abs()
 #include <cstdlib>        // for abs()
 #include <functional>
@@ -72,6 +71,11 @@
 namespace nanoflann {
 /** @addtogroup nanoflann_grp nanoflann C++ library for ANN
  *  @{ */
+
+ /**
+  * Math constant defined for ease of use and portability
+  */
+constexpr double pi = 3.14159265358979323846;
 
 /**
  * Traits if object is resizable and assignable (typically has a resize | assign
@@ -466,10 +470,10 @@ struct SO2_Adaptor {
   inline DistanceType accum_dist(const U a, const V b, int) const {
     DistanceType result = DistanceType();
     result = b - a;
-    if (result > M_PI)
-      result -= 2. * M_PI;
-    else if (result < -M_PI)
-      result += 2. * M_PI;
+    if (result > pi)
+      result -= 2. * pi;
+    else if (result < -pi)
+      result += 2. * pi;
     return result;
   }
 };
