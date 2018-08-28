@@ -108,6 +108,25 @@ Refer to the examples below or to the C++ API of [nanoflann::KDTreeSingleIndexAd
   * Only the C++ interface exists: there is no support for C, MATLAB or Python.
   * There is no automatic algorithm configuration (as described in the original Muja & Lowe's paper).
 
+### 1.7. Use in your project via CMake
+
+You can directly drop the `nanoflann.hpp` file in your project. Alternatively,
+the CMake standard method is also available:
+
+  * Build and "install" nanoflann. Set `CMAKE_INSTALL_PREFIX` to a proper path
+  and then execute `make install` (Linux, OSX) or build the `INSTALL`
+  target (Visual Studio).
+  * Then, add something like this to the CMake script of your project:
+
+```
+# Find nanoflannConfig.cmake:
+find_package(nanoflann)
+
+add_executable(my_project test.cpp)
+
+# Make sure the include path is used:
+target_link_libraries(my_project nanoflann::nanoflann)
+```
 
 ------
 
