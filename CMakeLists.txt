@@ -21,10 +21,6 @@ message(STATUS "nanoflann version: ${NANOFLANN_VERSION_MAJOR}.${NANOFLANN_VERSIO
 file(WRITE "${nanoflann_BINARY_DIR}/version" "${NANOFLANN_VERSION_MAJOR}.${NANOFLANN_VERSION_MINOR}.${NANOFLANN_VERSION_PATCH}")
 
 
-if (POLICY CMP0037)
-	cmake_policy(SET CMP0037 OLD) # allow target "test"
-endif()
-
 # Compiler options:
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -91,6 +87,7 @@ endif()
 # Tests
 option(BUILD_TESTS "Build unit tests" ON)
 if(BUILD_TESTS)
+	enable_testing()
 	add_subdirectory(tests)
 endif()
 

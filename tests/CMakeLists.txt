@@ -8,43 +8,33 @@ if(MSVC)
 	add_definitions(-D_VARIADIC_MAX=10)
 endif(MSVC)
 
-IF(NOT TARGET gtest)
+if(NOT TARGET gtest)
 	# Treat this directory as "system" to ignore pedantic warnings.
-	IF(CMAKE_COMPILER_IS_GNUCXX)
-		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem gtest-1.7.0/fused-src")
-	ENDIF(CMAKE_COMPILER_IS_GNUCXX)
+	if(CMAKE_COMPILER_IS_GNUCXX)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem gtest-1.8.0/include")
+	endif()
 
 	# Compile gtest from sources:
-	add_subdirectory(gtest-1.7.0)
-	INCLUDE_DIRECTORIES("gtest-1.7.0/fused-src")
-ENDIF(NOT TARGET gtest)
+	add_subdirectory(gtest-1.8.0)
+	INCLUDE_DIRECTORIES("gtest-1.8.0/include/")
+endif()
 
-SET(EXECUTABLE_OUTPUT_PATH "${${PROJECT_NAME}_BINARY_DIR}")
-
-# -----------------------------
-# Add the "make test" target:
-# -----------------------------
-ADD_CUSTOM_TARGET(test)
+set(EXECUTABLE_OUTPUT_PATH "${${PROJECT_NAME}_BINARY_DIR}")
 
 # Tests based on Google gtest:
 # -----------------------------
 
 # If using system library, add C++ flags:
-IF (UNIX)
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-ENDIF (UNIX)
+if (UNIX)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+endif()
 
 # Test project:
 ADD_EXECUTABLE(unit_tests test_main.cpp)
-
 set_target_properties(unit_tests PROPERTIES FOLDER "./")
+ADD_TEST(unit_tests_build "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target unit_tests)
+ADD_TEST(unit_tests_run ${EXECUTABLE_OUTPUT_PATH}/unit_tests)
+set_tests_properties(unit_tests_run PROPERTIES DEPENDS unit_tests_build)
 
 # Add the required libraries for linking:
-TARGET_LINK_LIBRARIES(unit_tests gtest nanoflann)
-
-# Run it:
-ADD_CUSTOM_TARGET(run_tests COMMAND "$<TARGET_FILE:unit_tests>" "${${PROJECT_NAME}__SOURCE_DIR}")
-ADD_DEPENDENCIES(run_tests unit_tests)
-ADD_DEPENDENCIES(test run_tests)
-
-
+TARGET_LINK_LIBRARIES(unit_tests mygtest nanoflann)
