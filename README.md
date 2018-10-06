@@ -13,7 +13,7 @@ This library is a *fork* of the [flann library](http://people.cs.ubc.ca/~mariusm
 Cite as:
 ```
 @misc{blanco2014nanoflann,
-  title        = {nanoflann: a {C}++ header-only fork of {FLANN}, a library for Nearest Neighbor ({NN}) wih KD-trees},
+  title        = {nanoflann: a {C}++ header-only fork of {FLANN}, a library for Nearest Neighbor ({NN}) with KD-trees},
   author       = {Blanco, Jose Luis and Rai, Pranjal Kumar},
   howpublished = {\url{https://github.com/jlblancoc/nanoflann}},
   year         = {2014}
