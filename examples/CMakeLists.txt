@@ -5,6 +5,8 @@ MACRO(DEFINE_EXAMPLE _NAME)
 	ADD_EXECUTABLE(${_NAME} ${_NAME}.cpp)
 	set_target_properties(${_NAME} PROPERTIES FOLDER "Examples")
 	TARGET_LINK_LIBRARIES(${_NAME} nanoflann::nanoflann)  # adds the "#include" directory.
+  install(TARGETS ${_NAME}
+          DESTINATION examples)
 ENDMACRO()
 
 DEFINE_EXAMPLE(dynamic_pointcloud_example)

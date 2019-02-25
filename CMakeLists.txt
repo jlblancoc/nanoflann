@@ -44,7 +44,6 @@ endif()
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
 
-set( EXECUTABLE_OUTPUT_PATH ${nanoflann_BINARY_DIR}/bin CACHE PATH "Output directory for programs" )
 add_definitions ( -DNANOFLANN_PATH="${CMAKE_SOURCE_DIR}" )
 
 
