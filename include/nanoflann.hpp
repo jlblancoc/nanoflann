@@ -59,7 +59,7 @@
 #include <vector>
 
 /** Library version: 0xMmP (M=Major,m=minor,P=patch) */
-#define NANOFLANN_VERSION 0x131
+#define NANOFLANN_VERSION 0x132
 
 // Avoid conflicting declaration of min/max macros in windows headers
 #if !defined(NOMINMAX) &&                                                      \
