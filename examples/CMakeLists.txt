@@ -1,4 +1,4 @@
-find_package(Eigen3)
+find_package(Eigen3 QUIET)
 
 # examples:
 MACRO(DEFINE_EXAMPLE _NAME)
@@ -22,4 +22,3 @@ IF(EIGEN3_FOUND)
 	DEFINE_EXAMPLE(matrix_example)
     target_include_directories (matrix_example PRIVATE ${EIGEN3_INCLUDE_DIR})
 ENDIF()
-
