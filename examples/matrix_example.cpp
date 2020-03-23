@@ -96,6 +96,14 @@ void kdtree_demo(const size_t nSamples, const size_t dim) {
   //	typedef KDTreeEigenMatrixAdaptor<
   // Eigen::Matrix<num_t,Dynamic,Dynamic>,nanoflann::metric_L1>  my_kd_tree_t;
 
+  // Dimensionality set at compile-time: Explicit selection of the distance
+  // metric: L2
+  // Row Major matrix layout
+  // Eigen::Matrix<num_t, Dynamic, Dynamic> mat(dim, nSamples);
+  //	typedef KDTreeEigenMatrixAdaptor<
+  // Eigen::Matrix<num_t,Dynamic,Dynamic>,nanoflann::metric_L2, true>
+  // my_kd_tree_t;
+  
   my_kd_tree_t mat_index(dim, std::cref(mat), 10 /* max leaf */);
   mat_index.index->buildIndex();
 
