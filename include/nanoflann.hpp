@@ -670,7 +670,7 @@ public:
       void *m = ::malloc(blocksize);
       if (!m) {
         fprintf(stderr, "Failed to allocate memory.\n");
-        return NULL;
+        throw std::bad_alloc();
       }
 
       /* Fill first word of new block with pointer to previous block. */
