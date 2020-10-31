@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------
 # Root CMake file for nanoflann
 # ----------------------------------------------------------------------------
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.14)
 
 # Extract library version into "NANOFLANN_VERSION"
 # -----------------------------------------------------
@@ -49,7 +49,7 @@ add_definitions ( -DNANOFLANN_PATH="${CMAKE_SOURCE_DIR}" )
 
 # Set relative install directories
 set(INSTALL_INCLUDE_DIR "include")
-set(INSTALL_PKGCONFIG_DIR "lib${LIB_SUFFIX}/pkgconfig")
+set(INSTALL_PKGCONFIG_DIR "share/pkgconfig")
 set(INSTALL_CMAKE_DIR "lib${LIB_SUFFIX}/cmake/nanoflann")
 set(INSTALL_COPYRIGHT_DIR "share/doc/libnanoflann-dev")
 
@@ -128,6 +128,7 @@ configure_package_config_file(
 write_basic_package_version_file(
     "${nanoflann_BINARY_DIR}/nanoflannConfigVersion.cmake"
     VERSION ${nanoflann_VERSION}
+    ARCH_INDEPENDENT
     COMPATIBILITY AnyNewerVersion)
 
 
