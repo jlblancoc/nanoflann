@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------
 # Root CMake file for nanoflann
 # ----------------------------------------------------------------------------
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.1)
 
 # Extract library version into "NANOFLANN_VERSION"
 # -----------------------------------------------------
@@ -125,12 +125,19 @@ configure_package_config_file(
     INSTALL_DESTINATION ${INSTALL_CMAKE_DIR}
     PATH_VARS INSTALL_INCLUDE_DIR)
 
+# Setting CMAKE_SIZEOF_VOID_P to the empty string has the same
+# effect as the ARCH_INDEPENDENT option of
+# write_basic_package_version_file(), but works with older CMake
+# versions before 3.14
+set(backup_of_CMAKE_SIZEOF_VOID_P "${CMAKE_SIZEOF_VOID_P}")
+set(CMAKE_SIZEOF_VOID_P "")
+
 write_basic_package_version_file(
     "${nanoflann_BINARY_DIR}/nanoflannConfigVersion.cmake"
     VERSION ${nanoflann_VERSION}
-    ARCH_INDEPENDENT
     COMPATIBILITY AnyNewerVersion)
 
+set(CMAKE_SIZEOF_VOID_P "${backup_of_CMAKE_SIZEOF_VOID_P}")
 
 # Uninstall target, for "make uninstall"
 configure_file(
