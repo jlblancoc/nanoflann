@@ -49,7 +49,7 @@ add_definitions ( -DNANOFLANN_PATH="${CMAKE_SOURCE_DIR}" )
 
 # Set relative install directories
 set(INSTALL_INCLUDE_DIR "include")
-set(INSTALL_PKGCONFIG_DIR "lib${LIB_SUFFIX}/pkgconfig")
+set(INSTALL_PKGCONFIG_DIR "share/pkgconfig")
 set(INSTALL_CMAKE_DIR "lib${LIB_SUFFIX}/cmake/nanoflann")
 set(INSTALL_COPYRIGHT_DIR "share/doc/libnanoflann-dev")
 
@@ -125,11 +125,19 @@ configure_package_config_file(
     INSTALL_DESTINATION ${INSTALL_CMAKE_DIR}
     PATH_VARS INSTALL_INCLUDE_DIR)
 
+# Setting CMAKE_SIZEOF_VOID_P to the empty string has the same
+# effect as the ARCH_INDEPENDENT option of
+# write_basic_package_version_file(), but works with older CMake
+# versions before 3.14
+set(backup_of_CMAKE_SIZEOF_VOID_P "${CMAKE_SIZEOF_VOID_P}")
+set(CMAKE_SIZEOF_VOID_P "")
+
 write_basic_package_version_file(
     "${nanoflann_BINARY_DIR}/nanoflannConfigVersion.cmake"
     VERSION ${nanoflann_VERSION}
     COMPATIBILITY AnyNewerVersion)
 
+set(CMAKE_SIZEOF_VOID_P "${backup_of_CMAKE_SIZEOF_VOID_P}")
 
 # Uninstall target, for "make uninstall"
 configure_file(
