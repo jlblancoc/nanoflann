@@ -47,11 +47,12 @@ set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
 add_definitions ( -DNANOFLANN_PATH="${CMAKE_SOURCE_DIR}" )
 
 
+include(GNUInstallDirs)
 # Set relative install directories
-set(INSTALL_INCLUDE_DIR "include")
-set(INSTALL_PKGCONFIG_DIR "share/pkgconfig")
-set(INSTALL_CMAKE_DIR "lib${LIB_SUFFIX}/cmake/nanoflann")
-set(INSTALL_COPYRIGHT_DIR "share/doc/libnanoflann-dev")
+set(INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_INCLUDEDIR}")
+set(INSTALL_PKGCONFIG_DIR "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+set(INSTALL_CMAKE_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+set(INSTALL_COPYRIGHT_DIR "${CMAKE_INSTALL_DOCDIR}")
 
 
 # Define nanoflann lib (header-only)
