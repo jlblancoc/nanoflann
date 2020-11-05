@@ -20,11 +20,6 @@ project(nanoflann VERSION "${NANOFLANN_VERSION_MAJOR}.${NANOFLANN_VERSION_MINOR}
 message(STATUS "nanoflann version: ${NANOFLANN_VERSION_MAJOR}.${NANOFLANN_VERSION_MINOR}.${NANOFLANN_VERSION_PATCH}")
 file(WRITE "${nanoflann_BINARY_DIR}/version" "${NANOFLANN_VERSION_MAJOR}.${NANOFLANN_VERSION_MINOR}.${NANOFLANN_VERSION_PATCH}")
 
-
-# Compiler options:
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 # Enable a high level of warnings.
 if (CMAKE_COMPILER_IS_GNUCXX)
 	# The -Wno-long-long is required in 64bit systems when including sytem headers.
@@ -58,6 +53,13 @@ set(INSTALL_COPYRIGHT_DIR "${CMAKE_INSTALL_DOCDIR}")
 # Define nanoflann lib (header-only)
 add_library(nanoflann INTERFACE)
 
+# Tell CMake which C++ features we need
+target_compile_features(nanoflann
+	INTERFACE
+		cxx_auto_type
+		cxx_decltype
+		cxx_deleted_functions
+)
 target_include_directories(nanoflann
 	INTERFACE
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
