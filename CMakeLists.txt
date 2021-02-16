@@ -149,9 +149,14 @@ configure_file(
   "${nanoflann_BINARY_DIR}/cmake_uninstall.cmake"
   @ONLY IMMEDIATE)
 
-add_custom_target(uninstall
-  "${CMAKE_COMMAND}" -P "${nanoflann_BINARY_DIR}/cmake_uninstall.cmake")
-
+if (NOT TARGET uninstall)
+  add_custom_target(uninstall
+    "${CMAKE_COMMAND}" -P "${nanoflann_BINARY_DIR}/cmake_uninstall.cmake")
+else()
+  add_custom_target(nanoflann_uninstall
+    "${CMAKE_COMMAND}" -P "${nanoflann_BINARY_DIR}/cmake_uninstall.cmake")
+  add_dependencies(uninstall nanoflann_uninstall)
+endif()
 
 export(EXPORT nanoflannTargets
        NAMESPACE nanoflann::
