@@ -1,3 +1,6 @@
+nanoflann UNRELEASED
+  * CMake variables prefixed now with `NANOFLANN_` for easier integration of nanoflann as a Git submodule.
+
 nanoflann 1.3.2: Released Nov 5, 2020
   * Add optional argument for Eigen matrix layout [commit](https://github.com/jlblancoc/nanoflann/commit/40fa96badcfc4b1a2df38b40b8a368cf5521ace4).
   * Throw exception on malloc failure [PR #126](https://github.com/jlblancoc/nanoflann/pull/126).

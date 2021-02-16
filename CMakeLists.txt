@@ -36,11 +36,12 @@ if(MSVC)
 endif()
 
 # Solution Folder options:
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
+if (${CMAKE_SOURCE_DIR} STREQUAL ${PROJECT_SOURCE_DIR})
+	set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+	set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
+endif()
 
 add_definitions ( -DNANOFLANN_PATH="${CMAKE_SOURCE_DIR}" )
-
 
 include(GNUInstallDirs)
 # Set relative install directories
@@ -71,14 +72,14 @@ install(TARGETS nanoflann
 add_library(nanoflann::nanoflann ALIAS nanoflann)
 
 # Examples
-option(BUILD_EXAMPLES "Build examples" ON)
-if(BUILD_EXAMPLES)
+option(NANOFLANN_BUILD_EXAMPLES "Build examples" ON)
+if(NANOFLANN_BUILD_EXAMPLES)
 	add_subdirectory(examples)
 endif()
 
 # Benchmarks
-option(BUILD_BENCHMARKS "Build benchmarks" OFF)
-if(BUILD_BENCHMARKS)
+option(NANOFLANN_BUILD_BENCHMARKS "Build benchmarks" OFF)
+if(NANOFLANN_BUILD_BENCHMARKS)
         # 3rdparty Libraries
         include(3rdparty/CMakeLists-flann.txt)
         include(3rdparty/CMakeLists-fastann.txt)
@@ -87,8 +88,8 @@ if(BUILD_BENCHMARKS)
 endif()
 
 # Tests
-option(BUILD_TESTS "Build unit tests" ON)
-if(BUILD_TESTS)
+option(NANOFLANN_BUILD_TESTS "Build unit tests" ON)
+if(NANOFLANN_BUILD_TESTS)
 	enable_testing()
 	add_subdirectory(tests)
 endif()
@@ -106,7 +107,7 @@ if(CMAKE_USE_DEB_POSTFIXS)
 	message(STATUS "** Using Debian post-fix for install directories **")
 	set(libnanoflann_dev_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/libnanoflann-dev/usr/")
 	set(nanoflann_pkgconfig_INSTALL_PREFIX "/usr")	# Values when building a Debian package
-ELSE()
+else()
 	# Values under normal conditions -----------------------
 	set(libnanoflann_dev_INSTALL_PREFIX "")
 	set(nanoflann_pkgconfig_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}") 	# Values under normal conditions
