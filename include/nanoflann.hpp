@@ -926,7 +926,6 @@ public:
         ElementType min_elem, max_elem;
         computeMinMax(obj, ind, count, i, min_elem, max_elem);
         ElementType spread = max_elem - min_elem;
-        ;
         if (spread > max_spread) {
           cutfeat = i;
           max_spread = spread;
