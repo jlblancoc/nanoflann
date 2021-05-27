@@ -81,8 +81,8 @@ if __name__ == '__main__':
 		plt.errorbar(xaxis, fastannBuildTimeFinal, color='k', yerr=fastannBuildTimeError, fmt='o')
 	if(libkdtreeFlag):
 		xaxis, libkdtreeBuildTimeFinal, libkdtreeBuildTimeError, libkdtreeQueryTimeFinal, libkdtreeQueryTimeError = plotTime(dir_path + './benchmark_libkdtree_real' + ' ' + sys.argv[1] + ' ' + sys.argv[2], numRepetitions, numDivisions)
-		plt.plot(xaxis, libkdtreeBuildTimeFinal, 'k', label='fastann', linewidth=3.0)
-		plt.errorbar(xaxis, libkdtreeBuildTimeFinal, color='k', yerr=fastannBuildTimeError, fmt='o')
+		plt.plot(xaxis, libkdtreeBuildTimeFinal, 'k', label='libkdtree', linewidth=3.0)
+		plt.errorbar(xaxis, libkdtreeBuildTimeFinal, color='k', yerr=libkdtreeBuildTimeError, fmt='o')
 
 	# plot configurations
 	ax.grid(True)
