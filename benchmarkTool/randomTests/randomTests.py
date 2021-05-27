@@ -72,7 +72,7 @@ if __name__ == '__main__':
 
 	fig, ax = plt.subplots()
 	dir_path = os.path.dirname(os.path.realpath(__file__))
-    	dir_path = dir_path + '/../../build/bin/'
+	dir_path = dir_path + '/../../build/benchmarkTool/randomTests/'
 	if(nanoflannFlag):
 		xaxis, nanoflannBuildTimeFinal, nanoflannBuildTimeError, nanoflannQueryTimeFinal, nanoflannQueryTimeError = plotTime(dir_path + './benchmark_nanoflann_random', numRepetitions, numDivisions, numPoints)
 		plt.plot(xaxis, nanoflannBuildTimeFinal, 'r', label='nanoflann', linewidth=3.0)

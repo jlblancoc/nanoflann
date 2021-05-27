@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
 	# BUILD TIME PLOTS
         dir_path = os.path.dirname(os.path.realpath(__file__))
-        dir_path = dir_path + '/../../build/bin/'
+        dir_path = dir_path + '/../../build/benchmarkTool/realTests/'
 	fig, ax = plt.subplots()
 	if(nanoflannFlag):
 		xaxis, nanoflannBuildTimeFinal, nanoflannBuildTimeError, nanoflannQueryTimeFinal, nanoflannQueryTimeError = plotTime(dir_path + './benchmark_nanoflann_real' + ' ' + sys.argv[1] + ' ' + sys.argv[2], numRepetitions, numDivisions)
