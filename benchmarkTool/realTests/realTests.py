@@ -32,7 +32,7 @@ def plotTime(execPath, numRepetitions, numDivisions):
 		for it, item in enumerate(List):
 			if(it<numDivisions):
 				if(processCount==0):
-					xaxis += [item]
+					xaxis += [int(item)]
 			elif(it<2*numDivisions):
 				BuildTime[processCount][it-numDivisions] = [float(item)*1000]
 			else:
@@ -100,7 +100,7 @@ if __name__ == '__main__':
 	for label in ticklabels:
 	    label.set_color('k')
 	    label.set_fontsize('medium')
-
+	    
 	plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
 	plt.xlabel('Size of point cloud', fontsize=25)
 	plt.ylabel('Time (ms)', fontsize=25)

@@ -32,7 +32,7 @@ def plotTime(execPath, numRepetitions, numDivisions, numPoints):
 		for it, item in enumerate(List):
 			if(it<numDivisions):
 				if(processCount==0):
-					xaxis += [item]
+					xaxis += [int(item)]
 			elif(it<2*numDivisions):
 				BuildTime[processCount][it-numDivisions] = [float(item)*1000]
 			else:
