@@ -1,9 +1,15 @@
 #!/usr/bin/python
-import os 
-import tkFont 
-import Tkinter as tk 
-from Tkinter import Tk 
-from tkFileDialog import askopenfilename
+import os
+try:
+    import tkinter.font as tkFont
+    import tkinter as tk
+    from tkinter import Tk
+    from tkinter.filedialog import askopenfilename
+except ImportError:
+    import tkFont
+    import Tkinter as tk
+    from Tkinter import Tk
+    from tkFileDialog import askopenfilename
 
 filename1 = ''
 filename2 = ''
