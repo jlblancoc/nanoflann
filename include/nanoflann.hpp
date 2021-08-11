@@ -1960,7 +1960,7 @@ struct KDTreeEigenMatrixAdaptor {
   typedef
       typename Distance::template traits<num_t, self_t>::distance_t metric_t;
   typedef KDTreeSingleIndexAdaptor<metric_t, self_t,
-                                   MatrixType::ColsAtCompileTime, IndexType>
+  	row_major ? MatrixType::ColsAtCompileTime : MatrixType::RowsAtCompileTime, IndexType>
       index_t;
 
   index_t *index; //! The kd-tree index for the user to call its methods as
