@@ -643,7 +643,7 @@ class PooledAllocator {
 
   void internal_init() {
     remaining = 0;
-    base = NULL;
+    base = nullptr;
     usedMemory = 0;
     wastedMemory = 0;
   }
@@ -664,7 +664,7 @@ public:
 
   /** Frees all allocated memory chunks */
   void free_all() {
-    while (base != NULL) {
+    while (base != nullptr) {
       void *prev =
           *(static_cast<void **>(base)); /* Get pointer to prev block. */
       ::free(base);
@@ -782,8 +782,13 @@ public:
   typedef typename Distance::ElementType ElementType;
   typedef typename Distance::DistanceType DistanceType;
 
-  using Offset    = uint32_t;
-  using Size      = uint32_t;
+  /**
+   *  Array of indices to vectors in the dataset.
+   */
+  std::vector<AccessorType> vAcc;
+
+  using Offset    = typename decltype(vAcc)::size_type;
+  using Size      = typename decltype(vAcc)::size_type;
   using Dimension = int32_t;
 
   /*--------------------- Internal Data Structures --------------------------*/
@@ -795,8 +800,8 @@ public:
         Offset left, right;            //!< Indices of points in leaf node
       } lr;
       struct nonleaf {
-        int divfeat;                  //!< Dimension used for subdivision.
-        DistanceType divlow, divhigh; //!< The values used for subdivision.
+        Dimension divfeat;             //!< Dimension used for subdivision.
+        DistanceType divlow, divhigh;  //!< The values used for subdivision.
       } sub;
     } node_type;
     Node *child1, *child2; //!< Child nodes (both=NULL mean its a leaf node)
@@ -807,11 +812,6 @@ public:
   struct Interval {
     ElementType low, high;
   };
-
-  /**
-   *  Array of indices to vectors in the dataset.
-   */
-  std::vector<AccessorType> vAcc;
 
   NodePtr root_node;
 
@@ -915,7 +915,7 @@ public:
       }
     } else {
       Offset idx;
-      int cutfeat;
+      Dimension cutfeat;
       DistanceType cutval;
       middleSplit_(obj, left, right - left, idx, cutfeat, cutval, bbox);
 
@@ -942,9 +942,9 @@ public:
   }
 
   void middleSplit_(Derived &obj, Offset ind, Size count, Offset &index,
-                    int &cutfeat, DistanceType &cutval,
+                    Dimension &cutfeat, DistanceType &cutval,
                     const BoundingBox &bbox) {
-    const DistanceType EPS = static_cast<DistanceType>(0.00001);
+    const auto EPS = static_cast<DistanceType>(0.00001);
     ElementType max_span = bbox[0].high - bbox[0].low;
     for (Dimension i = 1; i < (DIM > 0 ? DIM : obj.dim); ++i) {
       ElementType span = bbox[i].high - bbox[i].low;
@@ -998,7 +998,7 @@ public:
    *  dataset[ind[lim1..lim2-1]][cutfeat]==cutval
    *  dataset[ind[lim2..count]][cutfeat]>cutval
    */
-  void planeSplit(Derived &obj, Offset ind, const Size count, int cutfeat,
+  void planeSplit(Derived &obj, Offset ind, const Size count, Dimension cutfeat,
                   DistanceType &cutval, Offset &lim1, Offset &lim2) {
     /* Move vector indices for left subtree to front of list. */
     Offset left = 0;
@@ -1406,7 +1406,7 @@ public:
     }
 
     /* Which child branch should be taken first? */
-    int idx = node->node_type.sub.divfeat;
+    Dimension idx = node->node_type.sub.divfeat;
     ElementType val = vec[idx];
     DistanceType diff1 = val - node->node_type.sub.divlow;
     DistanceType diff2 = val - node->node_type.sub.divhigh;
@@ -1764,7 +1764,7 @@ public:
     }
 
     /* Which child branch should be taken first? */
-    int idx = node->node_type.sub.divfeat;
+    Dimension idx = node->node_type.sub.divfeat;
     ElementType val = vec[idx];
     DistanceType diff1 = val - node->node_type.sub.divlow;
     DistanceType diff2 = val - node->node_type.sub.divhigh;
