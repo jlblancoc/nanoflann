@@ -66,7 +66,7 @@ void kdtree_demo(const size_t N)
 	// ----------------------------------------------------------------
 	{
 		size_t num_results = 5;
-		std::vector<uint64_t>   ret_index(num_results);
+		std::vector<uint32_t>   ret_index(num_results);
 		std::vector<num_t> out_dist_sqr(num_results);
 
 		num_results = index.knnSearch(&query_pt[0], num_results, &ret_index[0], &out_dist_sqr[0]);
@@ -86,7 +86,7 @@ void kdtree_demo(const size_t N)
 	// ----------------------------------------------------------------
 	{
 		const num_t search_radius = static_cast<num_t>(0.1);
-		std::vector<std::pair<uint64_t,num_t> >   ret_matches;
+		std::vector<std::pair<uint32_t, num_t> >   ret_matches;
 
 		nanoflann::SearchParams params;
 		//params.sorted = false;
