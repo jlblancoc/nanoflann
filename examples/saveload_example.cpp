@@ -31,6 +31,7 @@
 
 #include <ctime>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 
 using namespace std;
@@ -60,10 +61,9 @@ void kdtree_save_load_demo(const size_t N)
 		my_kd_tree_t   index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
 		index.buildIndex();
 
-		FILE *f = fopen("index.bin", "wb");
-		if (!f) throw std::runtime_error("Error writing index file!");
+		ofstream f("index.bin"); //, "wb"
 		index.saveIndex(f);
-		fclose(f);
+		f.close();
 	}
 
 
@@ -73,10 +73,9 @@ void kdtree_save_load_demo(const size_t N)
 		// Important: construct the index associated to the same dataset, since data points are NOT stored in the binary file.
 		my_kd_tree_t   index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
 
-		FILE *f = fopen("index.bin", "rb");
-		if (!f) throw std::runtime_error("Error reading index file!");
+		ifstream f("index.bin"); //, "rb"
 		index.loadIndex(f);
-		fclose(f);
+		f.close();
 
 		// do a knn search
 		const size_t num_results = 1;
