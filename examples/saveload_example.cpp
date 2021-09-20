@@ -61,7 +61,11 @@ void kdtree_save_load_demo(const size_t N)
 		my_kd_tree_t   index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
 		index.buildIndex();
 
-		ofstream f("index.bin"); //, "wb"
+		ofstream f("index.bin", std::ofstream::binary);
+
+		if(f.bad())
+		  throw std::runtime_error("Error writing index file!");
+
 		index.saveIndex(f);
 		f.close();
 	}
@@ -73,7 +77,11 @@ void kdtree_save_load_demo(const size_t N)
 		// Important: construct the index associated to the same dataset, since data points are NOT stored in the binary file.
 		my_kd_tree_t   index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
 
-		ifstream f("index.bin"); //, "rb"
+		ifstream f("index.bin", std::ofstream::binary);
+
+		if(f.fail())
+		  throw std::runtime_error("Error reading index file!");
+
 		index.loadIndex(f);
 		f.close();
 
