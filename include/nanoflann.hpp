@@ -51,10 +51,11 @@
 #include <array>
 #include <cassert>
 #include <cmath>   // for abs()
-#include <cstdio>  // for fwrite()
 #include <cstdlib> // for abs()
 #include <functional>
+#include <istream>
 #include <limits> // std::reference_wrapper
+#include <ostream>
 #include <stdexcept>
 #include <vector>
 
@@ -276,36 +277,28 @@ public:
 /** @addtogroup loadsave_grp Load/save auxiliary functions
  * @{ */
 template <typename T>
-void save_value(FILE *stream, const T &value, size_t count = 1) {
-  fwrite(&value, sizeof(value), count, stream);
+void save_value(std::ostream &stream, const T &value) {
+  stream.write(reinterpret_cast<const char*>(&value), sizeof(T));
 }
 
 template <typename T>
-void save_value(FILE *stream, const std::vector<T> &value) {
+void save_value(std::ostream& stream, const std::vector<T> &value) {
   size_t size = value.size();
-  fwrite(&size, sizeof(size_t), 1, stream);
-  fwrite(&value[0], sizeof(T), size, stream);
+  stream.write(reinterpret_cast<const char*>(&size), sizeof(size_t));
+  stream.write(reinterpret_cast<const char*>(value.data()), sizeof(T) * size);
 }
 
 template <typename T>
-void load_value(FILE *stream, T &value, size_t count = 1) {
-  size_t read_cnt = fread(&value, sizeof(value), count, stream);
-  if (read_cnt != count) {
-    throw std::runtime_error("Cannot read from file");
-  }
+void load_value(std::istream& stream, T &value) {
+  stream.read(reinterpret_cast<char*>(&value), sizeof(T));
 }
 
-template <typename T> void load_value(FILE *stream, std::vector<T> &value) {
+template <typename T>
+void load_value(std::istream &stream, std::vector<T> &value) {
   size_t size;
-  size_t read_cnt = fread(&size, sizeof(size_t), 1, stream);
-  if (read_cnt != 1) {
-    throw std::runtime_error("Cannot read from file");
-  }
+  stream.read(reinterpret_cast<char*>(&size), sizeof(size_t));
   value.resize(size);
-  read_cnt = fread(&value[0], sizeof(T), size, stream);
-  if (read_cnt != size) {
-    throw std::runtime_error("Cannot read from file");
-  }
+  stream.read(reinterpret_cast<char*>(value.data()), sizeof(T) * size);
 }
 /** @} */
 
@@ -1021,7 +1014,7 @@ public:
     return distsq;
   }
 
-  void save_tree(Derived &obj, FILE *stream, NodePtr tree) {
+  void save_tree(Derived &obj, std::ostream &stream, NodePtr tree) {
     save_value(stream, *tree);
     if (tree->child1 != NULL) {
       save_tree(obj, stream, tree->child1);
@@ -1031,7 +1024,7 @@ public:
     }
   }
 
-  void load_tree(Derived &obj, FILE *stream, NodePtr &tree) {
+  void load_tree(Derived &obj, std::istream &stream, NodePtr &tree) {
     tree = obj.pool.template allocate<Node>();
     load_value(stream, *tree);
     if (tree->child1 != NULL) {
@@ -1047,7 +1040,7 @@ public:
    * loading the index object it must be constructed associated to the same
    * source of data points used while building it. See the example:
    * examples/saveload_example.cpp \sa loadIndex  */
-  void saveIndex_(Derived &obj, FILE *stream) {
+  void saveIndex_(Derived &obj, std::ostream &stream) {
     save_value(stream, obj.m_size);
     save_value(stream, obj.dim);
     save_value(stream, obj.root_bbox);
@@ -1061,7 +1054,7 @@ public:
    * index object must be constructed associated to the same source of data
    * points used while building the index. See the example:
    * examples/saveload_example.cpp \sa loadIndex  */
-  void loadIndex_(Derived &obj, FILE *stream) {
+  void loadIndex_(Derived &obj, std::istream &stream) {
     load_value(stream, obj.m_size);
     load_value(stream, obj.dim);
     load_value(stream, obj.root_bbox);
@@ -1414,14 +1407,14 @@ public:
    * loading the index object it must be constructed associated to the same
    * source of data points used while building it. See the example:
    * examples/saveload_example.cpp \sa loadIndex  */
-  void saveIndex(FILE *stream) { this->saveIndex_(*this, stream); }
+  void saveIndex(std::ostream &stream) { this->saveIndex_(*this, stream); }
 
   /**  Loads a previous index from a binary file.
    *   IMPORTANT NOTE: The set of data points is NOT stored in the file, so the
    * index object must be constructed associated to the same source of data
    * points used while building the index. See the example:
    * examples/saveload_example.cpp \sa loadIndex  */
-  void loadIndex(FILE *stream) { this->loadIndex_(*this, stream); }
+  void loadIndex(std::istream &stream) { this->loadIndex_(*this, stream); }
 
 }; // class KDTree
 
@@ -1758,14 +1751,14 @@ public:
    * loading the index object it must be constructed associated to the same
    * source of data points used while building it. See the example:
    * examples/saveload_example.cpp \sa loadIndex  */
-  void saveIndex(FILE *stream) { this->saveIndex_(*this, stream); }
+  void saveIndex(std::ostream &stream) { this->saveIndex_(*this, stream); }
 
   /**  Loads a previous index from a binary file.
    *   IMPORTANT NOTE: The set of data points is NOT stored in the file, so the
    * index object must be constructed associated to the same source of data
    * points used while building the index. See the example:
    * examples/saveload_example.cpp \sa loadIndex  */
-  void loadIndex(FILE *stream) { this->loadIndex_(*this, stream); }
+  void loadIndex(std::istream &stream) { this->loadIndex_(*this, stream); }
 };
 
 /** kd-tree dynaimic index
