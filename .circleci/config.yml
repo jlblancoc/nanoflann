@@ -9,8 +9,8 @@ jobs:
           apt update
           DEBIAN_FRONTEND=noninteractive apt install build-essential cmake libeigen3-dev -y
       - run: cmake -DCMAKE_VERBOSE_MAKEFILE=ON -H. -Bbuild
-      - run: make -C build
-      - run: make CTEST_OUTPUT_ON_FAILURE=1 test -C build
+      - run: make -C build -j2
+      - run: make CTEST_OUTPUT_ON_FAILURE=1 test -C build  -j2
 workflows:
   version: 2
   build:
