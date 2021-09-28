@@ -5,6 +5,9 @@ jobs:
       - image: ubuntu:20.04
     steps:
       - checkout
+      - run: |
+          sudo apt update
+          sudo apt install build-essential cmake libeigen3-dev -y
       - run: cmake -DCMAKE_VERBOSE_MAKEFILE=ON -H. -Bbuild
       - run: make -C build
       - run: make CTEST_OUTPUT_ON_FAILURE=1 test -C build
