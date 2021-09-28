@@ -1,0 +1,15 @@
+version: 2
+jobs:
+  full-u20.04:
+    docker:
+      - image: ubuntu:20.04
+    steps:
+      - checkout
+      - run: cmake -DCMAKE_VERBOSE_MAKEFILE=ON -H. -Bbuild
+      - run: make -C build
+      - run: make CTEST_OUTPUT_ON_FAILURE=1 test -C build
+workflows:
+  version: 2
+  build:
+    jobs:
+      - full-u20.04
