@@ -33,21 +33,21 @@ distclean:
 clean:
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp 
+	rm -f build-stamp
 
 	# Add here commands to clean up after the build process.
 	rm -f config.sub config.guess
 
-	dh_clean 
+	dh_clean
 
 install: build
 	dh_testdir
 	dh_testroot
-	dh_clean -k 
+	dh_clean -k
 	dh_installdirs
 
 	# Add here commands to install the package into debian/...
-	./configure NANOFLANN_IS_DEB_PACKAGE=1 --prefix=$(CURDIR)/debian/ CMAKE_MRPT_USE_DEB_POSTFIXS="1"
+	./configure NANOFLANN_IS_DEB_PACKAGE=1 --prefix=$(CURDIR)/debian/
 
 	# Build all
 	$(MAKE) VERBOSE=1
@@ -56,12 +56,12 @@ install: build
 
 	# Install
 	$(MAKE) install
-	
+
 # Build architecture-independent files here.
 binary-indep: build install
 	dh_testdir
 	dh_testroot
-	dh_installchangelogs 
+	dh_installchangelogs
 	# Register .desktop files with a MIME type:
 	dh_link
 	dh_compress
@@ -77,5 +77,4 @@ binary-arch:
 	# Nothing to do
 
 binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install 
-
+.PHONY: build clean binary-indep binary-arch binary install
