@@ -157,9 +157,9 @@ template <
 class KNNResultSet
 {
    public:
-    typedef _DistanceType DistanceType;
-    typedef _IndexType    IndexType;
-    typedef _CountType    CountType;
+    using DistanceType = _DistanceType;
+    using IndexType    = _IndexType;
+    using CountType    = _CountType;
 
    private:
     IndexType*    indices;
@@ -247,8 +247,8 @@ template <typename _DistanceType, typename _IndexType = size_t>
 class RadiusResultSet
 {
    public:
-    typedef _DistanceType DistanceType;
-    typedef _IndexType    IndexType;
+    using DistanceType = _DistanceType;
+    using IndexType    = _IndexType;
 
    public:
     const DistanceType radius;
@@ -294,8 +294,8 @@ class RadiusResultSet
             throw std::runtime_error(
                 "Cannot invoke RadiusResultSet::worst_item() on "
                 "an empty list of results.");
-        typedef typename std::vector<
-            std::pair<IndexType, DistanceType>>::const_iterator DistIt;
+        using DistIt = typename std::vector<
+            std::pair<IndexType, DistanceType>>::const_iterator;
         DistIt it = std::max_element(
             m_indices_dists.begin(), m_indices_dists.end(), IndexDist_Sorter());
         return *it;
@@ -358,8 +358,8 @@ template <
     typename AccessorType = uint32_t>
 struct L1_Adaptor
 {
-    typedef T             ElementType;
-    typedef _DistanceType DistanceType;
+    using ElementType  = T;
+    using DistanceType = _DistanceType;
 
     const DataSource& data_source;
 
@@ -418,8 +418,8 @@ template <
     typename AccessorType = uint32_t>
 struct L2_Adaptor
 {
-    typedef T             ElementType;
-    typedef _DistanceType DistanceType;
+    using ElementType  = T;
+    using DistanceType = _DistanceType;
 
     const DataSource& data_source;
 
@@ -483,8 +483,8 @@ template <
     typename AccessorType = uint32_t>
 struct L2_Simple_Adaptor
 {
-    typedef T             ElementType;
-    typedef _DistanceType DistanceType;
+    using ElementType  = T;
+    using DistanceType = _DistanceType;
 
     const DataSource& data_source;
 
@@ -528,8 +528,8 @@ template <
     typename AccessorType = uint32_t>
 struct SO2_Adaptor
 {
-    typedef T             ElementType;
-    typedef _DistanceType DistanceType;
+    using ElementType  = T;
+    using DistanceType = _DistanceType;
 
     const DataSource& data_source;
 
@@ -573,8 +573,8 @@ template <
     typename AccessorType = uint32_t>
 struct SO3_Adaptor
 {
-    typedef T             ElementType;
-    typedef _DistanceType DistanceType;
+    using ElementType  = T;
+    using DistanceType = _DistanceType;
 
     L2_Simple_Adaptor<T, DataSource, DistanceType, AccessorType>
         distance_L2_Simple;
@@ -603,7 +603,7 @@ struct metric_L1 : public Metric
     template <class T, class DataSource, typename AccessorType = uint32_t>
     struct traits
     {
-        typedef L1_Adaptor<T, DataSource, T, AccessorType> distance_t;
+        using distance_t = L1_Adaptor<T, DataSource, T, AccessorType>;
     };
 };
 /** Metaprogramming helper traits class for the L2 (Euclidean) metric */
@@ -612,7 +612,7 @@ struct metric_L2 : public Metric
     template <class T, class DataSource, typename AccessorType = uint32_t>
     struct traits
     {
-        typedef L2_Adaptor<T, DataSource, T, AccessorType> distance_t;
+        using distance_t = L2_Adaptor<T, DataSource, T, AccessorType>;
     };
 };
 /** Metaprogramming helper traits class for the L2_simple (Euclidean) metric */
@@ -621,7 +621,7 @@ struct metric_L2_Simple : public Metric
     template <class T, class DataSource, typename AccessorType = uint32_t>
     struct traits
     {
-        typedef L2_Simple_Adaptor<T, DataSource, T, AccessorType> distance_t;
+        using distance_t = L2_Simple_Adaptor<T, DataSource, T, AccessorType>;
     };
 };
 /** Metaprogramming helper traits class for the SO3_InnerProdQuat metric */
@@ -630,7 +630,7 @@ struct metric_SO2 : public Metric
     template <class T, class DataSource, typename AccessorType = uint32_t>
     struct traits
     {
-        typedef SO2_Adaptor<T, DataSource, T, AccessorType> distance_t;
+        using distance_t = SO2_Adaptor<T, DataSource, T, AccessorType>;
     };
 };
 /** Metaprogramming helper traits class for the SO3_InnerProdQuat metric */
@@ -639,7 +639,7 @@ struct metric_SO3 : public Metric
     template <class T, class DataSource, typename AccessorType = uint32_t>
     struct traits
     {
-        typedef SO3_Adaptor<T, DataSource, T, AccessorType> distance_t;
+        using distance_t = SO3_Adaptor<T, DataSource, T, AccessorType>;
     };
 };
 
@@ -841,13 +841,13 @@ class PooledAllocator
 template <int32_t DIM, typename T>
 struct array_or_vector_selector
 {
-    typedef std::array<T, DIM> container_t;
+    using container_t = std::array<T, DIM>;
 };
 /** Dynamic size version */
 template <typename T>
 struct array_or_vector_selector<-1, T>
 {
-    typedef std::vector<T> container_t;
+    using container_t = std::vector<T>;
 };
 
 /** @} */
@@ -875,12 +875,12 @@ class KDTreeBaseClass
     void freeIndex(Derived& obj)
     {
         obj.pool.free_all();
-        obj.root_node             = NULL;
+        obj.root_node             = nullptr;
         obj.m_size_at_index_build = 0;
     }
 
-    typedef typename Distance::ElementType  ElementType;
-    typedef typename Distance::DistanceType DistanceType;
+    using ElementType  = typename Distance::ElementType;
+    using DistanceType = typename Distance::DistanceType;
 
     /**
      *  Array of indices to vectors in the dataset.
@@ -910,11 +910,11 @@ class KDTreeBaseClass
                     divhigh;  //!< The values used for subdivision.
             } sub;
         } node_type;
-        Node *child1,
-            *child2;  //!< Child nodes (both=NULL mean its a leaf node)
+        /** Child nodes (both=nullptr mean its a leaf node) */
+        Node *child1, *child2;
     };
 
-    typedef Node* NodePtr;
+    using NodePtr = Node*;
 
     struct Interval
     {
@@ -932,13 +932,13 @@ class KDTreeBaseClass
 
     /** Define "BoundingBox" as a fixed-size or variable-size container
      * depending on "DIM" */
-    typedef typename array_or_vector_selector<DIM, Interval>::container_t
-        BoundingBox;
+    using BoundingBox =
+        typename array_or_vector_selector<DIM, Interval>::container_t;
 
     /** Define "distance_vector_t" as a fixed-size or variable-size container
      * depending on "DIM" */
-    typedef typename array_or_vector_selector<DIM, DistanceType>::container_t
-        distance_vector_t;
+    using distance_vector_t =
+        typename array_or_vector_selector<DIM, DistanceType>::container_t;
 
     /** The KD-tree used to find neighbours */
 
@@ -1006,7 +1006,7 @@ class KDTreeBaseClass
         /* If too few exemplars remain, then make this a leaf node. */
         if ((right - left) <= static_cast<Offset>(obj.m_leaf_max_size))
         {
-            node->child1 = node->child2 = NULL; /* Mark as leaf node. */
+            node->child1 = node->child2 = nullptr; /* Mark as leaf node. */
             node->node_type.lr.left     = left;
             node->node_type.lr.right    = right;
 
@@ -1188,16 +1188,16 @@ class KDTreeBaseClass
     void save_tree(Derived& obj, std::ostream& stream, NodePtr tree)
     {
         save_value(stream, *tree);
-        if (tree->child1 != NULL) { save_tree(obj, stream, tree->child1); }
-        if (tree->child2 != NULL) { save_tree(obj, stream, tree->child2); }
+        if (tree->child1 != nullptr) { save_tree(obj, stream, tree->child1); }
+        if (tree->child2 != nullptr) { save_tree(obj, stream, tree->child2); }
     }
 
     void load_tree(Derived& obj, std::istream& stream, NodePtr& tree)
     {
         tree = obj.pool.template allocate<Node>();
         load_value(stream, *tree);
-        if (tree->child1 != NULL) { load_tree(obj, stream, tree->child1); }
-        if (tree->child2 != NULL) { load_tree(obj, stream, tree->child2); }
+        if (tree->child1 != nullptr) { load_tree(obj, stream, tree->child1); }
+        if (tree->child2 != nullptr) { load_tree(obj, stream, tree->child2); }
     }
 
     /**  Stores the index in a binary file.
@@ -1294,30 +1294,30 @@ class KDTreeSingleIndexAdaptor
 
     Distance distance;
 
-    typedef typename nanoflann::KDTreeBaseClass<
+    using BaseClassRef = typename nanoflann::KDTreeBaseClass<
         nanoflann::KDTreeSingleIndexAdaptor<
             Distance, DatasetAdaptor, DIM, AccessorType>,
-        Distance, DatasetAdaptor, DIM, AccessorType>
-        BaseClassRef;
+        Distance, DatasetAdaptor, DIM, AccessorType>;
 
     using Offset    = typename BaseClassRef::Offset;
     using Size      = typename BaseClassRef::Size;
     using Dimension = typename BaseClassRef::Dimension;
 
-    typedef typename BaseClassRef::ElementType  ElementType;
-    typedef typename BaseClassRef::DistanceType DistanceType;
+    using ElementType  = typename BaseClassRef::ElementType;
+    using DistanceType = typename BaseClassRef::DistanceType;
 
-    typedef typename BaseClassRef::Node Node;
-    typedef Node*                       NodePtr;
+    using Node    = typename BaseClassRef::Node;
+    using NodePtr = Node*;
 
-    typedef typename BaseClassRef::Interval Interval;
+    using Interval = typename BaseClassRef::Interval;
+
     /** Define "BoundingBox" as a fixed-size or variable-size container
      * depending on "DIM" */
-    typedef typename BaseClassRef::BoundingBox BoundingBox;
+    using BoundingBox = typename BaseClassRef::BoundingBox;
 
     /** Define "distance_vector_t" as a fixed-size or variable-size container
      * depending on "DIM" */
-    typedef typename BaseClassRef::distance_vector_t distance_vector_t;
+    using distance_vector_t = typename BaseClassRef::distance_vector_t;
 
     /**
      * KDTree constructor
@@ -1335,11 +1335,10 @@ class KDTreeSingleIndexAdaptor
      */
     KDTreeSingleIndexAdaptor(
         const Dimension dimensionality, const DatasetAdaptor& inputData,
-        const KDTreeSingleIndexAdaptorParams& params =
-            KDTreeSingleIndexAdaptorParams())
+        const KDTreeSingleIndexAdaptorParams& params = {})
         : dataset(inputData), index_params(params), distance(inputData)
     {
-        BaseClassRef::root_node             = NULL;
+        BaseClassRef::root_node             = nullptr;
         BaseClassRef::m_size                = dataset.kdtree_get_point_count();
         BaseClassRef::m_size_at_index_build = BaseClassRef::m_size;
         BaseClassRef::dim                   = dimensionality;
@@ -1540,7 +1539,7 @@ class KDTreeSingleIndexAdaptor
         const float epsError) const
     {
         /* If this is a leaf node, then do check and return. */
-        if ((node->child1 == NULL) && (node->child2 == NULL))
+        if ((node->child1 == nullptr) && (node->child2 == nullptr))
         {
             // count_leaf += (node->lr.right-node->lr.left);  // Removed since
             // was neither used nor returned to the user.
@@ -1689,30 +1688,29 @@ class KDTreeSingleIndexDynamicAdaptor_
 
     Distance distance;
 
-    typedef typename nanoflann::KDTreeBaseClass<
+    using BaseClassRef = typename nanoflann::KDTreeBaseClass<
         nanoflann::KDTreeSingleIndexDynamicAdaptor_<
             Distance, DatasetAdaptor, DIM, AccessorType>,
-        Distance, DatasetAdaptor, DIM, AccessorType>
-        BaseClassRef;
+        Distance, DatasetAdaptor, DIM, AccessorType>;
 
-    typedef typename BaseClassRef::ElementType  ElementType;
-    typedef typename BaseClassRef::DistanceType DistanceType;
+    using ElementType  = typename BaseClassRef::ElementType;
+    using DistanceType = typename BaseClassRef::DistanceType;
 
     using Offset    = typename BaseClassRef::Offset;
     using Size      = typename BaseClassRef::Size;
     using Dimension = typename BaseClassRef::Dimension;
 
-    typedef typename BaseClassRef::Node Node;
-    typedef Node*                       NodePtr;
+    using Node    = typename BaseClassRef::Node;
+    using NodePtr = Node*;
 
-    typedef typename BaseClassRef::Interval Interval;
+    using Interval = typename BaseClassRef::Interval;
     /** Define "BoundingBox" as a fixed-size or variable-size container
      * depending on "DIM" */
-    typedef typename BaseClassRef::BoundingBox BoundingBox;
+    using BoundingBox = typename BaseClassRef::BoundingBox;
 
     /** Define "distance_vector_t" as a fixed-size or variable-size container
      * depending on "DIM" */
-    typedef typename BaseClassRef::distance_vector_t distance_vector_t;
+    using distance_vector_t = typename BaseClassRef::distance_vector_t;
 
     /**
      * KDTree constructor
@@ -1738,7 +1736,7 @@ class KDTreeSingleIndexDynamicAdaptor_
           treeIndex(treeIndex_),
           distance(inputData)
     {
-        BaseClassRef::root_node             = NULL;
+        BaseClassRef::root_node             = nullptr;
         BaseClassRef::m_size                = 0;
         BaseClassRef::m_size_at_index_build = 0;
         BaseClassRef::dim                   = dimensionality;
@@ -1939,7 +1937,7 @@ class KDTreeSingleIndexDynamicAdaptor_
         const float epsError) const
     {
         /* If this is a leaf node, then do check and return. */
-        if ((node->child1 == NULL) && (node->child2 == NULL))
+        if ((node->child1 == nullptr) && (node->child2 == nullptr))
         {
             // count_leaf += (node->lr.right-node->lr.left);  // Removed since
             // was neither used nor returned to the user.
@@ -2042,8 +2040,8 @@ template <
 class KDTreeSingleIndexDynamicAdaptor
 {
    public:
-    typedef typename Distance::ElementType  ElementType;
-    typedef typename Distance::DistanceType DistanceType;
+    using ElementType  = typename Distance::ElementType;
+    using DistanceType = typename Distance::DistanceType;
 
     using Offset = typename KDTreeSingleIndexDynamicAdaptor_<
         Distance, DatasetAdaptor, DIM>::Offset;
@@ -2071,8 +2069,8 @@ class KDTreeSingleIndexDynamicAdaptor
 
     Dimension dim;  //!< Dimensionality of each data point
 
-    typedef KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM>
-                                   index_container_t;
+    using index_container_t =
+        KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM>;
     std::vector<index_container_t> index;
 
    public:
@@ -2099,8 +2097,8 @@ class KDTreeSingleIndexDynamicAdaptor
     /** Creates multiple empty trees to handle dynamic support */
     void init()
     {
-        typedef KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM>
-                                  my_kd_tree_t;
+        using my_kd_tree_t =
+            KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM>;
         std::vector<my_kd_tree_t> index_(
             treeCount,
             my_kd_tree_t(dim /*dim*/, dataset, treeIndex, index_params));
@@ -2209,14 +2207,19 @@ class KDTreeSingleIndexDynamicAdaptor
  * Eigen Matrix, without duplicating the data storage. You can select whether a
  * row or column in the matrix represents a point in the state space.
  *
- *  Example of usage:
+ * Example of usage:
  * \code
- * 	Eigen::Matrix<num_t,Dynamic,Dynamic>  mat;
- * 	// Fill out "mat"...
+ * Eigen::Matrix<num_t,Eigen::Dynamic,Eigen::Dynamic>  mat;
  *
- * 	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic> >
- * my_kd_tree_t; const int max_leaf = 10; my_kd_tree_t   mat_index(mat, max_leaf
- * ); mat_index.index->buildIndex(); mat_index.index->... \endcode
+ * // Fill out "mat"...
+ * using my_kd_tree_t = nanoflann::KDTreeEigenMatrixAdaptor<
+ *   Eigen::Matrix<num_t,Dynamic,Dynamic>>;
+ *
+ * const int max_leaf = 10;
+ * my_kd_tree_t mat_index(mat, max_leaf);
+ * mat_index.index->buildIndex();
+ * mat_index.index->...
+ * \endcode
  *
  *  \tparam DIM If set to >0, it specifies a compile-time fixed dimensionality
  * for the points in the data set, allowing more compiler optimizations. \tparam
@@ -2230,20 +2233,18 @@ template <
     bool row_major = true>
 struct KDTreeEigenMatrixAdaptor
 {
-    typedef KDTreeEigenMatrixAdaptor<MatrixType, DIM, Distance, row_major>
-                                        self_t;
-    typedef typename MatrixType::Scalar num_t;
-    typedef typename MatrixType::Index  IndexType;
-    typedef
-        typename Distance::template traits<num_t, self_t, IndexType>::distance_t
-            metric_t;
+    using self_t =
+        KDTreeEigenMatrixAdaptor<MatrixType, DIM, Distance, row_major>;
+    using num_t     = typename MatrixType::Scalar;
+    using IndexType = typename MatrixType::Index;
+    using metric_t  = typename Distance::template traits<
+        num_t, self_t, IndexType>::distance_t;
 
-    typedef KDTreeSingleIndexAdaptor<
+    using index_t = KDTreeSingleIndexAdaptor<
         metric_t, self_t,
         row_major ? MatrixType::ColsAtCompileTime
                   : MatrixType::RowsAtCompileTime,
-        IndexType>
-        index_t;
+        IndexType>;
 
     index_t* index;  //! The kd-tree index for the user to call its methods as
                      //! usual with any other FLANN index.
