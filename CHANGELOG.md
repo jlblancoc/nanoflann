@@ -1,4 +1,5 @@
 nanoflann UNRELEASED
+  * Add and apply a `.clang-format` file (same one than used in MOLAorg/MOLA projects).
   * CMake variables prefixed now with `NANOFLANN_` for easier integration of nanoflann as a Git submodule.
   * Fixes for IndexType which are not of integral types [PR #154](https://github.com/jlblancoc/nanoflann/pull/154)
   * save/load API upgraded from C `FILE*` to C++ file streams (By Dominic Kempf, Heidelberg University, [PR](https://github.com/jlblancoc/nanoflann/pull/157)).
