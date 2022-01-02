@@ -1,4 +1,5 @@
 nanoflann UNRELEASED
+  * nanoflann::KDTreeSingleIndexAdaptor() ctor now forwards additional parameters to the metric class, enabling custom dynamic metrics.
   * Add and apply a `.clang-format` file (same one than used in MOLAorg/MOLA projects).
   * Examples: clean up and code modernization.
   * CMake variables prefixed now with `NANOFLANN_` for easier integration of nanoflann as a Git submodule.

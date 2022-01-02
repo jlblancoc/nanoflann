@@ -1332,11 +1332,19 @@ class KDTreeSingleIndexAdaptor
      *
      * @param inputData Dataset with the input features
      * @param params Basically, the maximum leaf node size
+     *
+     * Note that there is a variable number of optional additional parameters
+     * which will be forwarded to the metric class constructor. Refer to example
+     * `examples/pointcloud_custom_metric.cpp` for a use case.
+     *
      */
+    template <class... Args>
     KDTreeSingleIndexAdaptor(
         const Dimension dimensionality, const DatasetAdaptor& inputData,
-        const KDTreeSingleIndexAdaptorParams& params = {})
-        : dataset(inputData), index_params(params), distance(inputData)
+        const KDTreeSingleIndexAdaptorParams& params = {}, Args&&... args)
+        : dataset(inputData),
+          index_params(params),
+          distance(inputData, std::forward<Args>(args)...)
     {
         BaseClassRef::root_node             = nullptr;
         BaseClassRef::m_size                = dataset.kdtree_get_point_count();
