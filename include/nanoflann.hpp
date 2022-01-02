@@ -60,7 +60,7 @@
 #define NANOFLANN_VERSION 0x132
 
 // Avoid conflicting declaration of min/max macros in windows headers
-#if !defined(NOMINMAX) &&                                                      \
+#if !defined(NOMINMAX) && \
     (defined(_WIN32) || defined(_WIN32_) || defined(WIN32) || defined(_WIN64))
 #define NOMINMAX
 #ifdef max

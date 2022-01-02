@@ -26,57 +26,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *************************************************************************/
 
-#include <nanoflann.hpp>
-#include "utils.h"
-#include <ctime>
 #include <cstdlib>
+#include <ctime>
 #include <iostream>
+#include <nanoflann.hpp>
 
-using namespace std;
-using namespace nanoflann;
+#include "utils.h"
 
 template <typename num_t>
 void kdtree_demo(const size_t N)
 {
-	PointCloud_Orient<num_t> cloud;
+    PointCloud_Orient<num_t> cloud;
 
-	// Generate points:
-	generateRandomPointCloud_Orient(cloud, N);
+    // Generate points:
+    generateRandomPointCloud_Orient(cloud, N);
 
-	num_t query_pt[1] = { 0.5 };
+    num_t query_pt[1] = {0.5};
 
-	// construct a kd-tree index:
-	typedef KDTreeSingleIndexAdaptor<
-		SO2_Adaptor<num_t, PointCloud_Orient<num_t> > ,
-		PointCloud_Orient<num_t>,
-		1 /* dim */
-		> my_kd_tree_t;
+    // construct a kd-tree index:
+    using my_kd_tree_t = nanoflann::KDTreeSingleIndexAdaptor<
+        nanoflann::SO2_Adaptor<num_t, PointCloud_Orient<num_t>>,
+        PointCloud_Orient<num_t>, 1 /* dim */
+        >;
 
-	dump_mem_usage();
+    dump_mem_usage();
 
-	my_kd_tree_t   index(1 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
-	index.buildIndex();
+    my_kd_tree_t index(1 /*dim*/, cloud, {10 /* max leaf */});
+    index.buildIndex();
 
-	dump_mem_usage();
-	{
-		// do a knn search
-		const size_t num_results = 1;
-		size_t ret_index;
-		num_t out_dist_sqr;
-		nanoflann::KNNResultSet<num_t> resultSet(num_results);
-		resultSet.init(&ret_index, &out_dist_sqr );
-		index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
+    dump_mem_usage();
+    {
+        // do a knn search
+        const size_t                   num_results = 1;
+        size_t                         ret_index;
+        num_t                          out_dist_sqr;
+        nanoflann::KNNResultSet<num_t> resultSet(num_results);
+        resultSet.init(&ret_index, &out_dist_sqr);
+        index.findNeighbors(
+            resultSet, &query_pt[0], nanoflann::SearchParams(10));
 
-		std::cout << "knnSearch(nn="<<num_results<<"): \n";
-		std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr << endl;
-	}
+        std::cout << "knnSearch(nn=" << num_results << "): \n";
+        std::cout << "ret_index=" << ret_index
+                  << " out_dist_sqr=" << out_dist_sqr << std::endl;
+    }
 }
 
 int main()
 {
-	// Randomize Seed
-	srand(static_cast<unsigned int>(time(nullptr)));
-	kdtree_demo<float>(1000000);
-	kdtree_demo<double>(1000000);
-	return 0;
+    // Randomize Seed
+    srand(static_cast<unsigned int>(time(nullptr)));
+    kdtree_demo<float>(1000000);
+    kdtree_demo<double>(1000000);
+    return 0;
 }

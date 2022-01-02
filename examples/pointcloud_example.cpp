@@ -26,70 +26,70 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *************************************************************************/
 
-#include <nanoflann.hpp>
-#include "utils.h"
-#include <ctime>
 #include <cstdlib>
+#include <ctime>
 #include <iostream>
+#include <nanoflann.hpp>
 
-using namespace std;
-using namespace nanoflann;
+#include "utils.h"
 
 template <typename num_t>
 void kdtree_demo(const size_t N)
 {
-	PointCloud<num_t> cloud;
+    PointCloud<num_t> cloud;
 
-	// Generate points:
-	generateRandomPointCloud(cloud, N);
+    // Generate points:
+    generateRandomPointCloud(cloud, N);
 
-	num_t query_pt[3] = { 0.5, 0.5, 0.5 };
+    num_t query_pt[3] = {0.5, 0.5, 0.5};
 
-	// construct a kd-tree index:
-	typedef KDTreeSingleIndexAdaptor<
-		L2_Simple_Adaptor<num_t, PointCloud<num_t> > ,
-		PointCloud<num_t>,
-		3 /* dim */
-		> my_kd_tree_t;
+    // construct a kd-tree index:
+    using my_kd_tree_t = nanoflann::KDTreeSingleIndexAdaptor<
+        nanoflann::L2_Simple_Adaptor<num_t, PointCloud<num_t>>,
+        PointCloud<num_t>, 3 /* dim */
+        >;
 
-	dump_mem_usage();
+    dump_mem_usage();
 
-	my_kd_tree_t   index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
-	index.buildIndex();
+    my_kd_tree_t index(3 /*dim*/, cloud, {10 /* max leaf */});
+    index.buildIndex();
 
-	dump_mem_usage();
-	{
-		// do a knn search
-		const size_t num_results = 1;
-		size_t ret_index;
-		num_t out_dist_sqr;
-		nanoflann::KNNResultSet<num_t> resultSet(num_results);
-		resultSet.init(&ret_index, &out_dist_sqr );
-		index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
+    dump_mem_usage();
+    {
+        // do a knn search
+        const size_t                   num_results = 1;
+        size_t                         ret_index;
+        num_t                          out_dist_sqr;
+        nanoflann::KNNResultSet<num_t> resultSet(num_results);
+        resultSet.init(&ret_index, &out_dist_sqr);
+        index.findNeighbors(
+            resultSet, &query_pt[0], nanoflann::SearchParams(10));
 
-		std::cout << "knnSearch(nn="<<num_results<<"): \n";
-		std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr << endl;
-	}
-	{
-		// Unsorted radius search:
-		const num_t radius = 1;
-		std::vector<std::pair<size_t, num_t> > indices_dists;
-		RadiusResultSet<num_t,size_t> resultSet(radius, indices_dists);
+        std::cout << "knnSearch(nn=" << num_results << "): \n";
+        std::cout << "ret_index=" << ret_index
+                  << " out_dist_sqr=" << out_dist_sqr << std::endl;
+    }
+    {
+        // Unsorted radius search:
+        const num_t                               radius = 1;
+        std::vector<std::pair<size_t, num_t>>     indices_dists;
+        nanoflann::RadiusResultSet<num_t, size_t> resultSet(
+            radius, indices_dists);
 
-		index.findNeighbors(resultSet, query_pt, nanoflann::SearchParams());
+        index.findNeighbors(resultSet, query_pt, nanoflann::SearchParams());
 
-		// Get worst (furthest) point, without sorting:
-		std::pair<size_t,num_t> worst_pair = resultSet.worst_item();
-		cout << "Worst pair: idx=" << worst_pair.first << " dist=" << worst_pair.second << endl;
-	}
-
+        // Get worst (furthest) point, without sorting:
+        std::pair<size_t, num_t> worst_pair = resultSet.worst_item();
+        std::cout << "Worst pair: idx=" << worst_pair.first
+                  << " dist=" << worst_pair.second << std::endl;
+    }
 }
 
 int main()
 {
-	// Randomize Seed
-	srand(static_cast<unsigned int>(time(nullptr)));
-	kdtree_demo<float>(1000000);
-	kdtree_demo<double>(1000000);
-	return 0;
+    // Randomize Seed
+    srand(static_cast<unsigned int>(time(nullptr)));
+    kdtree_demo<float>(1000000);
+    kdtree_demo<double>(1000000);
+    return 0;
 }

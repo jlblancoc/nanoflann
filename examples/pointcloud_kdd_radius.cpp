@@ -26,32 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *************************************************************************/
 
-#include <nanoflann.hpp>
-#include "utils.h"
-#include <ctime>
 #include <cstdlib>
+#include <ctime>
 #include <iostream>
+#include <nanoflann.hpp>
 
-using namespace std;
-using namespace nanoflann;
+#include "utils.h"
 
 template <typename num_t>
 void kdtree_demo(const size_t N)
 {
-	PointCloud<num_t> cloud;
+    using std::cout;
+    using std::endl;
 
-	// Generate points:
-	generateRandomPointCloud(cloud, N);
+    PointCloud<num_t> cloud;
 
-	// construct a kd-tree index:
-	typedef KDTreeSingleIndexAdaptor<
-		L2_Simple_Adaptor<num_t, PointCloud<num_t> > ,
-		PointCloud<num_t>,
-		3 /* dim */
-		> my_kd_tree_t;
+    // Generate points:
+    generateRandomPointCloud(cloud, N);
 
-	my_kd_tree_t   index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
-	index.buildIndex();
+    // construct a kd-tree index:
+    using my_kd_tree_t = nanoflann::KDTreeSingleIndexAdaptor<
+        nanoflann::L2_Simple_Adaptor<num_t, PointCloud<num_t>>,
+        PointCloud<num_t>, 3 /* dim */
+        >;
+
+    my_kd_tree_t index(3 /*dim*/, cloud, {10 /* max leaf */});
+    index.buildIndex();
 
 #if 0
 	// Test resize of dataset and rebuild of index:
@@ -59,53 +59,57 @@ void kdtree_demo(const size_t N)
 	index.buildIndex();
 #endif
 
-	const num_t query_pt[3] = { 0.5, 0.5, 0.5};
+    const num_t query_pt[3] = {0.5, 0.5, 0.5};
 
-	// ----------------------------------------------------------------
-	// knnSearch():  Perform a search for the N closest points
-	// ----------------------------------------------------------------
-	{
-		size_t num_results = 5;
-		std::vector<uint32_t>   ret_index(num_results);
-		std::vector<num_t> out_dist_sqr(num_results);
+    // ----------------------------------------------------------------
+    // knnSearch():  Perform a search for the N closest points
+    // ----------------------------------------------------------------
+    {
+        size_t                num_results = 5;
+        std::vector<uint32_t> ret_index(num_results);
+        std::vector<num_t>    out_dist_sqr(num_results);
 
-		num_results = index.knnSearch(&query_pt[0], num_results, &ret_index[0], &out_dist_sqr[0]);
-		
-		// In case of less points in the tree than requested:
-		ret_index.resize(num_results);
-		out_dist_sqr.resize(num_results);
+        num_results = index.knnSearch(
+            &query_pt[0], num_results, &ret_index[0], &out_dist_sqr[0]);
 
-		cout << "knnSearch(): num_results=" << num_results << "\n";
-		for (size_t i = 0; i < num_results; i++)
-			cout << "idx["<< i << "]=" << ret_index[i] << " dist["<< i << "]=" << out_dist_sqr[i] << endl;
-		cout << "\n";
-	}
+        // In case of less points in the tree than requested:
+        ret_index.resize(num_results);
+        out_dist_sqr.resize(num_results);
 
-	// ----------------------------------------------------------------
-	// radiusSearch(): Perform a search for the points within search_radius
-	// ----------------------------------------------------------------
-	{
-		const num_t search_radius = static_cast<num_t>(0.1);
-		std::vector<std::pair<uint32_t, num_t> >   ret_matches;
+        cout << "knnSearch(): num_results=" << num_results << "\n";
+        for (size_t i = 0; i < num_results; i++)
+            cout << "idx[" << i << "]=" << ret_index[i] << " dist[" << i
+                 << "]=" << out_dist_sqr[i] << endl;
+        cout << "\n";
+    }
 
-		nanoflann::SearchParams params;
-		//params.sorted = false;
+    // ----------------------------------------------------------------
+    // radiusSearch(): Perform a search for the points within search_radius
+    // ----------------------------------------------------------------
+    {
+        const num_t search_radius = static_cast<num_t>(0.1);
+        std::vector<std::pair<uint32_t, num_t>> ret_matches;
 
-		const size_t nMatches = index.radiusSearch(&query_pt[0], search_radius, ret_matches, params);
+        nanoflann::SearchParams params;
+        // params.sorted = false;
 
-		cout << "radiusSearch(): radius=" << search_radius << " -> " << nMatches << " matches\n";
-		for (size_t i = 0; i < nMatches; i++)
-			cout << "idx["<< i << "]=" << ret_matches[i].first << " dist["<< i << "]=" << ret_matches[i].second << endl;
-		cout << "\n";
-	}
+        const size_t nMatches = index.radiusSearch(
+            &query_pt[0], search_radius, ret_matches, params);
 
+        cout << "radiusSearch(): radius=" << search_radius << " -> " << nMatches
+             << " matches\n";
+        for (size_t i = 0; i < nMatches; i++)
+            cout << "idx[" << i << "]=" << ret_matches[i].first << " dist[" << i
+                 << "]=" << ret_matches[i].second << endl;
+        cout << "\n";
+    }
 }
 
- int main()
+int main()
 {
-	// Randomize Seed
-	srand(static_cast<unsigned int>(time(nullptr)));
-	kdtree_demo<float>(4);
-	kdtree_demo<double>(100000);
-	return 0;
+    // Randomize Seed
+    srand(static_cast<unsigned int>(time(nullptr)));
+    kdtree_demo<float>(4);
+    kdtree_demo<double>(100000);
+    return 0;
 }

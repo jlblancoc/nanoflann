@@ -26,108 +26,102 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *************************************************************************/
 
-#include <nanoflann.hpp>
-
+#include <Eigen/Dense>
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
-
-#include <Eigen/Dense>
-
-using namespace Eigen;
-using namespace std;
-using namespace nanoflann;
+#include <nanoflann.hpp>
 
 const int SAMPLES_DIM = 15;
 
 template <typename Der>
-void generateRandomPointCloud(Eigen::MatrixBase<Der> &mat, const size_t N,
-                              const size_t dim,
-                              const typename Der::Scalar max_range = 10) {
-  std::cout << "Generating " << N << " random points...";
-  mat.resize(N, dim);
-  for (size_t i = 0; i < N; i++)
-    for (size_t d = 0; d < dim; d++)
-      mat(i, d) = max_range * (rand() % 1000) / typename Der::Scalar(1000);
-  std::cout << "done\n";
+void generateRandomPointCloud(
+    Eigen::MatrixBase<Der>& mat, const size_t N, const size_t dim,
+    const typename Der::Scalar max_range = 10)
+{
+    std::cout << "Generating " << N << " random points...";
+    mat.resize(N, dim);
+    for (size_t i = 0; i < N; i++)
+        for (size_t d = 0; d < dim; d++)
+            mat(i, d) =
+                max_range * (rand() % 1000) / typename Der::Scalar(1000);
+    std::cout << "done\n";
 }
 
 template <typename num_t>
-void kdtree_demo(const size_t nSamples, const size_t dim) {
-  Eigen::Matrix<num_t, Dynamic, Dynamic> mat(nSamples, dim);
+void kdtree_demo(const size_t nSamples, const size_t dim)
+{
+    using matrix_t = Eigen::Matrix<num_t, Eigen::Dynamic, Eigen::Dynamic>;
 
-  const num_t max_range = 20;
+    matrix_t mat(nSamples, dim);
 
-  // Generate points:
-  generateRandomPointCloud(mat, nSamples, dim, max_range);
+    const num_t max_range = 20;
 
-  //	cout << mat << endl;
+    // Generate points:
+    generateRandomPointCloud(mat, nSamples, dim, max_range);
 
-  // Query point:
-  std::vector<num_t> query_pt(dim);
-  for (size_t d = 0; d < dim; d++)
-    query_pt[d] = max_range * (rand() % 1000) / num_t(1000);
+    //	cout << mat << endl;
 
-  // ------------------------------------------------------------
-  // construct a kd-tree index:
-  //    Some of the different possibilities (uncomment just one)
-  // ------------------------------------------------------------
-  // Dimensionality set at run-time (default: L2)
-  typedef KDTreeEigenMatrixAdaptor<Eigen::Matrix<num_t, Dynamic, Dynamic>>
-      my_kd_tree_t;
+    // Query point:
+    std::vector<num_t> query_pt(dim);
+    for (size_t d = 0; d < dim; d++)
+        query_pt[d] = max_range * (rand() % 1000) / num_t(1000);
 
-  // Dimensionality set at compile-time
-  //	typedef KDTreeEigenMatrixAdaptor< Eigen::Matrix<num_t,Dynamic,Dynamic> >
-  // my_kd_tree_t;
+        // ------------------------------------------------------------
+        // construct a kd-tree index:
+        //    Some of the different possibilities (uncomment just one)
+        // ------------------------------------------------------------
+        // Dimensionality set at run-time (default: L2)
+#if 1
+    using my_kd_tree_t = nanoflann::KDTreeEigenMatrixAdaptor<matrix_t>;
+#elif 0
+    // Dimensionality set at compile-time: Explicit selection of the distance
+    // metric: L2
+    using my_kd_tree_t = nanoflann::KDTreeEigenMatrixAdaptor<
+        matrix_t, -1 /*dyn size*/, nanoflann::metric_L2>;
+#elif 0
+    // Dimensionality set at compile-time: Explicit selection of the distance
+    // metric: L2_simple
+    using my_kd_tree_t = nanoflann::KDTreeEigenMatrixAdaptor<
+        matrix_t, -1 /*dyn size*/, nanoflann::metric_L2_Simple>;
+#elif 0
+    // Dimensionality set at compile-time: Explicit selection of the distance
+    // metric: L1
+    using my_kd_tree_t = nanoflann::KDTreeEigenMatrixAdaptor<
+        matrix_t, -1 /*dyn size*/, nanoflann::metric_L1>;
+#elif 0
+    // Dimensionality set at compile-time: Explicit selection of the distance
+    // metric: L2 Row Major matrix layout
+    // Eigen::Matrix<num_t, Dynamic, Dynamic> mat(dim, nSamples);
+    using my_kd_tree_t = nanoflann::KDTreeEigenMatrixAdaptor<
+        matrix_t, -1, nanoflann::metric_L2, true>;
+#endif
 
-  // Dimensionality set at compile-time: Explicit selection of the distance
-  // metric: L2
-  //	typedef KDTreeEigenMatrixAdaptor<
-  // Eigen::Matrix<num_t,Dynamic,Dynamic>,nanoflann::metric_L2>  my_kd_tree_t;
+    my_kd_tree_t mat_index(dim, std::cref(mat), 10 /* max leaf */);
+    mat_index.index->buildIndex();
 
-  // Dimensionality set at compile-time: Explicit selection of the distance
-  // metric: L2_simple
-  //	typedef KDTreeEigenMatrixAdaptor<
-  // Eigen::Matrix<num_t,Dynamic,Dynamic>,nanoflann::metric_L2_Simple>
-  // my_kd_tree_t;
+    // do a knn search
+    const size_t        num_results = 3;
+    std::vector<size_t> ret_indexes(num_results);
+    std::vector<num_t>  out_dists_sqr(num_results);
 
-  // Dimensionality set at compile-time: Explicit selection of the distance
-  // metric: L1
-  //	typedef KDTreeEigenMatrixAdaptor<
-  // Eigen::Matrix<num_t,Dynamic,Dynamic>,nanoflann::metric_L1>  my_kd_tree_t;
+    nanoflann::KNNResultSet<num_t> resultSet(num_results);
 
-  // Dimensionality set at compile-time: Explicit selection of the distance
-  // metric: L2
-  // Row Major matrix layout
-  // Eigen::Matrix<num_t, Dynamic, Dynamic> mat(dim, nSamples);
-  //	typedef KDTreeEigenMatrixAdaptor<
-  // Eigen::Matrix<num_t,Dynamic,Dynamic>,nanoflann::metric_L2, true>
-  // my_kd_tree_t;
-  
-  my_kd_tree_t mat_index(dim, std::cref(mat), 10 /* max leaf */);
-  mat_index.index->buildIndex();
+    resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
+    mat_index.index->findNeighbors(
+        resultSet, &query_pt[0], nanoflann::SearchParams(10));
 
-  // do a knn search
-  const size_t num_results = 3;
-  vector<size_t> ret_indexes(num_results);
-  vector<num_t> out_dists_sqr(num_results);
-
-  nanoflann::KNNResultSet<num_t> resultSet(num_results);
-
-  resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-  mat_index.index->findNeighbors(resultSet, &query_pt[0],
-                                 nanoflann::SearchParams(10));
-
-  std::cout << "knnSearch(nn=" << num_results << "): \n";
-  for (size_t i = 0; i < num_results; i++)
-    std::cout << "ret_index[" << i << "]=" << ret_indexes[i]
-              << " out_dist_sqr=" << out_dists_sqr[i] << endl;
+    std::cout << "knnSearch(nn=" << num_results << "): \n";
+    for (size_t i = 0; i < num_results; i++)
+        std::cout << "ret_index[" << i << "]=" << ret_indexes[i]
+                  << " out_dist_sqr=" << out_dists_sqr[i] << std::endl;
 }
 
-int main(int argc, char **argv) {
-  // Randomize Seed
-  srand(static_cast<unsigned int>(time(nullptr)));
-  kdtree_demo<float>(1000 /* samples */, SAMPLES_DIM /* dim */);
+int main(int argc, char** argv)
+{
+    // Randomize Seed
+    srand(static_cast<unsigned int>(time(nullptr)));
+    kdtree_demo<float>(1000 /* samples */, SAMPLES_DIM /* dim */);
 
-  return 0;
+    return 0;
 }
