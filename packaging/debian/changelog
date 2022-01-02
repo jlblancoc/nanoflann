@@ -1,7 +1,0 @@
-nanoflann (1.1.0-1) unstable; urgency=low
-
-  * Initial packaging
-  * Solves ITP bug (Closes: #652103)
-
- -- Jose Luis Blanco (University of Malaga) <joseluisblancoc@gmail.com>  Wed, 14 Dec 2011 17:00:00 +0100
-
