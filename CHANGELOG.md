@@ -1,4 +1,4 @@
-nanoflann UNRELEASED
+nanoflann 1.4.0: Released Jan 2, 2022
   * nanoflann::KDTreeSingleIndexAdaptor() ctor now forwards additional parameters to the metric class, enabling custom dynamic metrics.
   * Add and apply a `.clang-format` file (same one than used in MOLAorg/MOLA projects).
   * Examples: clean up and code modernization.

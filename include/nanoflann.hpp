@@ -3,7 +3,7 @@
  *
  * Copyright 2008-2009  Marius Muja (mariusm@cs.ubc.ca). All rights reserved.
  * Copyright 2008-2009  David G. Lowe (lowe@cs.ubc.ca). All rights reserved.
- * Copyright 2011-2021  Jose Luis Blanco (joseluisblancoc@gmail.com).
+ * Copyright 2011-2022  Jose Luis Blanco (joseluisblancoc@gmail.com).
  *   All rights reserved.
  *
  * THE BSD LICENSE
@@ -57,7 +57,7 @@
 #include <vector>
 
 /** Library version: 0xMmP (M=Major,m=minor,P=patch) */
-#define NANOFLANN_VERSION 0x132
+#define NANOFLANN_VERSION 0x140
 
 // Avoid conflicting declaration of min/max macros in windows headers
 #if !defined(NOMINMAX) && \
