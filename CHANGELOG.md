@@ -1,4 +1,4 @@
-nanoflann 1.4.1: UNRELEASED
+nanoflann 1.4.1: Released Jan 6, 2022
   * Fix incorrect install directory for cmake target & config files.
   * Do not install example binaries with `make install`.
   * Provide working examples for cmake and pkgconfig under `examples/example_*` directories.
