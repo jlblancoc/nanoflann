@@ -98,6 +98,9 @@ endif()
 # Install/uninstall targets
 # --------------------------------------------------------------------
 
+# Variable for pkgconfig file:
+set(nanoflann_pkgconfig_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
+
 # Generate the pkg-config file:
 configure_file(
 	"${nanoflann_SOURCE_DIR}/scripts/nanoflann.pc.in"
