@@ -46,10 +46,11 @@ add_definitions ( -DNANOFLANN_PATH="${CMAKE_SOURCE_DIR}" )
 include(GNUInstallDirs)
 # Set relative install directories
 set(INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_INCLUDEDIR}")
-set(INSTALL_PKGCONFIG_DIR "${CMAKE_INSTALL_DATADIR}/pkgconfig")
 set(INSTALL_CMAKE_DIR "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake/")
 set(INSTALL_COPYRIGHT_DIR "${CMAKE_INSTALL_DOCDIR}")
-
+if(NOT DEFINED PKGCONFIG_INSTALL_DIR)
+  set(PKGCONFIG_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/pkgconfig")
+endif()
 
 # Define nanoflann lib (header-only)
 add_library(nanoflann INTERFACE)
@@ -156,7 +157,7 @@ install(EXPORT nanoflannTargets
 
 install(
 	FILES "${nanoflann_BINARY_DIR}/nanoflann.pc"
-	DESTINATION "${INSTALL_PKGCONFIG_DIR}" )
+	DESTINATION "${PKGCONFIG_INSTALL_DIR}" )
 
 install(
     FILES "${nanoflann_BINARY_DIR}/nanoflannConfig.cmake"
