@@ -1752,6 +1752,10 @@ class KDTreeSingleIndexDynamicAdaptor_
         BaseClassRef::m_leaf_max_size = params.leaf_max_size;
     }
 
+    /** Explicitly default the copy constructor */
+    KDTreeSingleIndexDynamicAdaptor_(
+        const KDTreeSingleIndexDynamicAdaptor_& rhs) = default;
+
     /** Assignment operator definiton */
     KDTreeSingleIndexDynamicAdaptor_ operator=(
         const KDTreeSingleIndexDynamicAdaptor_& rhs)
