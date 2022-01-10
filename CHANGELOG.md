@@ -1,5 +1,6 @@
 nanoflann 1.4.2: UNRELEASED
  * Install pkg-config .pc file under lib directory (Closes [#161](https://github.com/jlblancoc/nanoflann/issues/161)).
+ * Integrate AppVeyor CI.
 
 nanoflann 1.4.1: Released Jan 6, 2022
   * Fix incorrect install directory for cmake target & config files.
