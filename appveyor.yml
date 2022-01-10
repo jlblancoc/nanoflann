@@ -15,9 +15,8 @@ environment:
 build_script:
   - cd c:\projects\nanoflann
   - cd c:\projects\nanoflann\build\
-  - cmake --build . --config Release --target test
-  # All seem OK. Build all.
   - cmake --build . --config Release
+  - ctest -C Release
 
 before_build:
   - cd c:\projects\nanoflann
