@@ -1,0 +1,25 @@
+# version format
+version: 1.4.2-{branch}-build{build}
+
+os: Visual Studio 2019
+
+clone_folder: c:\projects\nanoflann
+
+platform: x64
+configuration: Release
+
+environment:
+  CTEST_OUTPUT_ON_FAILURE: 1
+  VERBOSE: 1 # for cmake scripts to show more info
+
+build_script:
+  - cd c:\projects\nanoflann
+  - cd c:\projects\nanoflann\build\
+  - cmake --build . --config Release --target test
+  # All seem OK. Build all.
+  - cmake --build . --config Release
+
+before_build:
+  - cd c:\projects\mrpt
+  - mkdir build
+  - cmake -S. -Bbuild -G "Visual Studio 16 2019"
