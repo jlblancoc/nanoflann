@@ -20,6 +20,6 @@ build_script:
   - cmake --build . --config Release
 
 before_build:
-  - cd c:\projects\mrpt
+  - cd c:\projects\nanoflann
   - mkdir build
   - cmake -S. -Bbuild -G "Visual Studio 16 2019"
