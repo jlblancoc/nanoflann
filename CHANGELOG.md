@@ -1,4 +1,4 @@
-nanoflann 1.4.2: UNRELEASED
+nanoflann 1.4.2: Released Jan 11, 2022
  * Install pkg-config .pc file under lib directory (Closes [#161](https://github.com/jlblancoc/nanoflann/issues/161)).
  * Integrate AppVeyor CI.
 
