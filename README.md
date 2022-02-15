@@ -24,6 +24,10 @@ Cite as:
 ### 1.1. Obtaining the code
 
 * Easiest way: clone this GIT repository and take the `include/nanoflann.hpp` file for use where you need it.
+* Debian or Ubuntu ([21.04 or newer](https://packages.ubuntu.com/source/hirsute/nanoflann)) users can install it simply with:
+  ```bash 
+  sudo apt install libnanoflann-dev
+  ```
 * macOS users can install `nanoflann` with [Homebrew](https://brew.sh) with:
   ```shell
   $ brew install brewsci/science/nanoflann
@@ -33,7 +37,7 @@ Cite as:
   $ brew tap brewsci/science
   $ brew install nanoflann
   ```
-* Linux users can install it with [Linuxbrew](https://linuxbrew.sh/) with: `brew install homebrew/science/nanoflann`
+* Linux users can also install it with [Linuxbrew](https://linuxbrew.sh/) with: `brew install homebrew/science/nanoflann`
 * List of [**stable releases**](https://github.com/jlblancoc/nanoflann/releases). Check out the [CHANGELOG](https://raw.githubusercontent.com/jlblancoc/nanoflann/master/CHANGELOG.txt)
 
 Although nanoflann itself doesn't have to be compiled, you can build some examples and tests with:
