@@ -104,7 +104,6 @@ void kdtree_demo(const size_t N)
     dump_mem_usage();
 
     my_kd_tree_t index(3 /*dim*/, pc2kd, {10 /* max leaf */});
-    index.buildIndex();
     dump_mem_usage();
 
     // do a knn search

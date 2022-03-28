@@ -100,7 +100,6 @@ static void kdtree_custom_metric_demo(const size_t N)
     const double myMetricParam = 4.0;
 
     my_kd_tree_t index(3 /*dim*/, cloud, {10 /* max leaf */}, myMetricParam);
-    index.buildIndex();
 
     dump_mem_usage();
     {

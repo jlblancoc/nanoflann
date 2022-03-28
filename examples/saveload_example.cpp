@@ -55,7 +55,6 @@ void kdtree_save_load_demo(const size_t N)
         my_kd_tree_t index(
             3 /*dim*/, cloud,
             nanoflann::KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
-        index.buildIndex();
 
         std::ofstream f("index.bin", std::ofstream::binary);
 

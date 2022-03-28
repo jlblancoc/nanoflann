@@ -71,10 +71,8 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
 		> my_kd_tree_t;
 
 	my_kd_tree_simple_t   index1(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
-	index1.buildIndex();
 
 	my_kd_tree_t   index2(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
-	index2.buildIndex();
 
 	// do a knn search
 	std::vector<size_t>   ret_index(num_results);
@@ -133,7 +131,6 @@ void L2_vs_bruteforce_test(const size_t nSamples,const size_t DIM)
 	typedef KDTreeVectorOfVectorsAdaptor< std::vector<std::vector<NUM> >, NUM >  my_kd_tree_t;
 
 	my_kd_tree_t   mat_index(DIM /*dim*/, samples, 10 /* max leaf */ );
-	mat_index.index->buildIndex();
 
 	// do a knn search
 	const size_t num_results = 1;
@@ -187,7 +184,6 @@ void SO3_vs_bruteforce_test(const size_t nSamples)
 		> my_kd_tree_t;
 
 	my_kd_tree_t   index(4 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
-	index.buildIndex();
 	// do a knn search
 	const size_t num_results = 1;
 	std::vector<size_t>   ret_indexes(num_results);
@@ -240,7 +236,6 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
 		> my_kd_tree_t;
 
 	my_kd_tree_t   index(1 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
-	index.buildIndex();
 	// do a knn search
 	const size_t num_results = 1;
 	std::vector<size_t>   ret_indexes(num_results);
@@ -406,7 +401,6 @@ TEST(kdtree,robust_empty_tree)
 		> my_kd_tree_simple_t;
 
 	my_kd_tree_simple_t   index1(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
-	index1.buildIndex();
 
 
 	// Now we will try to search in the tree, and WE EXPECT a result of

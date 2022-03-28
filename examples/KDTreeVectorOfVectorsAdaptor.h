@@ -81,7 +81,6 @@ struct KDTreeVectorOfVectorsAdaptor
         index = new index_t(
             static_cast<int>(dims), *this /* adaptor */,
             nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size));
-        index->buildIndex();
     }
 
     ~KDTreeVectorOfVectorsAdaptor() { delete index; }
