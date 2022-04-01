@@ -102,7 +102,6 @@ void kdtree_demo(const size_t N, double& buildTimer, double& queryTimer)
         >;
 
     my_kd_tree_t index(3 /*dim*/, cloudS, {10 /* max leaf */});
-    index.buildIndex();
     clock_t end = clock();
     buildTimer += double(end - begin) / CLOCKS_PER_SEC;
 

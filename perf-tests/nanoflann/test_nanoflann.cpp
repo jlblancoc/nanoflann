@@ -127,7 +127,6 @@ void perf_test(const size_t N)
 		> my_kd_tree_t;
 
 	my_kd_tree_t   index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
-	index.buildIndex();
 	double t1=get_time();
 	const double At_build = t1-t0;
 	VERB_COUT << "Build Index<>: " << (t1-t0)*1e3 << " ms\n";

@@ -2229,7 +2229,6 @@ class KDTreeSingleIndexDynamicAdaptor
  *
  * const int max_leaf = 10;
  * my_kd_tree_t mat_index(mat, max_leaf);
- * mat_index.index->buildIndex();
  * mat_index.index->...
  * \endcode
  *
@@ -2284,7 +2283,6 @@ struct KDTreeEigenMatrixAdaptor
         index = new index_t(
             dims, *this /* adaptor */,
             nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size));
-        index->buildIndex();
     }
 
    public:

@@ -51,7 +51,6 @@ void kdtree_demo(const size_t N)
         >;
 
     my_kd_tree_t index(3 /*dim*/, cloud, {10 /* max leaf */});
-    index.buildIndex();
 
 #if 0
 	// Test resize of dataset and rebuild of index:

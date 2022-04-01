@@ -137,7 +137,6 @@ template <typename num_t> void kdtree_demo(string &path1, string &path2) {
         my_kd_tree_t;
     my_kd_tree_t index(3 /*dim*/, cloudS,
                        KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
-    index.buildIndex();
     clock_t end = clock();
     double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
     buildTime.push_back(elapsed_secs);
