@@ -2082,7 +2082,7 @@ class KDTreeSingleIndexDynamicAdaptor
     Dimension dim;  //!< Dimensionality of each data point
 
     using index_container_t =
-        KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM>;
+        KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM, AccessorType>;
     std::vector<index_container_t> index;
 
    public:
@@ -2110,7 +2110,7 @@ class KDTreeSingleIndexDynamicAdaptor
     void init()
     {
         using my_kd_tree_t =
-            KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM>;
+            KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM, AccessorType>;
         std::vector<my_kd_tree_t> index_(
             treeCount,
             my_kd_tree_t(dim /*dim*/, dataset, treeIndex, index_params));
