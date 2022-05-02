@@ -648,15 +648,26 @@ struct metric_SO3 : public Metric
 /** @addtogroup param_grp Parameter structs
  * @{ */
 
+enum class KDTreeSingleIndexAdaptorFlags {
+    None = 0,
+    SkipInitialBuildIndex = 1
+};
+
+inline std::underlying_type<KDTreeSingleIndexAdaptorFlags>::type operator&(KDTreeSingleIndexAdaptorFlags lhs, KDTreeSingleIndexAdaptorFlags rhs) {
+    using underlying = typename std::underlying_type<KDTreeSingleIndexAdaptorFlags>::type;
+    return static_cast<underlying>(lhs) & static_cast<underlying>(rhs);
+}
+
 /**  Parameters (see README.md) */
 struct KDTreeSingleIndexAdaptorParams
 {
-    KDTreeSingleIndexAdaptorParams(size_t _leaf_max_size = 10)
-        : leaf_max_size(_leaf_max_size)
+    KDTreeSingleIndexAdaptorParams(size_t _leaf_max_size = 10, KDTreeSingleIndexAdaptorFlags _flags = KDTreeSingleIndexAdaptorFlags::None)
+        : leaf_max_size(_leaf_max_size), flags(_flags)
     {
     }
 
     size_t leaf_max_size;
+    KDTreeSingleIndexAdaptorFlags flags;
 };
 
 /** Search options for KDTreeSingleIndexAdaptor::findNeighbors() */
@@ -1353,7 +1364,9 @@ class KDTreeSingleIndexAdaptor
         if (DIM > 0) BaseClassRef::dim = DIM;
         BaseClassRef::m_leaf_max_size = params.leaf_max_size;
 
-        buildIndex();
+        if (!(index_params.flags & KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex)) {
+            buildIndex();
+        }
     }
 
     /**
