@@ -1,3 +1,6 @@
+nanoflann 1.4.3: UNRELEASED
+ * Added flag SkipInitialBuildIndex to allow not wasting time building a tree when it will be loaded from a file later on ([PR 171](https://github.com/jlblancoc/nanoflann/pull/171)).
+
 nanoflann 1.4.2: Released Jan 11, 2022
  * Install pkg-config .pc file under lib directory (Closes [#161](https://github.com/jlblancoc/nanoflann/issues/161)).
  * Integrate AppVeyor CI.
