@@ -479,9 +479,10 @@ TEST(kdtree,robust_nonempty_tree)
 {
 	// Try to build a dynamic tree with some initial points
 	PointCloud<double> cloud;
-	generateRandomPointCloud(cloud, 1000);
+	const size_t max_point_count = 1000;
+	generateRandomPointCloud(cloud, max_point_count);
 
-	double query_pt[3] = { 0.5, 0.5, 0.5};
+	const double query_pt[3] = {0.5, 0.5, 0.5};
 
 	// construct a kd-tree index:
 	typedef KDTreeSingleIndexDynamicAdaptor<
@@ -490,7 +491,8 @@ TEST(kdtree,robust_nonempty_tree)
 		3
 		> my_kd_tree_simple_t;
 
-	my_kd_tree_simple_t index1(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */) );
+	my_kd_tree_simple_t index1(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */),
+		max_point_count);
 
 	// Try a search and expect a neighbor to exist because the dynamic tree was passed a non-empty cloud
 	const size_t num_results = 1;
