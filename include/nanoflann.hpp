@@ -2173,12 +2173,13 @@ class KDTreeSingleIndexDynamicAdaptor
     /** Add points to the set, Inserts all points from [start, end] */
     void addPoints(AccessorType start, AccessorType end)
     {
-        Size count = end - start + 1;
+        const Size count = end - start + 1;
+        int maxIndex = 0;
         treeIndex.resize(treeIndex.size() + count);
         for (AccessorType idx = start; idx <= end; idx++)
         {
-            int pos = First0Bit(pointCount);
-            index[pos].vAcc.clear();
+            const int pos = First0Bit(pointCount);
+            maxIndex = std::max(pos, maxIndex);
             treeIndex[pointCount] = pos;
             for (int i = 0; i < pos; i++)
             {
@@ -2189,11 +2190,15 @@ class KDTreeSingleIndexDynamicAdaptor
                         treeIndex[index[i].vAcc[j]] = pos;
                 }
                 index[i].vAcc.clear();
-                index[i].freeIndex(index[i]);
             }
             index[pos].vAcc.push_back(idx);
-            index[pos].buildIndex();
             pointCount++;
+        }
+
+        for(size_t i = 0; i <= maxIndex; ++i) {
+            index[i].freeIndex(index[i]);
+            if(!index[i].vAcc.empty())
+                index[i].buildIndex();
         }
     }
 
