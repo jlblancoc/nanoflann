@@ -1352,10 +1352,26 @@ class KDTreeSingleIndexAdaptor
     template <class... Args>
     KDTreeSingleIndexAdaptor(
         const Dimension dimensionality, const DatasetAdaptor& inputData,
-        const KDTreeSingleIndexAdaptorParams& params = {}, Args&&... args)
+        const KDTreeSingleIndexAdaptorParams& params, Args&&... args)
         : dataset(inputData),
           index_params(params),
           distance(inputData, std::forward<Args>(args)...)
+    {
+        init(dimensionality, params);
+    }
+
+    KDTreeSingleIndexAdaptor(
+        const Dimension dimensionality, const DatasetAdaptor& inputData,
+        const KDTreeSingleIndexAdaptorParams& params)
+        : dataset(inputData),
+          index_params(params),
+          distance(inputData)
+    {
+        init(dimensionality, params);
+    }
+
+   private:
+    void init(const Dimension dimensionality, const KDTreeSingleIndexAdaptorParams& params)
     {
         BaseClassRef::root_node             = nullptr;
         BaseClassRef::m_size                = dataset.kdtree_get_point_count();
@@ -1364,11 +1380,12 @@ class KDTreeSingleIndexAdaptor
         if (DIM > 0) BaseClassRef::dim = DIM;
         BaseClassRef::m_leaf_max_size = params.leaf_max_size;
 
-        if (!(index_params.flags & KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex)) {
+        if (!(params.flags & KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex)) {
             buildIndex();
         }
     }
 
+   public:
     /**
      * Builds the index
      */
