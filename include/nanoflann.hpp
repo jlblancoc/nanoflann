@@ -1352,7 +1352,7 @@ class KDTreeSingleIndexAdaptor
     template <class... Args>
     KDTreeSingleIndexAdaptor(
         const Dimension dimensionality, const DatasetAdaptor& inputData,
-        const KDTreeSingleIndexAdaptorParams& params = {}, Args&&... args)
+        const KDTreeSingleIndexAdaptorParams& params, Args&&... args)
         : dataset(inputData),
           index_params(params),
           distance(inputData, std::forward<Args>(args)...)
@@ -1368,6 +1368,12 @@ class KDTreeSingleIndexAdaptor
             buildIndex();
         }
     }
+
+    template <class... Args>
+    KDTreeSingleIndexAdaptor(
+        const Dimension dimensionality, const DatasetAdaptor& inputData, Args&&... args)
+        : KDTreeSingleIndexAdaptorParams(dimensionality, inputData, {}, std::forward<Args>(args)...)
+    {}
 
     /**
      * Builds the index
