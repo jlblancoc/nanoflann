@@ -54,6 +54,7 @@
 #include <limits>  // std::reference_wrapper
 #include <ostream>
 #include <stdexcept>
+#include <unordered_set>
 #include <vector>
 
 /** Library version: 0xMmP (M=Major,m=minor,P=patch) */
@@ -2106,6 +2107,7 @@ class KDTreeSingleIndexDynamicAdaptor
         treeIndex;  //!< treeIndex[idx] is the index of tree in which
                     //!< point at idx is stored. treeIndex[idx]=-1
                     //!< means that point has been removed.
+    std::unordered_set<int> removedPoints;
 
     KDTreeSingleIndexAdaptorParams index_params;
 
@@ -2198,6 +2200,14 @@ class KDTreeSingleIndexDynamicAdaptor
             const int pos = First0Bit(pointCount);
             maxIndex = std::max(pos, maxIndex);
             treeIndex[pointCount] = pos;
+
+            const auto it = removedPoints.find(idx);
+            if(it != removedPoints.end())
+            {
+                removedPoints.erase(it);
+                treeIndex[idx] = pos;
+            }
+
             for (int i = 0; i < pos; i++)
             {
                 for (int j = 0; j < static_cast<int>(index[i].vAcc.size()); j++)
@@ -2223,6 +2233,7 @@ class KDTreeSingleIndexDynamicAdaptor
     void removePoint(size_t idx)
     {
         if (idx >= pointCount) return;
+        removedPoints.insert(idx);
         treeIndex[idx] = -1;
     }
 
