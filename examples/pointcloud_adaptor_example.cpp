@@ -91,8 +91,6 @@ void kdtree_demo(const size_t N)
     // Generate points:
     generateRandomPointCloud(cloud, N);
 
-    num_t query_pt[3] = {0.5, 0.5, 0.5};
-
     using PC2KD = PointCloudAdaptor<PointCloud<num_t>>;
     const PC2KD pc2kd(cloud);  // The adaptor
 
@@ -103,22 +101,29 @@ void kdtree_demo(const size_t N)
 
     dump_mem_usage();
 
-    my_kd_tree_t index(3 /*dim*/, pc2kd, {10 /* max leaf */});
+    auto do_knn_search = [](const my_kd_tree_t& index) {
+        // do a knn search
+        const size_t                   num_results = 1;
+        size_t                         ret_index;
+        num_t                          out_dist_sqr;
+        nanoflann::KNNResultSet<num_t> resultSet(num_results);
+        num_t query_pt[3] = {0.5, 0.5, 0.5};
+
+        resultSet.init(&ret_index, &out_dist_sqr);
+        index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
+
+        std::cout << "knnSearch(nn=" << num_results << "): \n";
+        std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr
+                  << std::endl;
+    };
+
+    my_kd_tree_t index1(3 /*dim*/, pc2kd, {10 /* max leaf */});
+    my_kd_tree_t index2(3 /*dim*/, pc2kd);
+
     dump_mem_usage();
 
-    // do a knn search
-    const size_t                   num_results = 1;
-    size_t                         ret_index;
-    num_t                          out_dist_sqr;
-    nanoflann::KNNResultSet<num_t> resultSet(num_results);
-    resultSet.init(&ret_index, &out_dist_sqr);
-    index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
-    // index.knnSearch(query, indices, dists, num_results,
-    // mrpt_flann::SearchParams(10));
-
-    std::cout << "knnSearch(nn=" << num_results << "): \n";
-    std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr
-              << std::endl;
+    do_knn_search(index1);
+    do_knn_search(index2);
 }
 
 int main()

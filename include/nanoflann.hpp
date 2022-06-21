@@ -1363,7 +1363,7 @@ class KDTreeSingleIndexAdaptor
 
     KDTreeSingleIndexAdaptor(
         const Dimension dimensionality, const DatasetAdaptor& inputData,
-        const KDTreeSingleIndexAdaptorParams& params)
+        const KDTreeSingleIndexAdaptorParams& params = {})
         : dataset(inputData),
           index_params(params),
           distance(inputData)
@@ -2222,7 +2222,7 @@ class KDTreeSingleIndexDynamicAdaptor
             pointCount++;
         }
 
-        for(size_t i = 0; i <= maxIndex; ++i) {
+        for(int i = 0; i <= maxIndex; ++i) {
             index[i].freeIndex(index[i]);
             if(!index[i].vAcc.empty())
                 index[i].buildIndex();
