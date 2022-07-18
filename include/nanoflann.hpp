@@ -169,7 +169,7 @@ class KNNResultSet
     CountType     count;
 
    public:
-    inline KNNResultSet(CountType capacity_)
+    explicit inline KNNResultSet(CountType capacity_)
         : indices(0), dists(0), capacity(capacity_), count(0)
     {
     }
@@ -256,7 +256,7 @@ class RadiusResultSet
 
     std::vector<std::pair<IndexType, DistanceType>>& m_indices_dists;
 
-    inline RadiusResultSet(
+    explicit inline RadiusResultSet(
         DistanceType                                     radius_,
         std::vector<std::pair<IndexType, DistanceType>>& indices_dists)
         : radius(radius_), m_indices_dists(indices_dists)
@@ -1293,7 +1293,7 @@ class KDTreeSingleIndexAdaptor
 {
    public:
     /** Deleted copy constructor*/
-    KDTreeSingleIndexAdaptor(const KDTreeSingleIndexAdaptor<
+    explicit KDTreeSingleIndexAdaptor(const KDTreeSingleIndexAdaptor<
                              Distance, DatasetAdaptor, DIM, AccessorType>&) =
         delete;
 
@@ -1351,7 +1351,7 @@ class KDTreeSingleIndexAdaptor
      *
      */
     template <class... Args>
-    KDTreeSingleIndexAdaptor(
+    explicit KDTreeSingleIndexAdaptor(
         const Dimension dimensionality, const DatasetAdaptor& inputData,
         const KDTreeSingleIndexAdaptorParams& params, Args&&... args)
         : dataset(inputData),
@@ -1361,7 +1361,7 @@ class KDTreeSingleIndexAdaptor
         init(dimensionality, params);
     }
 
-    KDTreeSingleIndexAdaptor(
+    explicit KDTreeSingleIndexAdaptor(
         const Dimension dimensionality, const DatasetAdaptor& inputData,
         const KDTreeSingleIndexAdaptorParams& params = {})
         : dataset(inputData),
@@ -2166,7 +2166,7 @@ class KDTreeSingleIndexDynamicAdaptor
      * @param inputData Dataset with the input features
      * @param params Basically, the maximum leaf node size
      */
-    KDTreeSingleIndexDynamicAdaptor(
+    explicit KDTreeSingleIndexDynamicAdaptor(
         const int dimensionality, const DatasetAdaptor& inputData,
         const KDTreeSingleIndexAdaptorParams& params =
             KDTreeSingleIndexAdaptorParams(),
@@ -2185,7 +2185,7 @@ class KDTreeSingleIndexDynamicAdaptor
     }
 
     /** Deleted copy constructor*/
-    KDTreeSingleIndexDynamicAdaptor(
+    explicit KDTreeSingleIndexDynamicAdaptor(
         const KDTreeSingleIndexDynamicAdaptor<
             Distance, DatasetAdaptor, DIM, AccessorType>&) = delete;
 
@@ -2311,7 +2311,7 @@ struct KDTreeEigenMatrixAdaptor
     using Dimension = typename index_t::Dimension;
 
     /// Constructor: takes a const ref to the matrix object with the data points
-    KDTreeEigenMatrixAdaptor(
+    explicit KDTreeEigenMatrixAdaptor(
         const Dimension                                 dimensionality,
         const std::reference_wrapper<const MatrixType>& mat,
         const int                                       leaf_max_size = 10)
