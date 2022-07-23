@@ -1,5 +1,6 @@
 nanoflann 1.4.3: UNRELEASED
  * Added flag SkipInitialBuildIndex to allow not wasting time building a tree when it will be loaded from a file later on ([PR #171](https://github.com/jlblancoc/nanoflann/pull/171)).
+ * Mark all constructors explicit, to avoid unintended creation of temporary objects ([Issue #179](https://github.com/jlblancoc/nanoflann/issues/179)).
  * BUGFIX: avoid potential index out of bounds in KDTreeSingleIndexDynamicAdaptor ([PR #173](https://github.com/jlblancoc/nanoflann/pull/173))
 
 nanoflann 1.4.2: Released Jan 11, 2022
