@@ -69,6 +69,10 @@
 #undef min
 #endif
 #endif
+// Avoid conflicts with X11 headers
+#ifdef None
+#undef None
+#endif
 
 namespace nanoflann
 {
