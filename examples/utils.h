@@ -204,7 +204,7 @@ void generateRandomPointCloud_Orient(
     }
 }
 
-void dump_mem_usage()
+inline void dump_mem_usage()
 {
     FILE* f = fopen("/proc/self/statm", "rt");
     if (!f) return;
