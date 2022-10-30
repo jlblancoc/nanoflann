@@ -86,16 +86,6 @@ if(NANOFLANN_BUILD_EXAMPLES)
 	add_subdirectory(examples)
 endif()
 
-# Benchmarks
-option(NANOFLANN_BUILD_BENCHMARKS "Build benchmarks" OFF)
-if(NANOFLANN_BUILD_BENCHMARKS)
-        # 3rdparty Libraries
-        include(3rdparty/CMakeLists-flann.txt)
-        include(3rdparty/CMakeLists-fastann.txt)
-        include(3rdparty/CMakeLists-libkdtree.txt)
-	add_subdirectory(benchmarkTool)
-endif()
-
 # Tests
 option(NANOFLANN_BUILD_TESTS "Build unit tests" ON)
 if(NANOFLANN_BUILD_TESTS)
