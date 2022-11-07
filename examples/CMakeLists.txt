@@ -1,23 +1,23 @@
-find_package(Eigen3 QUIET)
+find_package(Eigen3 QUIET) # optional, for examples only
 
 # examples:
-MACRO(DEFINE_EXAMPLE _NAME)
-	ADD_EXECUTABLE(${_NAME} ${_NAME}.cpp)
+macro(DefineExample _NAME)
+	add_executable(${_NAME} ${_NAME}.cpp)
 	set_target_properties(${_NAME} PROPERTIES FOLDER "Examples")
-	TARGET_LINK_LIBRARIES(${_NAME} nanoflann::nanoflann)  # adds the "#include" directory.
-ENDMACRO()
+	target_link_libraries(${_NAME} nanoflann::nanoflann)  # adds the "#include" directory.
+endmacro()
 
-DEFINE_EXAMPLE(dynamic_pointcloud_example)
-DEFINE_EXAMPLE(pointcloud_example)
-DEFINE_EXAMPLE(pointcloud_kdd_radius)
-DEFINE_EXAMPLE(pointcloud_adaptor_example)
-DEFINE_EXAMPLE(pointcloud_custom_metric)
-DEFINE_EXAMPLE(SO3_adaptor_example)
-DEFINE_EXAMPLE(SO2_adaptor_example)
-DEFINE_EXAMPLE(saveload_example)
-DEFINE_EXAMPLE(vector_of_vectors_example)
+DefineExample(dynamic_pointcloud_example)
+DefineExample(pointcloud_example)
+DefineExample(pointcloud_kdd_radius)
+DefineExample(pointcloud_adaptor_example)
+DefineExample(pointcloud_custom_metric)
+DefineExample(SO3_adaptor_example)
+DefineExample(SO2_adaptor_example)
+DefineExample(saveload_example)
+DefineExample(vector_of_vectors_example)
 
-IF(EIGEN3_FOUND)
-	DEFINE_EXAMPLE(matrix_example)
-    target_include_directories (matrix_example PRIVATE ${EIGEN3_INCLUDE_DIR})
-ENDIF()
+if(EIGEN3_FOUND)
+	DefineExample(matrix_example)
+	target_include_directories (matrix_example PRIVATE ${EIGEN3_INCLUDE_DIR})
+endif()
