@@ -21,3 +21,9 @@ if(EIGEN3_FOUND)
 	DefineExample(matrix_example)
 	target_include_directories (matrix_example PRIVATE ${EIGEN3_INCLUDE_DIR})
 endif()
+
+# optional for gui examples:
+find_package(mrpt-gui QUIET)
+if (mrpt-gui_FOUND)
+	add_subdirectory(examples_gui/nanoflann_gui_example_R3)
+endif()
