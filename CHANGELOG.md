@@ -1,9 +1,10 @@
-nanoflann 1.4.4: UNRELEASED
+nanoflann 1.5.0: UNRELEASED
  * Macros to avoid conflicts with X11 symbols.
  * Inline an auxiliary example function in case users want to use it and include the file in multiple translation units (Closes [#182](https://github.com/jlblancoc/nanoflann/issues/182)).
  * Move all benchmarking code, data, and scripts to [its own repository](https://github.com/MRPT/nanoflann-benchmark) to keep this repo as clean as possible.
  * Fix "potentially uninitialized" GCC warning.
  * More concise auxiliary type name: `array_or_vector_selector` -> `array_or_vector`.
+ * Remove obsolete parameter `nChecks_IGNORED`.
 
 nanoflann 1.4.3: Released Jul 24, 2022
  * Added flag SkipInitialBuildIndex to allow not wasting time building a tree when it will be loaded from a file later on ([PR #171](https://github.com/jlblancoc/nanoflann/pull/171)).
