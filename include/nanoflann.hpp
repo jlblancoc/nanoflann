@@ -272,6 +272,7 @@ class RadiusResultSet
     inline void clear() { m_indices_dists.clear(); }
 
     inline size_t size() const { return m_indices_dists.size(); }
+    inline size_t empty() const { return m_indices_dists.empty(); }
 
     inline bool full() const { return true; }
 
