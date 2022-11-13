@@ -72,17 +72,25 @@ struct PointCloud
 };
 
 template <typename T>
-void generateRandomPointCloud(
-    PointCloud<T>& point, const size_t N, const T max_range = 10)
+void generateRandomPointCloudRanges(
+    PointCloud<T>& pc, const size_t N, const T max_range_x, const T max_range_y,
+    const T max_range_z)
 {
     // Generating Random Point Cloud
-    point.pts.resize(N);
+    pc.pts.resize(N);
     for (size_t i = 0; i < N; i++)
     {
-        point.pts[i].x = max_range * (rand() % 1000) / T(1000);
-        point.pts[i].y = max_range * (rand() % 1000) / T(1000);
-        point.pts[i].z = max_range * (rand() % 1000) / T(1000);
+        pc.pts[i].x = max_range_x * (rand() % 1000) / T(1000);
+        pc.pts[i].y = max_range_y * (rand() % 1000) / T(1000);
+        pc.pts[i].z = max_range_z * (rand() % 1000) / T(1000);
     }
+}
+
+template <typename T>
+void generateRandomPointCloud(
+    PointCloud<T>& pc, const size_t N, const T max_range = 10)
+{
+    generateRandomPointCloudRanges(pc, N, max_range, max_range, max_range);
 }
 
 // This is an exampleof a custom data set class
