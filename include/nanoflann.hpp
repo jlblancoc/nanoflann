@@ -173,12 +173,12 @@ class KNNResultSet
     CountType     count;
 
    public:
-    explicit inline KNNResultSet(CountType capacity_)
+    explicit KNNResultSet(CountType capacity_)
         : indices(0), dists(0), capacity(capacity_), count(0)
     {
     }
 
-    inline void init(IndexType* indices_, DistanceType* dists_)
+    void init(IndexType* indices_, DistanceType* dists_)
     {
         indices = indices_;
         dists   = dists_;
@@ -187,16 +187,16 @@ class KNNResultSet
             dists[capacity - 1] = (std::numeric_limits<DistanceType>::max)();
     }
 
-    inline CountType size() const { return count; }
+    CountType size() const { return count; }
 
-    inline bool full() const { return count == capacity; }
+    bool full() const { return count == capacity; }
 
     /**
      * Called during search to add an element matching the criteria.
      * @return true if the search should be continued, false if the results are
      * sufficient
      */
-    inline bool addPoint(DistanceType dist, IndexType index)
+    bool addPoint(DistanceType dist, IndexType index)
     {
         CountType i;
         for (i = count; i > 0; --i)
@@ -231,7 +231,7 @@ class KNNResultSet
         return true;
     }
 
-    inline DistanceType worstDist() const { return dists[capacity - 1]; }
+    DistanceType worstDist() const { return dists[capacity - 1]; }
 };
 
 /** operator "<" for std::sort() */
@@ -239,7 +239,7 @@ struct IndexDist_Sorter
 {
     /** PairType will be typically: std::pair<IndexType,DistanceType> */
     template <typename PairType>
-    inline bool operator()(const PairType& p1, const PairType& p2) const
+    bool operator()(const PairType& p1, const PairType& p2) const
     {
         return p1.second < p2.second;
     }
@@ -260,7 +260,7 @@ class RadiusResultSet
 
     std::vector<std::pair<IndexType, DistanceType>>& m_indices_dists;
 
-    explicit inline RadiusResultSet(
+    explicit RadiusResultSet(
         DistanceType                                     radius_,
         std::vector<std::pair<IndexType, DistanceType>>& indices_dists)
         : radius(radius_), m_indices_dists(indices_dists)
@@ -268,26 +268,26 @@ class RadiusResultSet
         init();
     }
 
-    inline void init() { clear(); }
-    inline void clear() { m_indices_dists.clear(); }
+    void init() { clear(); }
+    void clear() { m_indices_dists.clear(); }
 
-    inline size_t size() const { return m_indices_dists.size(); }
-    inline size_t empty() const { return m_indices_dists.empty(); }
+    size_t size() const { return m_indices_dists.size(); }
+    size_t empty() const { return m_indices_dists.empty(); }
 
-    inline bool full() const { return true; }
+    bool full() const { return true; }
 
     /**
      * Called during search to add an element matching the criteria.
      * @return true if the search should be continued, false if the results are
      * sufficient
      */
-    inline bool addPoint(DistanceType dist, IndexType index)
+    bool addPoint(DistanceType dist, IndexType index)
     {
         if (dist < radius) m_indices_dists.emplace_back(index, dist);
         return true;
     }
 
-    inline DistanceType worstDist() const { return radius; }
+    DistanceType worstDist() const { return radius; }
 
     /**
      * Find the worst result (farthest neighbor) without copying or sorting
@@ -370,7 +370,7 @@ struct L1_Adaptor
 
     L1_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
-    inline DistanceType evalMetric(
+    DistanceType evalMetric(
         const T* a, const AccessorType b_idx, size_t size,
         DistanceType worst_dist = -1) const
     {
@@ -402,7 +402,7 @@ struct L1_Adaptor
     }
 
     template <typename U, typename V>
-    inline DistanceType accum_dist(const U a, const V b, const size_t) const
+    DistanceType accum_dist(const U a, const V b, const size_t) const
     {
         return std::abs(a - b);
     }
@@ -430,7 +430,7 @@ struct L2_Adaptor
 
     L2_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
-    inline DistanceType evalMetric(
+    DistanceType evalMetric(
         const T* a, const AccessorType b_idx, size_t size,
         DistanceType worst_dist = -1) const
     {
@@ -467,7 +467,7 @@ struct L2_Adaptor
     }
 
     template <typename U, typename V>
-    inline DistanceType accum_dist(const U a, const V b, const size_t) const
+    DistanceType accum_dist(const U a, const V b, const size_t) const
     {
         return (a - b) * (a - b);
     }
@@ -498,7 +498,7 @@ struct L2_Simple_Adaptor
     {
     }
 
-    inline DistanceType evalMetric(
+    DistanceType evalMetric(
         const T* a, const AccessorType b_idx, size_t size) const
     {
         DistanceType result = DistanceType();
@@ -512,7 +512,7 @@ struct L2_Simple_Adaptor
     }
 
     template <typename U, typename V>
-    inline DistanceType accum_dist(const U a, const V b, const size_t) const
+    DistanceType accum_dist(const U a, const V b, const size_t) const
     {
         return (a - b) * (a - b);
     }
@@ -540,7 +540,7 @@ struct SO2_Adaptor
 
     SO2_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
-    inline DistanceType evalMetric(
+    DistanceType evalMetric(
         const T* a, const AccessorType b_idx, size_t size) const
     {
         return accum_dist(
@@ -550,7 +550,7 @@ struct SO2_Adaptor
     /** Note: this assumes that input angles are already in the range [-pi,pi]
      */
     template <typename U, typename V>
-    inline DistanceType accum_dist(const U a, const V b, const size_t) const
+    DistanceType accum_dist(const U a, const V b, const size_t) const
     {
         DistanceType result = DistanceType();
         DistanceType PI     = pi_const<DistanceType>();
@@ -589,14 +589,14 @@ struct SO3_Adaptor
     {
     }
 
-    inline DistanceType evalMetric(
+    DistanceType evalMetric(
         const T* a, const AccessorType b_idx, size_t size) const
     {
         return distance_L2_Simple.evalMetric(a, b_idx, size);
     }
 
     template <typename U, typename V>
-    inline DistanceType accum_dist(const U a, const V b, const size_t idx) const
+    DistanceType accum_dist(const U a, const V b, const size_t idx) const
     {
         return distance_L2_Simple.accum_dist(a, b, idx);
     }
@@ -982,7 +982,7 @@ class KDTreeBaseClass
     Size veclen(const Derived& obj) { return DIM > 0 ? DIM : obj.dim; }
 
     /// Helper accessor to the dataset points:
-    inline ElementType dataset_get(
+    ElementType dataset_get(
         const Derived& obj, AccessorType element, Dimension component) const
     {
         return obj.dataset.kdtree_get_pt(element, component);
@@ -1266,11 +1266,11 @@ class KDTreeBaseClass
  *
  *  \code
  *   // Must return the number of data poins
- *   inline size_t kdtree_get_point_count() const { ... }
+ *   size_t kdtree_get_point_count() const { ... }
  *
  *
  *   // Must return the dim'th component of the idx'th point in the class:
- *   inline T kdtree_get_pt(const size_t idx, const size_t dim) const { ... }
+ *   T kdtree_get_pt(const size_t idx, const size_t dim) const { ... }
  *
  *   // Optional bounding-box computation: return false to default to a standard
  * bbox computation loop.
@@ -1690,10 +1690,10 @@ class KDTreeSingleIndexAdaptor
  *
  *  \code
  *   // Must return the number of data poins
- *   inline size_t kdtree_get_point_count() const { ... }
+ *   size_t kdtree_get_point_count() const { ... }
  *
  *   // Must return the dim'th component of the idx'th point in the class:
- *   inline T kdtree_get_pt(const size_t idx, const size_t dim) const { ... }
+ *   T kdtree_get_pt(const size_t idx, const size_t dim) const { ... }
  *
  *   // Optional bounding-box computation: return false to default to a standard
  * bbox computation loop.
@@ -2357,7 +2357,7 @@ struct KDTreeEigenMatrixAdaptor
      * index->findNeighbors(). The user can also call index->... methods as
      * desired.
      */
-    inline void query(
+    void query(
         const num_t* query_point, const Size num_closest,
         IndexType* out_indices, num_t* out_distances_sq) const
     {
@@ -2373,7 +2373,7 @@ struct KDTreeEigenMatrixAdaptor
     self_t&       derived() { return *this; }
 
     // Must return the number of data points
-    inline Size kdtree_get_point_count() const
+    Size kdtree_get_point_count() const
     {
         if (row_major)
             return m_data_matrix.get().rows();
@@ -2382,7 +2382,7 @@ struct KDTreeEigenMatrixAdaptor
     }
 
     // Returns the dim'th component of the idx'th point in the class:
-    inline num_t kdtree_get_pt(const IndexType idx, size_t dim) const
+    num_t kdtree_get_pt(const IndexType idx, size_t dim) const
     {
         if (row_major)
             return m_data_matrix.get().coeff(idx, IndexType(dim));

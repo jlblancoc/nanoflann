@@ -13,6 +13,7 @@ nanoflann 1.5.0: UNRELEASED
  * Clarified, even more, in docs and examples, that L2 distances
    are **squared** distances.
  * Added method RadiusResultSet::empty()
+ * Removed the (with modern compilers) now useless `inline` keyword in class members.
 
 nanoflann 1.4.3: Released Jul 24, 2022
  * Added flag SkipInitialBuildIndex to allow not wasting time building a tree when it will be loaded from a file later on ([PR #171](https://github.com/jlblancoc/nanoflann/pull/171)).
