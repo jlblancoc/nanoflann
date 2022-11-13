@@ -65,6 +65,11 @@ Although nanoflann itself doesn't have to be compiled, you can build some exampl
   * KD-tree look-up directly on `std::vector<std::vector<T> >` or `std::vector<Eigen::VectorXd>`: [vector_of_vectors_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/vector_of_vectors_example.cpp)
   * Example with a `Makefile` for usage through `pkg-config` (for example, after doing a "make install" or after installing from Ubuntu repositories): [example_with_pkgconfig/](https://github.com/jlblancoc/nanoflann/blob/master/examples/example_with_pkgconfig/)
   * Example of how to build an index and save it to disk for later usage: [saveload_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/saveload_example.cpp)
+  * GUI examples (requires `mrpt-gui`, e.g. `sudo apt install libmrpt-gui-dev`):
+    - [nanoflann_gui_example_R3](https://github.com/jlblancoc/nanoflann/blob/master/examples/examples_gui/nanoflann_gui_example_R3/nanoflann_gui_example_R3.cpp)
+
+![nanoflann-demo-1](https://user-images.githubusercontent.com/5497818/201550433-d561c5a9-4e87-453d-9cf8-8202d7876235.gif)
+
 
 
 ### 1.4. Why a fork?
