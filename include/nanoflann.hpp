@@ -201,9 +201,9 @@ class KNNResultSet
         CountType i;
         for (i = count; i > 0; --i)
         {
-#ifdef NANOFLANN_FIRST_MATCH  // If defined and two points have the same
-                              // distance, the one with the lowest-index will be
-                              // returned first.
+            /** If defined and two points have the same distance, the one with
+             *  the lowest-index will be returned first. */
+#ifdef NANOFLANN_FIRST_MATCH
             if ((dists[i - 1] > dist) ||
                 ((dist == dists[i - 1]) && (indices[i - 1] > index)))
             {
@@ -282,15 +282,14 @@ class RadiusResultSet
      */
     inline bool addPoint(DistanceType dist, IndexType index)
     {
-        if (dist < radius)
-            m_indices_dists.push_back(std::make_pair(index, dist));
+        if (dist < radius) m_indices_dists.emplace_back(index, dist);
         return true;
     }
 
     inline DistanceType worstDist() const { return radius; }
 
     /**
-     * Find the worst result (furtherest neighbor) without copying or sorting
+     * Find the worst result (farthest neighbor) without copying or sorting
      * Pre-conditions: size() > 0
      */
     std::pair<IndexType, DistanceType> worst_item() const
@@ -408,7 +407,7 @@ struct L1_Adaptor
     }
 };
 
-/** Squared Euclidean distance functor (generic version, optimized for
+/** **Squared** Euclidean distance functor (generic version, optimized for
  * high-dimensionality data sets). Corresponding distance traits:
  * nanoflann::metric_L2
  *
@@ -473,7 +472,7 @@ struct L2_Adaptor
     }
 };
 
-/** Squared Euclidean (L2) distance functor (suitable for low-dimensionality
+/** **Squared** Euclidean (L2) distance functor (suitable for low-dimensionality
  * datasets, like 2D or 3D point clouds) Corresponding distance traits:
  * nanoflann::metric_L2_Simple
  *
@@ -611,7 +610,8 @@ struct metric_L1 : public Metric
         using distance_t = L1_Adaptor<T, DataSource, T, AccessorType>;
     };
 };
-/** Metaprogramming helper traits class for the L2 (Euclidean) metric */
+/** Metaprogramming helper traits class for the L2 (Euclidean) **squared**
+ * distance metric */
 struct metric_L2 : public Metric
 {
     template <class T, class DataSource, typename AccessorType = uint32_t>
@@ -620,7 +620,8 @@ struct metric_L2 : public Metric
         using distance_t = L2_Adaptor<T, DataSource, T, AccessorType>;
     };
 };
-/** Metaprogramming helper traits class for the L2_simple (Euclidean) metric */
+/** Metaprogramming helper traits class for the L2_simple (Euclidean)
+ * **squared** distance metric */
 struct metric_L2_Simple : public Metric
 {
     template <class T, class DataSource, typename AccessorType = uint32_t>
@@ -2293,11 +2294,12 @@ class KDTreeSingleIndexDynamicAdaptor
  * \endcode
  *
  *  \tparam DIM If set to >0, it specifies a compile-time fixed dimensionality
- * for the points in the data set, allowing more compiler optimizations. \tparam
- * Distance The distance metric to use: nanoflann::metric_L1,
- * nanoflann::metric_L2, nanoflann::metric_L2_Simple, etc. \tparam row_major
- * If set to true the rows of the matrix are used as the points, if set to false
- * the columns of the matrix are used as the points.
+ * for the points in the data set, allowing more compiler optimizations.
+ * \tparam Distance The distance metric to use: nanoflann::metric_L1,
+ * nanoflann::metric_L2, nanoflann::metric_L2_Simple, etc.
+ * \tparam row_major If set to true the rows of the matrix are used as the
+ *         points, if set to false  the columns of the matrix are used as the
+ *         points.
  */
 template <
     class MatrixType, int32_t DIM = -1, class Distance = nanoflann::metric_L2,
