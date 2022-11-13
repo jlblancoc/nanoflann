@@ -30,6 +30,7 @@
 #include <mrpt/opengl/COpenGLScene.h>
 #include <mrpt/opengl/CPointCloud.h>
 #include <mrpt/opengl/stock_objects.h>
+#include <mrpt/random/RandomGenerators.h>
 
 #include <cstdlib>
 #include <ctime>
@@ -42,7 +43,7 @@ mrpt::opengl::CPointCloud::Ptr pc_to_viz(const PointCloud<double>& pc)
 {
     auto gl = mrpt::opengl::CPointCloud::Create();
     for (const auto pt : pc.pts) { gl->insertPoint(pt.x, pt.y, pt.z); }
-    gl->setPointSize(2.0f);
+    gl->setPointSize(3.0f);
     return gl;
 }
 
@@ -75,6 +76,12 @@ void kdtree_demo(const size_t N)
 
     my_kd_tree_t index(3 /*dim*/, cloud, {10 /* max leaf */});
 
+    std::cout << "Close the GUI window to exit." << std::endl;
+
+    auto& rng = mrpt::random::getRandomGenerator();
+
+    // Loop: different searches until the window is closed:
+    while (win.isOpen())
     {
         // Unsorted radius search:
         const double                               radius = 1;
@@ -82,15 +89,13 @@ void kdtree_demo(const size_t N)
         nanoflann::RadiusResultSet<double, size_t> resultSet(
             radius, indices_dists);
 
-        index.findNeighbors(resultSet, query_pt, nanoflann::SearchParams());
+        index.findNeighbors(resultSet, query_pt);
 
-        // Get worst (furthest) point, without sorting:
         std::pair<size_t, double> worst_pair = resultSet.worst_item();
         std::cout << "Worst pair: idx=" << worst_pair.first
                   << " dist=" << worst_pair.second << std::endl;
     }
 
-    std::cout << "Press any key or close the gui to exit.\n";
     win.waitForKey();
 }
 
@@ -98,6 +103,6 @@ int main()
 {
     // Randomize Seed
     srand(static_cast<unsigned int>(time(nullptr)));
-    kdtree_demo(10000);
+    kdtree_demo(1000);
     return 0;
 }

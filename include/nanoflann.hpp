@@ -683,17 +683,13 @@ struct KDTreeSingleIndexAdaptorParams
 };
 
 /** Search options for KDTreeSingleIndexAdaptor::findNeighbors() */
-struct SearchParams
+struct SearchParameters
 {
-    /** Note: The first argument (checks_IGNORED_) is ignored, but kept for
-     * compatibility with the FLANN interface */
-    SearchParams(int checks_IGNORED_ = 32, float eps_ = 0, bool sorted_ = true)
-        : checks(checks_IGNORED_), eps(eps_), sorted(sorted_)
+    SearchParameters(float eps_ = 0, bool sorted_ = true)
+        : eps(eps_), sorted(sorted_)
     {
     }
 
-    int checks;  //!< Ignored parameter (Kept for compatibility with the FLANN
-                 //!< interface).
     float eps;  //!< search for eps-approximate neighbours (default: 0)
     bool  sorted;  //!< only for radius search, require neighbours sorted by
                   //!< distance (default: true)
@@ -1437,7 +1433,7 @@ class KDTreeSingleIndexAdaptor
     template <typename RESULTSET>
     bool findNeighbors(
         RESULTSET& result, const ElementType* vec,
-        const SearchParams& searchParams) const
+        const SearchParameters& searchParams = {}) const
     {
         assert(vec);
         if (this->size(*this) == 0) return false;
@@ -1477,7 +1473,7 @@ class KDTreeSingleIndexAdaptor
         nanoflann::KNNResultSet<DistanceType, AccessorType> resultSet(
             num_closest);
         resultSet.init(out_indices, out_distances_sq);
-        this->findNeighbors(resultSet, query_point, nanoflann::SearchParams());
+        this->findNeighbors(resultSet, query_point);
         return resultSet.size();
     }
 
@@ -1500,7 +1496,7 @@ class KDTreeSingleIndexAdaptor
     Size radiusSearch(
         const ElementType* query_point, const DistanceType& radius,
         std::vector<std::pair<AccessorType, DistanceType>>& IndicesDists,
-        const SearchParams&                                 searchParams) const
+        const SearchParameters&                                 searchParams= {}) const
     {
         RadiusResultSet<DistanceType, AccessorType> resultSet(
             radius, IndicesDists);
@@ -1520,7 +1516,7 @@ class KDTreeSingleIndexAdaptor
     template <class SEARCH_CALLBACK>
     Size radiusSearchCustomCallback(
         const ElementType* query_point, SEARCH_CALLBACK& resultSet,
-        const SearchParams& searchParams = SearchParams()) const
+        const SearchParameters& searchParams = {}) const
     {
         this->findNeighbors(resultSet, query_point, searchParams);
         return resultSet.size();
@@ -1856,7 +1852,7 @@ class KDTreeSingleIndexDynamicAdaptor_
     template <typename RESULTSET>
     bool findNeighbors(
         RESULTSET& result, const ElementType* vec,
-        const SearchParams& searchParams) const
+        const SearchParameters& searchParams={}) const
     {
         assert(vec);
         if (this->size(*this) == 0) return false;
@@ -1893,7 +1889,7 @@ class KDTreeSingleIndexDynamicAdaptor_
         nanoflann::KNNResultSet<DistanceType, AccessorType> resultSet(
             num_closest);
         resultSet.init(out_indices, out_distances_sq);
-        this->findNeighbors(resultSet, query_point, nanoflann::SearchParams());
+        this->findNeighbors(resultSet, query_point);
         return resultSet.size();
     }
 
@@ -1916,7 +1912,7 @@ class KDTreeSingleIndexDynamicAdaptor_
     Size radiusSearch(
         const ElementType* query_point, const DistanceType& radius,
         std::vector<std::pair<AccessorType, DistanceType>>& IndicesDists,
-        const SearchParams&                                 searchParams) const
+        const SearchParameters&                                 searchParams={}) const
     {
         RadiusResultSet<DistanceType, AccessorType> resultSet(
             radius, IndicesDists);
@@ -1936,7 +1932,7 @@ class KDTreeSingleIndexDynamicAdaptor_
     template <class SEARCH_CALLBACK>
     Size radiusSearchCustomCallback(
         const ElementType* query_point, SEARCH_CALLBACK& resultSet,
-        const SearchParams& searchParams = SearchParams()) const
+        const SearchParameters& searchParams = {}) const
     {
         this->findNeighbors(resultSet, query_point, searchParams);
         return resultSet.size();
@@ -2268,7 +2264,7 @@ class KDTreeSingleIndexDynamicAdaptor
     template <typename RESULTSET>
     bool findNeighbors(
         RESULTSET& result, const ElementType* vec,
-        const SearchParams& searchParams) const
+        const SearchParameters& searchParams= {}) const
     {
         for (size_t i = 0; i < treeCount; i++)
         { index[i].findNeighbors(result, &vec[0], searchParams); }
@@ -2366,7 +2362,7 @@ struct KDTreeEigenMatrixAdaptor
     {
         nanoflann::KNNResultSet<num_t, IndexType> resultSet(num_closest);
         resultSet.init(out_indices, out_distances_sq);
-        index->findNeighbors(resultSet, query_point, nanoflann::SearchParams());
+        index->findNeighbors(resultSet, query_point);
     }
 
     /** @name Interface expected by KDTreeSingleIndexAdaptor

@@ -69,11 +69,13 @@ void kdtree_save_load_demo(const size_t N)
     {
         // Important: construct the index associated to the same dataset, since
         // data points are NOT stored in the binary file.
-        // Note - set KDTreeSingleIndexAdaptor::SkipInitialBuildIndex, otherwise the tree
-        // builds an index that'll be overwritten via loadIndex
+        // Note - set KDTreeSingleIndexAdaptor::SkipInitialBuildIndex, otherwise
+        // the tree builds an index that'll be overwritten via loadIndex
         my_kd_tree_t index(
             3 /*dim*/, cloud,
-            nanoflann::KDTreeSingleIndexAdaptorParams(10 /* max leaf */, nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
+            nanoflann::KDTreeSingleIndexAdaptorParams(
+                10 /* max leaf */, nanoflann::KDTreeSingleIndexAdaptorFlags::
+                                       SkipInitialBuildIndex));
 
         std::ifstream f("index.bin", std::ofstream::binary);
 
@@ -88,8 +90,7 @@ void kdtree_save_load_demo(const size_t N)
         double                          out_dist_sqr;
         nanoflann::KNNResultSet<double> resultSet(num_results);
         resultSet.init(&ret_index, &out_dist_sqr);
-        index.findNeighbors(
-            resultSet, &query_pt[0], nanoflann::SearchParams(10));
+        index.findNeighbors(resultSet, &query_pt[0]);
 
         std::cout << "knnSearch(nn=" << num_results << "): \n";
         std::cout << "ret_index=" << ret_index

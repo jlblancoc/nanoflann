@@ -107,14 +107,14 @@ void kdtree_demo(const size_t N)
         size_t                         ret_index;
         num_t                          out_dist_sqr;
         nanoflann::KNNResultSet<num_t> resultSet(num_results);
-        num_t query_pt[3] = {0.5, 0.5, 0.5};
+        num_t                          query_pt[3] = {0.5, 0.5, 0.5};
 
         resultSet.init(&ret_index, &out_dist_sqr);
-        index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
+        index.findNeighbors(resultSet, &query_pt[0]);
 
         std::cout << "knnSearch(nn=" << num_results << "): \n";
-        std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr
-                  << std::endl;
+        std::cout << "ret_index=" << ret_index
+                  << " out_dist_sqr=" << out_dist_sqr << std::endl;
     };
 
     my_kd_tree_t index1(3 /*dim*/, pc2kd, {10 /* max leaf */});

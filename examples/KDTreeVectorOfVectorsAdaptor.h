@@ -91,18 +91,14 @@ struct KDTreeVectorOfVectorsAdaptor
      *  (entered as query_point[0:dim-1]).
      *  Note that this is a short-cut method for index->findNeighbors().
      *  The user can also call index->... methods as desired.
-     *
-     * \note nChecks_IGNORED is ignored but kept for compatibility with
-     * the original FLANN interface.
      */
     inline void query(
         const num_t* query_point, const size_t num_closest,
-        IndexType* out_indices, num_t* out_distances_sq,
-        const int nChecks_IGNORED = 10) const
+        IndexType* out_indices, num_t* out_distances_sq) const
     {
         nanoflann::KNNResultSet<num_t, IndexType> resultSet(num_closest);
         resultSet.init(out_indices, out_distances_sq);
-        index->findNeighbors(resultSet, query_point, nanoflann::SearchParams());
+        index->findNeighbors(resultSet, query_point);
     }
 
     /** @name Interface expected by KDTreeSingleIndexAdaptor

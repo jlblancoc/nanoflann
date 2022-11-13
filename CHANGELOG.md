@@ -4,7 +4,12 @@ nanoflann 1.5.0: UNRELEASED
  * Move all benchmarking code, data, and scripts to [its own repository](https://github.com/MRPT/nanoflann-benchmark) to keep this repo as clean as possible.
  * Fix "potentially uninitialized" GCC warning.
  * More concise auxiliary type name: `array_or_vector_selector` -> `array_or_vector`.
- * Remove obsolete parameter `nChecks_IGNORED`.
+ * Remove obsolete parameter `nChecks_IGNORED`. Removed from `SearchParams` 
+   constructor too, so that structure has been renamed `SearchParameters` to
+   enforce users to update the code and avoid mistakes with the order of its 
+   ctor parameters.
+
+ * Clarified, even more, in docs and examples, that L2 distances are **squared** distances.
 
 nanoflann 1.4.3: Released Jul 24, 2022
  * Added flag SkipInitialBuildIndex to allow not wasting time building a tree when it will be loaded from a file later on ([PR #171](https://github.com/jlblancoc/nanoflann/pull/171)).
