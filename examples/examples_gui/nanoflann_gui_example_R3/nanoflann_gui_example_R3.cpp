@@ -99,6 +99,9 @@ void kdtree_demo(const size_t N)
 
     auto& rng = mrpt::random::getRandomGenerator();
 
+    // Declare here to avoid reallocations:
+    std::vector<std::pair<size_t, double>> indicesDists;
+
     // Loop: different searches until the window is closed:
     while (win.isOpen())
     {
@@ -113,7 +116,7 @@ void kdtree_demo(const size_t N)
 
         mrpt::system::CTimeLoggerEntry tle2(profiler, "query");
 
-        std::vector<std::pair<size_t, double>>     indicesDists;
+        indicesDists.clear();
         nanoflann::RadiusResultSet<double, size_t> resultSet(
             sqRadius, indicesDists);
 
@@ -164,6 +167,6 @@ int main()
 {
     // Randomize Seed
     srand(static_cast<unsigned int>(time(nullptr)));
-    kdtree_demo(10000);
+    kdtree_demo(1000);
     return 0;
 }
