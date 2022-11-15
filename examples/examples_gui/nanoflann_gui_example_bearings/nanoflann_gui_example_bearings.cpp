@@ -53,7 +53,7 @@
 #include <nanoflann.hpp>
 
 // uncomment to show the GUI. Comment it out to profile full speed.
-//#define SHOW_GUI
+#define SHOW_GUI
 
 #ifdef SHOW_GUI
 #include <mrpt/gui/CDisplayWindow3D.h>
