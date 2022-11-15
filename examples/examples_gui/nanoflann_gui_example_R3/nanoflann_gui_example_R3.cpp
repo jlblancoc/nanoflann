@@ -165,8 +165,6 @@ void kdtree_demo(const size_t N)
 
 int main()
 {
-    // Randomize Seed
-    srand(static_cast<unsigned int>(time(nullptr)));
     kdtree_demo(1000);
     return 0;
 }
