@@ -87,7 +87,7 @@ void kdtree_demo(const size_t N)
     // ----------------------------------------------------------------
     {
         const num_t search_radius = static_cast<num_t>(0.1);
-        std::vector<std::pair<uint32_t, num_t>> ret_matches;
+        std::vector<nanoflann::ResultItem<uint32_t, num_t>> ret_matches;
 
         // nanoflanSearchParamsameters params;
         // params.sorted = false;

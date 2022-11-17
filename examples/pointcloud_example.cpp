@@ -30,12 +30,16 @@
 #include <ctime>
 #include <iostream>
 #include <nanoflann.hpp>
+#include <type_traits>
 
 #include "utils.h"
 
 template <typename num_t>
 void kdtree_demo(const size_t N)
 {
+    static_assert(
+        std::is_standard_layout<nanoflann::ResultItem<num_t, size_t>>::value);
+
     PointCloud<num_t> cloud;
 
     // Generate points:
@@ -67,17 +71,19 @@ void kdtree_demo(const size_t N)
         std::cout << "ret_index=" << ret_index
                   << " out_dist_sqr=" << out_dist_sqr << std::endl;
     }
+
     {
-        // Unsorted radius search:
-        const num_t                               squaredRadius = 1;
-        std::vector<std::pair<size_t, num_t>>     indices_dists;
-        nanoflann::RadiusResultSet<num_t, size_t> resultSet(
+        // radius search:
+        const num_t                                       squaredRadius = 1;
+        std::vector<nanoflann::ResultItem<size_t, num_t>> indices_dists;
+        nanoflann::RadiusResultSet<num_t, size_t>         resultSet(
             squaredRadius, indices_dists);
 
         index.findNeighbors(resultSet, query_pt);
 
         // Get worst (furthest) point, without sorting:
-        std::pair<size_t, num_t> worst_pair = resultSet.worst_item();
+        nanoflann::ResultItem<size_t, num_t> worst_pair =
+            resultSet.worst_item();
         std::cout << "Worst pair: idx=" << worst_pair.first
                   << " squaredDist=" << worst_pair.second << std::endl;
     }

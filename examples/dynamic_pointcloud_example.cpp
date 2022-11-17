@@ -113,14 +113,15 @@ void kdtree_demo(const size_t N)
     {
         // Unsorted radius search:
         std::cout << "Unsorted radius search" << std::endl;
-        const num_t                               radiusSqr = 1;
-        std::vector<std::pair<size_t, num_t>>     indices_dists;
-        nanoflann::RadiusResultSet<num_t, size_t> resultSet(
+        const num_t                                       radiusSqr = 1;
+        std::vector<nanoflann::ResultItem<size_t, num_t>> indices_dists;
+        nanoflann::RadiusResultSet<num_t, size_t>         resultSet(
             radiusSqr, indices_dists);
 
         index.findNeighbors(resultSet, query_pt);
 
-        std::pair<size_t, num_t> worst_pair = resultSet.worst_item();
+        nanoflann::ResultItem<size_t, num_t> worst_pair =
+            resultSet.worst_item();
         std::cout << "Worst pair: idx=" << worst_pair.first
                   << " dist=" << worst_pair.second << std::endl;
         std::cout << "point: (" << cloud.pts[worst_pair.first].x << ", "

@@ -237,12 +237,33 @@ class KNNResultSet
 /** operator "<" for std::sort() */
 struct IndexDist_Sorter
 {
-    /** PairType will be typically: std::pair<IndexType,DistanceType> */
+    /** PairType will be typically: ResultItem<IndexType,DistanceType> */
     template <typename PairType>
     bool operator()(const PairType& p1, const PairType& p2) const
     {
         return p1.second < p2.second;
     }
+};
+
+/**
+ * Each result element in RadiusResultSet. Note that distances and indices
+ * are named `first` and `second` to keep backward-compatibility with the
+ * `std::pair<>` type used in the past. In contrast, this structure is ensured
+ * to be `std::is_standard_layout` so it can be used in wrappers to other
+ * languages.
+ * See: https://github.com/jlblancoc/nanoflann/issues/166
+ */
+template <typename IndexType = size_t, typename DistanceType = double>
+struct ResultItem
+{
+    ResultItem() = default;
+    ResultItem(const IndexType index, const DistanceType distance)
+        : first(index), second(distance)
+    {
+    }
+
+    IndexType    first;  //!< Index of the sample in the dataset
+    DistanceType second;  //!< Distance from sample to query point
 };
 
 /**
@@ -258,11 +279,11 @@ class RadiusResultSet
    public:
     const DistanceType radius;
 
-    std::vector<std::pair<IndexType, DistanceType>>& m_indices_dists;
+    std::vector<ResultItem<IndexType, DistanceType>>& m_indices_dists;
 
     explicit RadiusResultSet(
-        DistanceType                                     radius_,
-        std::vector<std::pair<IndexType, DistanceType>>& indices_dists)
+        DistanceType                                      radius_,
+        std::vector<ResultItem<IndexType, DistanceType>>& indices_dists)
         : radius(radius_), m_indices_dists(indices_dists)
     {
         init();
@@ -293,15 +314,13 @@ class RadiusResultSet
      * Find the worst result (farthest neighbor) without copying or sorting
      * Pre-conditions: size() > 0
      */
-    std::pair<IndexType, DistanceType> worst_item() const
+    ResultItem<IndexType, DistanceType> worst_item() const
     {
         if (m_indices_dists.empty())
             throw std::runtime_error(
                 "Cannot invoke RadiusResultSet::worst_item() on "
                 "an empty list of results.");
-        using DistIt = typename std::vector<
-            std::pair<IndexType, DistanceType>>::const_iterator;
-        DistIt it = std::max_element(
+        auto it = std::max_element(
             m_indices_dists.begin(), m_indices_dists.end(), IndexDist_Sorter());
         return *it;
     }
@@ -1496,8 +1515,8 @@ class KDTreeSingleIndexAdaptor
      */
     Size radiusSearch(
         const ElementType* query_point, const DistanceType& radius,
-        std::vector<std::pair<AccessorType, DistanceType>>& IndicesDists,
-        const SearchParameters&                                 searchParams= {}) const
+        std::vector<ResultItem<AccessorType, DistanceType>>& IndicesDists,
+        const SearchParameters& searchParams = {}) const
     {
         RadiusResultSet<DistanceType, AccessorType> resultSet(
             radius, IndicesDists);
@@ -1853,7 +1872,7 @@ class KDTreeSingleIndexDynamicAdaptor_
     template <typename RESULTSET>
     bool findNeighbors(
         RESULTSET& result, const ElementType* vec,
-        const SearchParameters& searchParams={}) const
+        const SearchParameters& searchParams = {}) const
     {
         assert(vec);
         if (this->size(*this) == 0) return false;
@@ -1912,8 +1931,8 @@ class KDTreeSingleIndexDynamicAdaptor_
      */
     Size radiusSearch(
         const ElementType* query_point, const DistanceType& radius,
-        std::vector<std::pair<AccessorType, DistanceType>>& IndicesDists,
-        const SearchParameters&                                 searchParams={}) const
+        std::vector<ResultItem<AccessorType, DistanceType>>& IndicesDists,
+        const SearchParameters& searchParams = {}) const
     {
         RadiusResultSet<DistanceType, AccessorType> resultSet(
             radius, IndicesDists);
@@ -2265,7 +2284,7 @@ class KDTreeSingleIndexDynamicAdaptor
     template <typename RESULTSET>
     bool findNeighbors(
         RESULTSET& result, const ElementType* vec,
-        const SearchParameters& searchParams= {}) const
+        const SearchParameters& searchParams = {}) const
     {
         for (size_t i = 0; i < treeCount; i++)
         { index[i].findNeighbors(result, &vec[0], searchParams); }

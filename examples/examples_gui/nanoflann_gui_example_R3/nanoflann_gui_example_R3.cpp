@@ -100,7 +100,7 @@ void kdtree_demo(const size_t N)
     auto& rng = mrpt::random::getRandomGenerator();
 
     // Declare here to avoid reallocations:
-    std::vector<std::pair<size_t, double>> indicesDists;
+    std::vector<nanoflann::ResultItem<size_t, double>> indicesDists;
 
     // Loop: different searches until the window is closed:
     while (win.isOpen())
@@ -129,7 +129,8 @@ void kdtree_demo(const size_t N)
                   << " results.\n";
         if (!resultSet.empty())
         {
-            std::pair<size_t, double> worstPair = resultSet.worst_item();
+            nanoflann::ResultItem<size_t, double> worstPair =
+                resultSet.worst_item();
             std::cout << "Worst pair: idx=" << worstPair.first
                       << " dist=" << std::sqrt(worstPair.second) << std::endl;
         }

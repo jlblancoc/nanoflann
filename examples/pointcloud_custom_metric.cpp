@@ -117,14 +117,15 @@ static void kdtree_custom_metric_demo(const size_t N)
     }
     {
         // Unsorted radius search:
-        const num_t                           radius = 1;
-        std::vector<std::pair<size_t, num_t>> indices_dists;
-        RadiusResultSet<num_t, size_t>        resultSet(radius, indices_dists);
+        const num_t                                       radius = 1;
+        std::vector<nanoflann::ResultItem<size_t, num_t>> indices_dists;
+        RadiusResultSet<num_t, size_t> resultSet(radius, indices_dists);
 
         index.findNeighbors(resultSet, query_pt);
 
         // Get worst (furthest) point, without sorting:
-        std::pair<size_t, num_t> worst_pair = resultSet.worst_item();
+        nanoflann::ResultItem<size_t, num_t> worst_pair =
+            resultSet.worst_item();
         cout << "Worst pair: idx=" << worst_pair.first
              << " dist=" << worst_pair.second << endl;
     }

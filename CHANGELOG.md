@@ -1,21 +1,25 @@
 nanoflann 1.5.0: UNRELEASED
- * Macros to avoid conflicts with X11 symbols.
- * Inline an auxiliary example function in case users want to use it and
-   include the file in multiple translation units (Closes [#182](https://github.com/jlblancoc/nanoflann/issues/182)).
- * Move all benchmarking code, data, and scripts to [its own repository](https://github.com/MRPT/nanoflann-benchmark) to keep this repo as clean as possible.
- * Fix "potentially uninitialized" GCC warning.
- * More concise auxiliary type name: 
-   `array_or_vector_selector` -> `array_or_vector`.
- * Remove obsolete parameter `nChecks_IGNORED`. Removed from `SearchParams`
-   constructor too, so that structure has been renamed `SearchParameters` to
-   enforce users to update the code and avoid mistakes with the order of its
-   ctor parameters.
- * Clarified, even more, in docs and examples, that L2 distances
-   are **squared** distances.
- * Added method RadiusResultSet::empty()
- * Removed the (with modern compilers) now useless `inline` keyword in class members.
- * Add examples with GUI (requires [mrpt-gui](https://docs.mrpt.org/reference/latest/group_mrpt_gui_grp.html)):
-   - nanoflann_gui_example_R3: Radius search on R³ Euclidean space.
+ * **API changes:**
+   - Users of radius search should change their result placeholder type:
+   `std::vector<std::pair<IndexType, DistanceType>>` => `std::vector<nanoflann::ResultItem<IndexType, DistanceType>>`
+   - More concise auxiliary (internal) type name:
+     `array_or_vector_selector` -> `array_or_vector`.
+   - Remove obsolete parameter `nChecks_IGNORED`. Removed from `SearchParams`
+     constructor too, so that structure has been renamed `SearchParameters` to
+     enforce users to update the code and avoid mistakes with the order of its
+     ctor parameters.
+   - Added method RadiusResultSet::empty()
+ * **Other changes:**
+  - Macros to avoid conflicts with X11 symbols.
+  - Inline an auxiliary example function in case users want to use it and
+    include the file in multiple translation units (Closes [#182](https://github.com/jlblancoc/nanoflann/issues/182)).
+  - Move all benchmarking code, data, and scripts to [its own repository](https://github.com/MRPT/nanoflann-benchmark) to keep this repo as clean as possible.
+  - Fix "potentially uninitialized" GCC warning.
+  - Clarified, even more, in docs and examples, that L2 distances are **squared** distances.
+  - Removed the (with modern compilers) now useless `inline` keyword in class members.
+  - Add examples with GUI (requires [mrpt-gui](https://docs.mrpt.org/reference/latest/group_mrpt_gui_grp.html)):
+    - nanoflann_gui_example_R3: Radius search on R³ Euclidean space.
+    - nanoflann_gui_example_bearings: NN search on non-Euclidean spaces.
 
 nanoflann 1.4.3: Released Jul 24, 2022
  * Added flag SkipInitialBuildIndex to allow not wasting time building a tree when it will be loaded from a file later on ([PR #171](https://github.com/jlblancoc/nanoflann/pull/171)).
