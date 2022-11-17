@@ -1471,9 +1471,7 @@ class KDTreeSingleIndexAdaptor
             zero);  // Fill it with zeros.
         DistanceType distsq = this->computeInitialDistances(*this, vec, dists);
         searchLevel(
-            result, vec, BaseClassRef::root_node, distsq, dists,
-            epsError);  // "count_leaf" parameter removed since was neither
-                        // used nor returned to the user.
+            result, vec, BaseClassRef::root_node, distsq, dists, epsError);
         return result.full();
     }
 
@@ -1609,8 +1607,6 @@ class KDTreeSingleIndexAdaptor
         /* If this is a leaf node, then do check and return. */
         if ((node->child1 == nullptr) && (node->child2 == nullptr))
         {
-            // count_leaf += (node->lr.right-node->lr.left);  // Removed since
-            // was neither used nor returned to the user.
             DistanceType worst_dist = result_set.worstDist();
             for (Offset i = node->node_type.lr.left;
                  i < node->node_type.lr.right; ++i)
@@ -1887,9 +1883,7 @@ class KDTreeSingleIndexDynamicAdaptor_
             static_cast<typename distance_vector_t::value_type>(0));
         DistanceType distsq = this->computeInitialDistances(*this, vec, dists);
         searchLevel(
-            result, vec, BaseClassRef::root_node, distsq, dists,
-            epsError);  // "count_leaf" parameter removed since was neither
-                        // used nor returned to the user.
+            result, vec, BaseClassRef::root_node, distsq, dists, epsError);
         return result.full();
     }
 
@@ -2012,8 +2006,6 @@ class KDTreeSingleIndexDynamicAdaptor_
         /* If this is a leaf node, then do check and return. */
         if ((node->child1 == nullptr) && (node->child2 == nullptr))
         {
-            // count_leaf += (node->lr.right-node->lr.left);  // Removed since
-            // was neither used nor returned to the user.
             DistanceType worst_dist = result_set.worstDist();
             for (Offset i = node->node_type.lr.left;
                  i < node->node_type.lr.right; ++i)
