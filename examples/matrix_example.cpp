@@ -32,7 +32,7 @@
 #include <iostream>
 #include <nanoflann.hpp>
 
-const int SAMPLES_DIM = 15;
+constexpr int SAMPLES_DIM = 15;
 
 template <typename Der>
 void generateRandomPointCloud(
@@ -78,23 +78,23 @@ void kdtree_demo(const size_t nSamples, const size_t dim)
     // Dimensionality set at compile-time: Explicit selection of the distance
     // metric: L2
     using my_kd_tree_t = nanoflann::KDTreeEigenMatrixAdaptor<
-        matrix_t, -1 /*dyn size*/, nanoflann::metric_L2>;
+        matrix_t, SAMPLES_DIM /*fixed size*/, nanoflann::metric_L2>;
 #elif 0
     // Dimensionality set at compile-time: Explicit selection of the distance
     // metric: L2_simple
     using my_kd_tree_t = nanoflann::KDTreeEigenMatrixAdaptor<
-        matrix_t, -1 /*dyn size*/, nanoflann::metric_L2_Simple>;
+        matrix_t, SAMPLES_DIM /*fixed size*/, nanoflann::metric_L2_Simple>;
 #elif 0
     // Dimensionality set at compile-time: Explicit selection of the distance
     // metric: L1
     using my_kd_tree_t = nanoflann::KDTreeEigenMatrixAdaptor<
-        matrix_t, -1 /*dyn size*/, nanoflann::metric_L1>;
+        matrix_t, SAMPLES_DIM /*fixed size*/, nanoflann::metric_L1>;
 #elif 0
     // Dimensionality set at compile-time: Explicit selection of the distance
     // metric: L2 Row Major matrix layout
     // Eigen::Matrix<num_t, Dynamic, Dynamic> mat(dim, nSamples);
     using my_kd_tree_t = nanoflann::KDTreeEigenMatrixAdaptor<
-        matrix_t, -1, nanoflann::metric_L2, true>;
+        matrix_t, SAMPLES_DIM /*fixed size*/, nanoflann::metric_L2, true>;
 #endif
 
     my_kd_tree_t mat_index(dim, std::cref(mat), 10 /* max leaf */);
@@ -118,7 +118,7 @@ void kdtree_demo(const size_t nSamples, const size_t dim)
 int main(int argc, char** argv)
 {
     // Randomize Seed
-    srand(static_cast<unsigned int>(time(nullptr)));
+    // srand(static_cast<unsigned int>(time(nullptr)));
     kdtree_demo<float>(1000 /* samples */, SAMPLES_DIM /* dim */);
 
     return 0;
