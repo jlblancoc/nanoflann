@@ -38,7 +38,8 @@ template <typename num_t>
 void kdtree_demo(const size_t N)
 {
     static_assert(
-        std::is_standard_layout<nanoflann::ResultItem<num_t, size_t>>::value);
+        std::is_standard_layout<nanoflann::ResultItem<num_t, size_t>>::value,
+        "Unexpected memory layout for nanoflann::ResultItem");
 
     PointCloud<num_t> cloud;
 
