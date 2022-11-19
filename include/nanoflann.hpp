@@ -1565,14 +1565,10 @@ class KDTreeSingleIndexAdaptor
             {
                 for (Dimension i = 0; i < dims; ++i)
                 {
-                    if (this->dataset_get(*this, Base::vAcc_[k], i) <
-                        bbox[i].low)
-                        bbox[i].low =
-                            this->dataset_get(*this, Base::vAcc_[k], i);
-                    if (this->dataset_get(*this, Base::vAcc_[k], i) >
-                        bbox[i].high)
-                        bbox[i].high =
-                            this->dataset_get(*this, Base::vAcc_[k], i);
+                    const auto val =
+                        this->dataset_get(*this, Base::vAcc_[k], i);
+                    if (val < bbox[i].low) bbox[i].low = val;
+                    if (val > bbox[i].high) bbox[i].high = val;
                 }
             }
         }
@@ -1967,14 +1963,10 @@ class KDTreeSingleIndexDynamicAdaptor_
             {
                 for (Dimension i = 0; i < dims; ++i)
                 {
-                    if (this->dataset_get(*this, Base::vAcc_[k], i) <
-                        bbox[i].low)
-                        bbox[i].low =
-                            this->dataset_get(*this, Base::vAcc_[k], i);
-                    if (this->dataset_get(*this, Base::vAcc_[k], i) >
-                        bbox[i].high)
-                        bbox[i].high =
-                            this->dataset_get(*this, Base::vAcc_[k], i);
+                    const auto val =
+                        this->dataset_get(*this, Base::vAcc_[k], i);
+                    if (val < bbox[i].low) bbox[i].low = val;
+                    if (val > bbox[i].high) bbox[i].high = val;
                 }
             }
         }
