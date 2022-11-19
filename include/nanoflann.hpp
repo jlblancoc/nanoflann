@@ -733,12 +733,11 @@ struct SearchParameters
  * is no need to track down all the objects to free them.
  *
  */
-
-const size_t WORDSIZE  = 16;
-const size_t BLOCKSIZE = 8192;
-
 class PooledAllocator
 {
+    static constexpr size_t WORDSIZE  = 16;
+    static constexpr size_t BLOCKSIZE = 8192;
+
     /* We maintain memory alignment to word boundaries by requiring that all
         allocations be in multiples of the machine wordsize.  */
     /* Size of machine word in bytes.  Must be power of 2. */
@@ -749,21 +748,21 @@ class PooledAllocator
     using Size      = uint32_t;
     using Dimension = int32_t;
 
-    Size  remaining; /* Number of bytes left in current block of storage. */
-    void* base; /* Pointer to base of current block of storage. */
-    void* loc; /* Current location in block to next allocate memory. */
+    Size  remaining_ = 0;  //!< Number of bytes left in current block of storage
+    void* base_ = nullptr;  //!< Pointer to base of current block of storage
+    void* loc_  = nullptr;  //!< Current location in block to next allocate
 
     void internal_init()
     {
-        remaining    = 0;
-        base         = nullptr;
+        remaining_   = 0;
+        base_        = nullptr;
         usedMemory   = 0;
         wastedMemory = 0;
     }
 
    public:
-    Size usedMemory;
-    Size wastedMemory;
+    Size usedMemory   = 0;
+    Size wastedMemory = 0;
 
     /**
         Default constructor. Initializes a new pool.
@@ -778,12 +777,12 @@ class PooledAllocator
     /** Frees all allocated memory chunks */
     void free_all()
     {
-        while (base != nullptr)
+        while (base_ != nullptr)
         {
-            void* prev =
-                *(static_cast<void**>(base)); /* Get pointer to prev block. */
-            ::free(base);
-            base = prev;
+            // Get pointer to prev block
+            void* prev = *(static_cast<void**>(base_));
+            ::free(base_);
+            base_ = prev;
         }
         internal_init();
     }
@@ -803,9 +802,9 @@ class PooledAllocator
         /* Check whether a new block must be allocated.  Note that the first
            word of a block is reserved for a pointer to the previous block.
          */
-        if (size > remaining)
+        if (size > remaining_)
         {
-            wastedMemory += remaining;
+            wastedMemory += remaining_;
 
             /* Allocate new storage. */
             const Size blocksize =
@@ -822,19 +821,19 @@ class PooledAllocator
             }
 
             /* Fill first word of new block with pointer to previous block. */
-            static_cast<void**>(m)[0] = base;
-            base                      = m;
+            static_cast<void**>(m)[0] = base_;
+            base_                     = m;
 
             Size shift = 0;
             // int size_t = (WORDSIZE - ( (((size_t)m) + sizeof(void*)) &
             // (WORDSIZE-1))) & (WORDSIZE-1);
 
-            remaining = blocksize - sizeof(void*) - shift;
-            loc       = (static_cast<char*>(m) + sizeof(void*) + shift);
+            remaining_ = blocksize - sizeof(void*) - shift;
+            loc_       = (static_cast<char*>(m) + sizeof(void*) + shift);
         }
-        void* rloc = loc;
-        loc        = static_cast<char*>(loc) + size;
-        remaining -= size;
+        void* rloc = loc_;
+        loc_       = static_cast<char*>(loc_) + size;
+        remaining_ -= size;
 
         usedMemory += size;
 
@@ -1313,39 +1312,37 @@ class KDTreeSingleIndexAdaptor
         const KDTreeSingleIndexAdaptor<
             Distance, DatasetAdaptor, DIM, IndexType>&) = delete;
 
-    /**
-     * The dataset used by this index
-     */
-    const DatasetAdaptor& dataset;  //!< The source of our data
+    /** The data source used by this index */
+    const DatasetAdaptor& dataset;
 
-    const KDTreeSingleIndexAdaptorParams index_params;
+    const KDTreeSingleIndexAdaptorParams indexParams;
 
     Distance distance;
 
-    using BaseClassRef = typename nanoflann::KDTreeBaseClass<
+    using Base = typename nanoflann::KDTreeBaseClass<
         nanoflann::KDTreeSingleIndexAdaptor<
             Distance, DatasetAdaptor, DIM, IndexType>,
         Distance, DatasetAdaptor, DIM, IndexType>;
 
-    using Offset    = typename BaseClassRef::Offset;
-    using Size      = typename BaseClassRef::Size;
-    using Dimension = typename BaseClassRef::Dimension;
+    using Offset    = typename Base::Offset;
+    using Size      = typename Base::Size;
+    using Dimension = typename Base::Dimension;
 
-    using ElementType  = typename BaseClassRef::ElementType;
-    using DistanceType = typename BaseClassRef::DistanceType;
+    using ElementType  = typename Base::ElementType;
+    using DistanceType = typename Base::DistanceType;
 
-    using Node    = typename BaseClassRef::Node;
+    using Node    = typename Base::Node;
     using NodePtr = Node*;
 
-    using Interval = typename BaseClassRef::Interval;
+    using Interval = typename Base::Interval;
 
     /** Define "BoundingBox" as a fixed-size or variable-size container
      * depending on "DIM" */
-    using BoundingBox = typename BaseClassRef::BoundingBox;
+    using BoundingBox = typename Base::BoundingBox;
 
     /** Define "distance_vector_t" as a fixed-size or variable-size container
      * depending on "DIM" */
-    using distance_vector_t = typename BaseClassRef::distance_vector_t;
+    using distance_vector_t = typename Base::distance_vector_t;
 
     /**
      * KDTree constructor
@@ -1372,7 +1369,7 @@ class KDTreeSingleIndexAdaptor
         const Dimension dimensionality, const DatasetAdaptor& inputData,
         const KDTreeSingleIndexAdaptorParams& params, Args&&... args)
         : dataset(inputData),
-          index_params(params),
+          indexParams(params),
           distance(inputData, std::forward<Args>(args)...)
     {
         init(dimensionality, params);
@@ -1381,7 +1378,7 @@ class KDTreeSingleIndexAdaptor
     explicit KDTreeSingleIndexAdaptor(
         const Dimension dimensionality, const DatasetAdaptor& inputData,
         const KDTreeSingleIndexAdaptorParams& params = {})
-        : dataset(inputData), index_params(params), distance(inputData)
+        : dataset(inputData), indexParams(params), distance(inputData)
     {
         init(dimensionality, params);
     }
@@ -1391,15 +1388,18 @@ class KDTreeSingleIndexAdaptor
         const Dimension                       dimensionality,
         const KDTreeSingleIndexAdaptorParams& params)
     {
-        BaseClassRef::m_size                = dataset.kdtree_get_point_count();
-        BaseClassRef::m_size_at_index_build = BaseClassRef::m_size;
-        BaseClassRef::dim                   = dimensionality;
-        if (DIM > 0) BaseClassRef::dim = DIM;
-        BaseClassRef::m_leaf_max_size = params.leaf_max_size;
+        Base::m_size                = dataset.kdtree_get_point_count();
+        Base::m_size_at_index_build = Base::m_size;
+        Base::dim                   = dimensionality;
+        if (DIM > 0) Base::dim = DIM;
+        Base::m_leaf_max_size = params.leaf_max_size;
 
         if (!(params.flags &
               KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex))
-        { buildIndex(); }
+        {
+            // Build KD-tree:
+            buildIndex();
+        }
     }
 
    public:
@@ -1408,16 +1408,16 @@ class KDTreeSingleIndexAdaptor
      */
     void buildIndex()
     {
-        BaseClassRef::m_size                = dataset.kdtree_get_point_count();
-        BaseClassRef::m_size_at_index_build = BaseClassRef::m_size;
+        Base::m_size                = dataset.kdtree_get_point_count();
+        Base::m_size_at_index_build = Base::m_size;
         init_vind();
         this->freeIndex(*this);
-        BaseClassRef::m_size_at_index_build = BaseClassRef::m_size;
-        if (BaseClassRef::m_size == 0) return;
-        computeBoundingBox(BaseClassRef::root_bbox);
-        BaseClassRef::root_node = this->divideTree(
-            *this, 0, BaseClassRef::m_size,
-            BaseClassRef::root_bbox);  // construct the tree
+        Base::m_size_at_index_build = Base::m_size;
+        if (Base::m_size == 0) return;
+        computeBoundingBox(Base::root_bbox);
+        Base::root_node = this->divideTree(
+            *this, 0, Base::m_size,
+            Base::root_bbox);  // construct the tree
     }
 
     /** \name Query methods
@@ -1443,7 +1443,7 @@ class KDTreeSingleIndexAdaptor
     {
         assert(vec);
         if (this->size(*this) == 0) return false;
-        if (!BaseClassRef::root_node)
+        if (!Base::root_node)
             throw std::runtime_error(
                 "[nanoflann] findNeighbors() called before building the "
                 "index.");
@@ -1453,10 +1453,9 @@ class KDTreeSingleIndexAdaptor
         distance_vector_t dists;
         // Fill it with zeros.
         auto zero = static_cast<decltype(result.worstDist())>(0);
-        assign(dists, (DIM > 0 ? DIM : BaseClassRef::dim), zero);
+        assign(dists, (DIM > 0 ? DIM : Base::dim), zero);
         DistanceType distsq = this->computeInitialDistances(*this, vec, dists);
-        searchLevel(
-            result, vec, BaseClassRef::root_node, distsq, dists, epsError);
+        searchLevel(result, vec, Base::root_node, distsq, dists, epsError);
         return result.full();
     }
 
@@ -1532,16 +1531,15 @@ class KDTreeSingleIndexAdaptor
     void init_vind()
     {
         // Create a permutable array of indices to the input vectors.
-        BaseClassRef::m_size = dataset.kdtree_get_point_count();
-        if (BaseClassRef::vAcc.size() != BaseClassRef::m_size)
-            BaseClassRef::vAcc.resize(BaseClassRef::m_size);
-        for (Size i = 0; i < BaseClassRef::m_size; i++)
-            BaseClassRef::vAcc[i] = i;
+        Base::m_size = dataset.kdtree_get_point_count();
+        if (Base::vAcc.size() != Base::m_size) Base::vAcc.resize(Base::m_size);
+        for (Size i = 0; i < Base::m_size; i++) Base::vAcc[i] = i;
     }
 
     void computeBoundingBox(BoundingBox& bbox)
     {
-        resize(bbox, (DIM > 0 ? DIM : BaseClassRef::dim));
+        const auto dims = (DIM > 0 ? DIM : Base::dim);
+        resize(bbox, dims);
         if (dataset.kdtree_get_bbox(bbox))
         {
             // Done! It was implemented in derived class
@@ -1553,24 +1551,23 @@ class KDTreeSingleIndexAdaptor
                 throw std::runtime_error(
                     "[nanoflann] computeBoundingBox() called but "
                     "no data points found.");
-            for (Dimension i = 0; i < (DIM > 0 ? DIM : BaseClassRef::dim); ++i)
+            for (Dimension i = 0; i < dims; ++i)
             {
                 bbox[i].low = bbox[i].high =
-                    this->dataset_get(*this, BaseClassRef::vAcc[0], i);
+                    this->dataset_get(*this, Base::vAcc[0], i);
             }
             for (Offset k = 1; k < N; ++k)
             {
-                for (Dimension i = 0; i < (DIM > 0 ? DIM : BaseClassRef::dim);
-                     ++i)
+                for (Dimension i = 0; i < dims; ++i)
                 {
-                    if (this->dataset_get(*this, BaseClassRef::vAcc[k], i) <
+                    if (this->dataset_get(*this, Base::vAcc[k], i) <
                         bbox[i].low)
                         bbox[i].low =
-                            this->dataset_get(*this, BaseClassRef::vAcc[k], i);
-                    if (this->dataset_get(*this, BaseClassRef::vAcc[k], i) >
+                            this->dataset_get(*this, Base::vAcc[k], i);
+                    if (this->dataset_get(*this, Base::vAcc[k], i) >
                         bbox[i].high)
                         bbox[i].high =
-                            this->dataset_get(*this, BaseClassRef::vAcc[k], i);
+                            this->dataset_get(*this, Base::vAcc[k], i);
                 }
             }
         }
@@ -1595,13 +1592,12 @@ class KDTreeSingleIndexAdaptor
             for (Offset i = node->node_type.lr.left;
                  i < node->node_type.lr.right; ++i)
             {
-                const IndexType accessor =
-                    BaseClassRef::vAcc[i];  // reorder... : i;
-                DistanceType dist = distance.evalMetric(
-                    vec, accessor, (DIM > 0 ? DIM : BaseClassRef::dim));
+                const IndexType accessor = Base::vAcc[i];  // reorder... : i;
+                DistanceType    dist     = distance.evalMetric(
+                    vec, accessor, (DIM > 0 ? DIM : Base::dim));
                 if (dist < worst_dist)
                 {
-                    if (!result_set.addPoint(dist, BaseClassRef::vAcc[i]))
+                    if (!result_set.addPoint(dist, Base::vAcc[i]))
                     {
                         // the resultset doesn't want to receive any more
                         // points, we're done searching!
