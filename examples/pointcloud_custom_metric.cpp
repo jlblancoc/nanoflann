@@ -42,7 +42,7 @@ using namespace nanoflann;
 
 template <
     class T, class DataSource, typename _DistanceType = T,
-    typename AccessorType = uint32_t>
+    typename IndexType = uint32_t>
 struct My_Custom_Metric_Adaptor
 {
     using ElementType  = T;
@@ -58,7 +58,7 @@ struct My_Custom_Metric_Adaptor
     }
 
     inline DistanceType evalMetric(
-        const T* a, const AccessorType b_idx, size_t size) const
+        const T* a, const IndexType b_idx, size_t size) const
     {
         DistanceType result = DistanceType();
         for (size_t i = 0; i < size; ++i)

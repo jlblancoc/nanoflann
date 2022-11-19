@@ -9,6 +9,7 @@ nanoflann 1.5.0: UNRELEASED
      enforce users to update the code and avoid mistakes with the order of its
      ctor parameters.
    - Added method RadiusResultSet::empty()
+   - Template argument rename: `AccesorType` => `IndexType` (does not actually affect user code at all).
  * **Other changes:**
    - Macros to avoid conflicts with X11 symbols.
    - Inline an auxiliary example function in case users want to use it and

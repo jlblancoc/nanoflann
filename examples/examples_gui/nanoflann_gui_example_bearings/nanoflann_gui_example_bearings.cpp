@@ -177,7 +177,7 @@ inline T my_angDistance(T from, T to)
 //
 template <
     class T, class DataSource, typename _DistanceType = T,
-    typename AccessorType = uint32_t>
+    typename IndexType = uint32_t>
 struct ThetaPhiMetric_Adaptor
 {
     using ElementType  = T;
@@ -191,7 +191,7 @@ struct ThetaPhiMetric_Adaptor
     }
 
     DistanceType evalMetric(
-        const T* a, const AccessorType b_idx, size_t /*size = 2*/) const
+        const T* a, const IndexType b_idx, size_t /*size = 2*/) const
     {
         DistanceType result =
             mrpt::square(
