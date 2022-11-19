@@ -720,20 +720,6 @@ struct SearchParameters
  * @{ */
 
 /**
- * Allocates (using C's malloc) a generic type T.
- *
- * Params:
- *     count = number of instances to allocate.
- * Returns: pointer (of type T*) to memory buffer
- */
-template <typename T>
-inline T* allocate(size_t count = 1)
-{
-    T* mem = static_cast<T*>(::malloc(sizeof(T) * count));
-    return mem;
-}
-
-/**
  * Pooled storage allocator
  *
  * The following routines allow for the efficient allocation of storage in
