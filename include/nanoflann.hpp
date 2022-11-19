@@ -49,9 +49,9 @@
 #include <cassert>
 #include <cmath>  // for abs()
 #include <cstdlib>  // for abs()
-#include <functional>
+#include <functional>  // std::reference_wrapper
 #include <istream>
-#include <limits>  // std::reference_wrapper
+#include <limits>  // std::numeric_limits
 #include <ostream>
 #include <stdexcept>
 #include <unordered_set>
@@ -60,7 +60,7 @@
 /** Library version: 0xMmP (M=Major,m=minor,P=patch) */
 #define NANOFLANN_VERSION 0x150
 
-// Avoid conflicting declaration of min/max macros in windows headers
+// Avoid conflicting declaration of min/max macros in Windows headers
 #if !defined(NOMINMAX) && \
     (defined(_WIN32) || defined(_WIN32_) || defined(WIN32) || defined(_WIN64))
 #define NOMINMAX
@@ -76,7 +76,7 @@
 
 namespace nanoflann
 {
-/** @addtogroup nanoflann_grp nanoflann C++ library for ANN
+/** @addtogroup nanoflann_grp nanoflann C++ library for KD-trees
  *  @{ */
 
 /** the PI constant (required to avoid MSVC missing symbols) */
@@ -1466,7 +1466,7 @@ class KDTreeSingleIndexAdaptor
         // fixed or variable-sized container (depending on DIM)
         distance_vector_t dists;
         // Fill it with zeros.
-        auto              zero = static_cast<decltype(result.worstDist())>(0);
+        auto zero = static_cast<decltype(result.worstDist())>(0);
         assign(dists, (DIM > 0 ? DIM : BaseClassRef::dim), zero);
         DistanceType distsq = this->computeInitialDistances(*this, vec, dists);
         searchLevel(
