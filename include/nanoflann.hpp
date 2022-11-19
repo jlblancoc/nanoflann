@@ -1461,12 +1461,15 @@ class KDTreeSingleIndexAdaptor
 
     /**
      * Find the "num_closest" nearest neighbors to the \a query_point[0:dim-1].
-     * Their indices are stored inside the result object.
+     * Their indices and distances are stored in the provided pointers to
+     * array/vector.
+     *
      * \sa radiusSearch, findNeighbors
      * \return Number `N` of valid points in the result set.
-     * Only the first `N` entries in `out_indices` and
-     * `out_distances_sq` will be valid. Return may be less than `num_closest`
-     * only if the number of elements in the tree is less than `num_closest`.
+     *
+     * \note Only the first `N` entries in `out_indices` and `out_distances_sq`
+     *       will be valid. Return is less than `num_closest` only if the
+     *       number of elements in the tree is less than `num_closest`.
      */
     Size knnSearch(
         const ElementType* query_point, const Size num_closest,
@@ -1835,15 +1838,19 @@ class KDTreeSingleIndexDynamicAdaptor_
     /**
      * Find set of nearest neighbors to vec[0:dim-1]. Their indices are stored
      * inside the result object.
+     * This is the core search function, all others are wrappers around this
+     * one.
      *
-     * Params:
-     *     result = the result object in which the indices of the
-     * nearest-neighbors are stored vec = the vector for which to search the
-     * nearest neighbors
+     * \param result The result object in which the indices of the
+     *               nearest-neighbors are stored.
+     * \param vec    The vector of the query point for which to search the
+     *               nearest neighbors.
+     * \param searchParams Optional parameters for the search.
      *
      * \tparam RESULTSET Should be any ResultSet<DistanceType>
-     * \return  True if the requested neighbors could be found.
-     * \sa knnSearch, radiusSearch
+     * \return True if the requested neighbors could be found.
+     *
+     * \sa knnSearch(), radiusSearch(), radiusSearchCustomCallback()
      */
     template <typename RESULTSET>
     bool findNeighbors(
@@ -1892,10 +1899,10 @@ class KDTreeSingleIndexDynamicAdaptor_
      * element is a point index and the second the corresponding distance.
      * Previous contents of \a IndicesDists are cleared.
      *
-     *  If searchParams.sorted==true, the output list is sorted by ascending
+     * If searchParams.sorted==true, the output list is sorted by ascending
      * distances.
      *
-     *  For a better performance, it is advisable to do a .reserve() on the
+     * For a better performance, it is advisable to do a .reserve() on the
      * vector if you have any wild guess about the number of expected matches.
      *
      *  \sa knnSearch, findNeighbors, radiusSearchCustomCallback
