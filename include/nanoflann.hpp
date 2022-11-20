@@ -1029,6 +1029,7 @@ class KDTreeBaseClass
         Derived& obj, const Offset left, const Offset right, BoundingBox& bbox)
     {
         NodePtr node = obj.pool_.template allocate<Node>();  // allocate memory
+        const auto dims = (DIM > 0 ? DIM : obj.dim_);
 
         /* If too few exemplars remain, then make this a leaf node. */
         if ((right - left) <= static_cast<Offset>(obj.leaf_max_size_))
@@ -1038,19 +1039,18 @@ class KDTreeBaseClass
             node->node_type.lr.right    = right;
 
             // compute bounding-box of leaf points
-            for (Dimension i = 0; i < (DIM > 0 ? DIM : obj.dim_); ++i)
+            for (Dimension i = 0; i < dims; ++i)
             {
                 bbox[i].low  = dataset_get(obj, obj.vAcc_[left], i);
                 bbox[i].high = dataset_get(obj, obj.vAcc_[left], i);
             }
             for (Offset k = left + 1; k < right; ++k)
             {
-                for (Dimension i = 0; i < (DIM > 0 ? DIM : obj.dim_); ++i)
+                for (Dimension i = 0; i < dims; ++i)
                 {
-                    if (bbox[i].low > dataset_get(obj, obj.vAcc_[k], i))
-                        bbox[i].low = dataset_get(obj, obj.vAcc_[k], i);
-                    if (bbox[i].high < dataset_get(obj, obj.vAcc_[k], i))
-                        bbox[i].high = dataset_get(obj, obj.vAcc_[k], i);
+                    const auto val = dataset_get(obj, obj.vAcc_[k], i);
+                    if (bbox[i].low > val) bbox[i].low = val;
+                    if (bbox[i].high < val) bbox[i].high = val;
                 }
             }
         }
@@ -1074,7 +1074,7 @@ class KDTreeBaseClass
             node->node_type.sub.divlow  = left_bbox[cutfeat].high;
             node->node_type.sub.divhigh = right_bbox[cutfeat].low;
 
-            for (Dimension i = 0; i < (DIM > 0 ? DIM : obj.dim_); ++i)
+            for (Dimension i = 0; i < dims; ++i)
             {
                 bbox[i].low  = std::min(left_bbox[i].low, right_bbox[i].low);
                 bbox[i].high = std::max(left_bbox[i].high, right_bbox[i].high);
@@ -1085,19 +1085,20 @@ class KDTreeBaseClass
     }
 
     void middleSplit_(
-        Derived& obj, Offset ind, Size count, Offset& index, Dimension& cutfeat,
-        DistanceType& cutval, const BoundingBox& bbox)
+        const Derived& obj, const Offset ind, const Size count, Offset& index,
+        Dimension& cutfeat, DistanceType& cutval, const BoundingBox& bbox)
     {
+        const auto  dims     = (DIM > 0 ? DIM : obj.dim_);
         const auto  EPS      = static_cast<DistanceType>(0.00001);
         ElementType max_span = bbox[0].high - bbox[0].low;
-        for (Dimension i = 1; i < (DIM > 0 ? DIM : obj.dim_); ++i)
+        for (Dimension i = 1; i < dims; ++i)
         {
             ElementType span = bbox[i].high - bbox[i].low;
             if (span > max_span) { max_span = span; }
         }
         ElementType max_spread = -1;
         cutfeat                = 0;
-        for (Dimension i = 0; i < (DIM > 0 ? DIM : obj.dim_); ++i)
+        for (Dimension i = 0; i < dims; ++i)
         {
             ElementType span = bbox[i].high - bbox[i].low;
             if (span > (1 - EPS) * max_span)
@@ -1145,7 +1146,7 @@ class KDTreeBaseClass
      *  dataset[ind[lim2..count]][cutfeat]>cutval
      */
     void planeSplit(
-        Derived& obj, Offset ind, const Size count, Dimension cutfeat,
+        const Derived& obj, const Offset ind, const Size count, const Dimension cutfeat,
         DistanceType& cutval, Offset& lim1, Offset& lim2)
     {
         /* Move vector indices for left subtree to front of list. */
