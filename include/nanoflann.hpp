@@ -1137,7 +1137,7 @@ class KDTreeBaseClass
     }
 
     /**
-     *  Subdivide the list of points by a plane perpendicular on axe
+     *  Subdivide the list of points by a plane perpendicular on the axis
      * corresponding to the 'cutfeat' dimension at 'cutval' position.
      *
      *  On return:
@@ -1146,8 +1146,9 @@ class KDTreeBaseClass
      *  dataset[ind[lim2..count]][cutfeat]>cutval
      */
     void planeSplit(
-        const Derived& obj, const Offset ind, const Size count, const Dimension cutfeat,
-        DistanceType& cutval, Offset& lim1, Offset& lim2)
+        const Derived& obj, const Offset ind, const Size count,
+        const Dimension cutfeat, const DistanceType& cutval, Offset& lim1,
+        Offset& lim2)
     {
         /* Move vector indices for left subtree to front of list. */
         Offset left  = 0;
