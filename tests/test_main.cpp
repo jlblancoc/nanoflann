@@ -231,7 +231,8 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
     // Generate points:
     generateRandomPointCloud_Orient(cloud, nSamples);
 
-    NUM query_pt[1] = {0.5};
+    NUM query_pt[1] = {
+        (-1 + 2 * ((NUM)rand()) / RAND_MAX) * nanoflann::pi_const<NUM>()};
 
     // construct a kd-tree index:
     typedef KDTreeSingleIndexAdaptor<
@@ -273,8 +274,10 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
         ASSERT_TRUE(min_idx != std::numeric_limits<size_t>::max());
     }
     // Compare:
-    EXPECT_EQ(min_idx, ret_indexes[0]);
-    EXPECT_NEAR(min_dist_SO2, out_dists_sqr[0], 1e-3);
+    EXPECT_EQ(min_idx, ret_indexes[0])
+        << " query_pt: " << query_pt[0] << std::endl;
+    EXPECT_NEAR(min_dist_SO2, out_dists_sqr[0], 1e-3)
+        << " query_pt: " << query_pt[0] << std::endl;
 }
 
 // First add nSamples/2 points, find the closest point
