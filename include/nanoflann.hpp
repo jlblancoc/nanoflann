@@ -212,6 +212,61 @@ inline typename std::enable_if<!has_assign<Container>::value, void>::type assign
     for (size_t i = 0; i < nElements; i++) c[i] = value;
 }
 
+/** @addtogroup dimension_comparator_grp Comparison operators
+ *  @{ */
+
+enum class DimTopology : uint8_t
+{
+    /** Real numbers (R¹) */
+    Real = 0,
+    /** Circle (S¹) */
+    Circle
+};
+
+enum class ComparisonResult : uint8_t
+{
+    LessThan = 0,
+    Equal,
+    GreaterThan
+};
+
+template <typename Scalar, DimTopology Topology>
+struct Comparison
+{
+};
+
+/** Comparison for scalars in the Real (R¹) line */
+template <typename Scalar>
+struct Comparison<Scalar, DimTopology::Real>
+{
+    static ComparisonResult compare(const Scalar a, const Scalar b)
+    {
+        if (a < b)
+            return ComparisonResult::LessThan;
+        else if (a > b)
+            return ComparisonResult::GreaterThan;
+        else
+            return ComparisonResult::Equal;
+    }
+};
+
+/** Comparison for scalars in the cirle S¹ */
+template <typename Scalar>
+struct Comparison<Scalar, DimTopology::Circle>
+{
+    static ComparisonResult compare(const Scalar a, const Scalar b)
+    {
+        if (a < b)
+            return ComparisonResult::LessThan;
+        else if (a > b)
+            return ComparisonResult::GreaterThan;
+        else
+            return ComparisonResult::Equal;
+    }
+};
+
+/** @} */
+
 /** operator "<" for std::sort() */
 struct IndexDist_Sorter
 {
@@ -1567,6 +1622,8 @@ class KDTreeBaseClass
         const DistanceType& cutval, Offset& lim1, Offset& lim2)
     {
         // Dutch National Flag algorithm for three-way partitioning
+        using Comp = Comparison<DistanceType, DimTopology::Real>;
+
         Offset left  = 0;
         Offset mid   = 0;
         Offset right = count - 1;
@@ -1575,13 +1632,14 @@ class KDTreeBaseClass
         {
             ElementType val = dataset_get(obj, vAcc_[ind + mid], cutfeat);
 
-            if (val < cutval)
+            const auto cmp = Comp::compare(val, cutval);
+            if (cmp == ComparisonResult::LessThan)
             {
                 std::swap(vAcc_[ind + left], vAcc_[ind + mid]);
                 left++;
                 mid++;
             }
-            else if (val > cutval)
+            else if (cmp == ComparisonResult::GreaterThan)
             {
                 std::swap(vAcc_[ind + mid], vAcc_[ind + right]);
                 right--;
