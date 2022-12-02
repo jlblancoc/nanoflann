@@ -154,6 +154,61 @@ inline typename std::enable_if<!has_assign<Container>::value, void>::type
     for (size_t i = 0; i < nElements; i++) c[i] = value;
 }
 
+/** @addtogroup dimension_comparator_grp Comparison operators
+ *  @{ */
+
+enum class DimTopology : uint8_t
+{
+    /** Real numbers (R¹) */
+    Real = 0,
+    /** Circle (S¹) */
+    Circle
+};
+
+enum class ComparisonResult : uint8_t
+{
+    LessThan = 0,
+    Equal,
+    GreaterThan
+};
+
+template <typename Scalar, DimTopology Topology>
+struct Comparison
+{
+};
+
+/** Comparison for scalars in the Real (R¹) line */
+template <typename Scalar>
+struct Comparison<Scalar, DimTopology::Real>
+{
+    static ComparisonResult compare(const Scalar a, const Scalar b)
+    {
+        if (a < b)
+            return ComparisonResult::LessThan;
+        else if (a > b)
+            return ComparisonResult::GreaterThan;
+        else
+            return ComparisonResult::Equal;
+    }
+};
+
+/** Comparison for scalars in the cirle S¹ */
+template <typename Scalar>
+struct Comparison<Scalar, DimTopology::Circle>
+{
+    static ComparisonResult compare(const Scalar a, const Scalar b)
+    {
+        if (a < b)
+            return ComparisonResult::LessThan;
+        else if (a > b)
+            return ComparisonResult::GreaterThan;
+        else
+            return ComparisonResult::Equal;
+    }
+};
+
+/** @} */
+
 /** @addtogroup result_sets_grp Result set classes
  *  @{ */
 template <
@@ -1150,16 +1205,22 @@ class KDTreeBaseClass
         const Dimension cutfeat, const DistanceType& cutval, Offset& lim1,
         Offset& lim2)
     {
+        using Comp = Comparison<DistanceType, DimTopology::Real>;
+
         /* Move vector indices for left subtree to front of list. */
         Offset left  = 0;
         Offset right = count - 1;
         for (;;)
         {
             while (left <= right &&
-                   dataset_get(obj, vAcc_[ind + left], cutfeat) < cutval)
+                   Comp::compare(
+                       dataset_get(obj, vAcc_[ind + left], cutfeat), cutval) ==
+                       ComparisonResult::LessThan)
                 ++left;
             while (right && left <= right &&
-                   dataset_get(obj, vAcc_[ind + right], cutfeat) >= cutval)
+                   Comp::compare(
+                       dataset_get(obj, vAcc_[ind + right], cutfeat), cutval) !=
+                       ComparisonResult::LessThan)
                 --right;
             if (left > right || !right)
                 break;  // "!right" was added to support unsigned Index types
@@ -1175,10 +1236,14 @@ class KDTreeBaseClass
         for (;;)
         {
             while (left <= right &&
-                   dataset_get(obj, vAcc_[ind + left], cutfeat) <= cutval)
+                   Comp::compare(
+                       dataset_get(obj, vAcc_[ind + left], cutfeat), cutval) !=
+                       ComparisonResult::GreaterThan)
                 ++left;
             while (right && left <= right &&
-                   dataset_get(obj, vAcc_[ind + right], cutfeat) > cutval)
+                   Comp::compare(
+                       dataset_get(obj, vAcc_[ind + right], cutfeat), cutval) ==
+                       ComparisonResult::GreaterThan)
                 --right;
             if (left > right || !right)
                 break;  // "!right" was added to support unsigned Index types
