@@ -174,7 +174,7 @@ class KNNResultSet
 
    public:
     explicit KNNResultSet(CountType capacity_)
-        : indices(0), dists(0), capacity(capacity_), count(0)
+        : indices(nullptr), dists(nullptr), capacity(capacity_), count(0)
     {
     }
 
