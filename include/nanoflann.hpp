@@ -1194,7 +1194,7 @@ class KDTreeBaseClass
         distance_vector_t& dists) const
     {
         assert(vec);
-        DistanceType distsq = DistanceType();
+        DistanceType dist = DistanceType();
 
         for (Dimension i = 0; i < (DIM > 0 ? DIM : obj.dim_); ++i)
         {
@@ -1202,16 +1202,16 @@ class KDTreeBaseClass
             {
                 dists[i] =
                     obj.distance_.accum_dist(vec[i], obj.root_bbox_[i].low, i);
-                distsq += dists[i];
+                dist += dists[i];
             }
             if (vec[i] > obj.root_bbox_[i].high)
             {
                 dists[i] =
                     obj.distance_.accum_dist(vec[i], obj.root_bbox_[i].high, i);
-                distsq += dists[i];
+                dist += dists[i];
             }
         }
-        return distsq;
+        return dist;
     }
 
     static void save_tree(
@@ -1439,6 +1439,9 @@ class KDTreeSingleIndexAdaptor
      * \tparam RESULTSET Should be any ResultSet<DistanceType>
      * \return  True if the requested neighbors could be found.
      * \sa knnSearch, radiusSearch
+     *
+     * \note If L2 norms are used, all returned distances are actually squared
+     *       distances.
      */
     template <typename RESULTSET>
     bool findNeighbors(
@@ -1458,8 +1461,8 @@ class KDTreeSingleIndexAdaptor
         // Fill it with zeros.
         auto zero = static_cast<decltype(result.worstDist())>(0);
         assign(dists, (DIM > 0 ? DIM : Base::dim_), zero);
-        DistanceType distsq = this->computeInitialDistances(*this, vec, dists);
-        searchLevel(result, vec, Base::root_node_, distsq, dists, epsError);
+        DistanceType dist = this->computeInitialDistances(*this, vec, dists);
+        searchLevel(result, vec, Base::root_node_, dist, dists, epsError);
         return result.full();
     }
 
@@ -1471,16 +1474,19 @@ class KDTreeSingleIndexAdaptor
      * \sa radiusSearch, findNeighbors
      * \return Number `N` of valid points in the result set.
      *
-     * \note Only the first `N` entries in `out_indices` and `out_distances_sq`
+     * \note If L2 norms are used, all returned distances are actually squared
+     *       distances.
+     *
+     * \note Only the first `N` entries in `out_indices` and `out_distances`
      *       will be valid. Return is less than `num_closest` only if the
      *       number of elements in the tree is less than `num_closest`.
      */
     Size knnSearch(
         const ElementType* query_point, const Size num_closest,
-        IndexType* out_indices, DistanceType* out_distances_sq) const
+        IndexType* out_indices, DistanceType* out_distances) const
     {
         nanoflann::KNNResultSet<DistanceType, IndexType> resultSet(num_closest);
-        resultSet.init(out_indices, out_distances_sq);
+        resultSet.init(out_indices, out_distances);
         findNeighbors(resultSet, query_point);
         return resultSet.size();
     }
@@ -1500,6 +1506,9 @@ class KDTreeSingleIndexAdaptor
      *  \sa knnSearch, findNeighbors, radiusSearchCustomCallback
      * \return The number of points within the given radius (i.e. indices.size()
      * or dists.size() )
+     *
+     * \note If L2 norms are used, search radius and all returned distances 
+     *       are actually squared distances.
      */
     Size radiusSearch(
         const ElementType* query_point, const DistanceType& radius,
@@ -1585,7 +1594,7 @@ class KDTreeSingleIndexAdaptor
     template <class RESULTSET>
     bool searchLevel(
         RESULTSET& result_set, const ElementType* vec, const NodePtr node,
-        DistanceType mindistsq, distance_vector_t& dists,
+        DistanceType mindist, distance_vector_t& dists,
         const float epsError) const
     {
         /* If this is a leaf node, then do check and return. */
@@ -1637,7 +1646,7 @@ class KDTreeSingleIndexAdaptor
 
         /* Call recursively to search next level down. */
         if (!searchLevel(
-                result_set, vec, bestChild, mindistsq, dists, epsError))
+                result_set, vec, bestChild, mindist, dists, epsError))
         {
             // the resultset doesn't want to receive any more points, we're done
             // searching!
@@ -1645,12 +1654,12 @@ class KDTreeSingleIndexAdaptor
         }
 
         DistanceType dst = dists[idx];
-        mindistsq        = mindistsq + cut_dist - dst;
+        mindist        = mindist + cut_dist - dst;
         dists[idx]       = cut_dist;
-        if (mindistsq * epsError <= result_set.worstDist())
+        if (mindist * epsError <= result_set.worstDist())
         {
             if (!searchLevel(
-                    result_set, vec, otherChild, mindistsq, dists, epsError))
+                    result_set, vec, otherChild, mindist, dists, epsError))
             {
                 // the resultset doesn't want to receive any more points, we're
                 // done searching!
@@ -1851,6 +1860,9 @@ class KDTreeSingleIndexDynamicAdaptor_
      * \return True if the requested neighbors could be found.
      *
      * \sa knnSearch(), radiusSearch(), radiusSearchCustomCallback()
+     *
+     * \note If L2 norms are used, all returned distances are actually squared
+     *       distances.
      */
     template <typename RESULTSET>
     bool findNeighbors(
@@ -1868,8 +1880,8 @@ class KDTreeSingleIndexDynamicAdaptor_
         assign(
             dists, (DIM > 0 ? DIM : Base::dim_),
             static_cast<typename distance_vector_t::value_type>(0));
-        DistanceType distsq = this->computeInitialDistances(*this, vec, dists);
-        searchLevel(result, vec, Base::root_node_, distsq, dists, epsError);
+        DistanceType dist = this->computeInitialDistances(*this, vec, dists);
+        searchLevel(result, vec, Base::root_node_, dist, dists, epsError);
         return result.full();
     }
 
@@ -1878,16 +1890,21 @@ class KDTreeSingleIndexDynamicAdaptor_
      * Their indices are stored inside the result object. \sa radiusSearch,
      * findNeighbors
      * \return Number `N` of valid points in
-     * the result set. Only the first `N` entries in `out_indices` and
-     * `out_distances_sq` will be valid. Return may be less than `num_closest`
-     * only if the number of elements in the tree is less than `num_closest`.
+     * the result set. 
+     *
+     * \note If L2 norms are used, all returned distances are actually squared
+     *       distances.
+     *
+     * \note Only the first `N` entries in `out_indices` and `out_distances`
+     *       will be valid. Return may be less than `num_closest` only if the
+     *       number of elements in the tree is less than `num_closest`.
      */
     Size knnSearch(
         const ElementType* query_point, const Size num_closest,
-        IndexType* out_indices, DistanceType* out_distances_sq) const
+        IndexType* out_indices, DistanceType* out_distances) const
     {
         nanoflann::KNNResultSet<DistanceType, IndexType> resultSet(num_closest);
-        resultSet.init(out_indices, out_distances_sq);
+        resultSet.init(out_indices, out_distances);
         findNeighbors(resultSet, query_point);
         return resultSet.size();
     }
@@ -1907,6 +1924,9 @@ class KDTreeSingleIndexDynamicAdaptor_
      *  \sa knnSearch, findNeighbors, radiusSearchCustomCallback
      * \return The number of points within the given radius (i.e. indices.size()
      * or dists.size() )
+     *
+     * \note If L2 norms are used, search radius and all returned distances 
+     *       are actually squared distances.
      */
     Size radiusSearch(
         const ElementType* query_point, const DistanceType& radius,
@@ -1981,7 +2001,7 @@ class KDTreeSingleIndexDynamicAdaptor_
     template <class RESULTSET>
     void searchLevel(
         RESULTSET& result_set, const ElementType* vec, const NodePtr node,
-        DistanceType mindistsq, distance_vector_t& dists,
+        DistanceType mindist, distance_vector_t& dists,
         const float epsError) const
     {
         /* If this is a leaf node, then do check and return. */
@@ -2036,15 +2056,15 @@ class KDTreeSingleIndexDynamicAdaptor_
         }
 
         /* Call recursively to search next level down. */
-        searchLevel(result_set, vec, bestChild, mindistsq, dists, epsError);
+        searchLevel(result_set, vec, bestChild, mindist, dists, epsError);
 
         DistanceType dst = dists[idx];
-        mindistsq        = mindistsq + cut_dist - dst;
+        mindist        = mindist + cut_dist - dst;
         dists[idx]       = cut_dist;
-        if (mindistsq * epsError <= result_set.worstDist())
+        if (mindist * epsError <= result_set.worstDist())
         {
             searchLevel(
-                result_set, vec, otherChild, mindistsq, dists, epsError);
+                result_set, vec, otherChild, mindist, dists, epsError);
         }
         dists[idx] = dst;
     }
@@ -2252,6 +2272,9 @@ class KDTreeSingleIndexDynamicAdaptor
      * \tparam RESULTSET Should be any ResultSet<DistanceType>
      * \return  True if the requested neighbors could be found.
      * \sa knnSearch, radiusSearch
+     *
+     * \note If L2 norms are used, all returned distances are actually squared
+     *       distances.
      */
     template <typename RESULTSET>
     bool findNeighbors(
@@ -2347,13 +2370,16 @@ struct KDTreeEigenMatrixAdaptor
      * query_point[0:dim-1]). Note that this is a short-cut method for
      * index->findNeighbors(). The user can also call index->... methods as
      * desired.
+     *
+     * \note If L2 norms are used, all returned distances are actually squared
+     *       distances.
      */
     void query(
         const num_t* query_point, const Size num_closest,
-        IndexType* out_indices, num_t* out_distances_sq) const
+        IndexType* out_indices, num_t* out_distances) const
     {
         nanoflann::KNNResultSet<num_t, IndexType> resultSet(num_closest);
-        resultSet.init(out_indices, out_distances_sq);
+        resultSet.init(out_indices, out_distances);
         index_->findNeighbors(resultSet, query_point);
     }
 
