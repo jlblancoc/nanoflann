@@ -37,6 +37,10 @@ Cite as:
   $ brew tap brewsci/science
   $ brew install nanoflann
   ```
+  MacPorts users can use:
+  ```
+  $ sudo port install nanoflann
+  ```
 * Linux users can also install it with [Linuxbrew](https://linuxbrew.sh/) with: `brew install homebrew/science/nanoflann`
 * List of [**stable releases**](https://github.com/jlblancoc/nanoflann/releases). Check out the [CHANGELOG](https://github.com/jlblancoc/nanoflann/blob/master/CHANGELOG.md)
 

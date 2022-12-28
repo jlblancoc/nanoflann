@@ -24,7 +24,10 @@ file(WRITE "${nanoflann_BINARY_DIR}/version" "${NANOFLANN_VERSION_MAJOR}.${NANOF
 if (CMAKE_COMPILER_IS_GNUCXX)
 	# The -Wno-long-long is required in 64bit systems when including sytem headers.
 	# The -Wno-variadic-macros was needed for Eigen3, StdVector.h
-	add_compile_options(-Wall -Wno-long-long -Wno-variadic-macros -O2 -mtune=native)
+	add_compile_options(-Wall -Wno-long-long -Wno-variadic-macros)
+	if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+		add_compile_options(-O2 -mtune=native)
+	endif()
 	# Workaround: Eigen <3.4 produces *tons* of warnings in GCC >=6. See http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1221
 	if (NOT ${CMAKE_CXX_COMPILER_VERSION} LESS "6.0")
 		add_compile_options(-Wno-ignored-attributes -Wno-int-in-bool-context)
