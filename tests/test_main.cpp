@@ -232,7 +232,7 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
     generateRandomPointCloud_Orient(cloud, nSamples);
 
     NUM query_pt[1] = {
-        (-1 + 2 * ((NUM)rand()) / RAND_MAX) * nanoflann::pi_const<NUM>()};
+        (-1 + 2 * ((NUM)rand()) / RAND_MAX) * static_cast<NUM>(M_PI)};
 
     // construct a kd-tree index:
     typedef KDTreeSingleIndexAdaptor<
@@ -241,8 +241,8 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
         >
         my_kd_tree_t;
 
-    my_kd_tree_t index(
-        1 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
+    my_kd_tree_t index(1 /*dim*/, cloud);
+
     // do a knn search
     const size_t        num_results = 1;
     std::vector<size_t> ret_indexes(num_results);
@@ -259,12 +259,8 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
     {
         for (size_t i = 0; i < nSamples; i++)
         {
-            double dist = 0.0;
-            dist        = cloud.kdtree_get_pt(i, 0) - query_pt[0];
-            if (dist > nanoflann::pi_const<double>())
-                dist -= 2 * nanoflann::pi_const<double>();
-            else if (dist < -nanoflann::pi_const<double>())
-                dist += 2 * nanoflann::pi_const<double>();
+            double dist = std::abs(
+                nanoflann::so2_diff(query_pt[0], cloud.kdtree_get_pt(i, 0)));
             if (dist < min_dist_SO2)
             {
                 min_dist_SO2 = dist;
@@ -274,10 +270,14 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
         ASSERT_TRUE(min_idx != std::numeric_limits<size_t>::max());
     }
     // Compare:
-    EXPECT_EQ(min_idx, ret_indexes[0])
-        << " query_pt: " << query_pt[0] << std::endl;
-    EXPECT_NEAR(min_dist_SO2, out_dists_sqr[0], 1e-3)
-        << " query_pt: " << query_pt[0] << std::endl;
+    EXPECT_TRUE(
+        min_idx == ret_indexes[0] &&
+        (std::abs(out_dists_sqr[0] - min_dist_SO2) < 1e-3))
+        << " query_pt: " << query_pt[0]
+        << "\n GT pt   : " << cloud.pts.at(min_idx).theta
+        << "\n returned: " << cloud.pts.at(ret_indexes[0]).theta
+        << "\n GT dist: " << min_dist_SO2 << "\n returned:" << out_dists_sqr[0]
+        << std::endl;
 }
 
 // First add nSamples/2 points, find the closest point
@@ -371,8 +371,10 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
             {
                 double dist = 0.0;
                 for (int d = 0; d < 3; d++)
-                    dist += (query_pt[d] - cloud.kdtree_get_pt(i, d)) *
-                            (query_pt[d] - cloud.kdtree_get_pt(i, d));
+                {
+                    auto dif = (query_pt[d] - cloud.kdtree_get_pt(i, d));
+                    dist += dif * dif;
+                }
                 if (dist < min_dist_L2)
                 {
                     min_dist_L2 = dist;
@@ -382,17 +384,18 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
             ASSERT_TRUE(min_idx != std::numeric_limits<size_t>::max());
         }
         // Compare:
-        EXPECT_EQ(min_idx, ret_indexes[0]);
-        EXPECT_NEAR(min_dist_L2, out_dists_sqr[0], 1e-3);
-    }
-}
-
-TEST(kdtree, L2_vs_L2_simple)
-{
-    for (int nResults = 1; nResults < 10; nResults++)
-    {
-        L2_vs_L2_simple_test<float>(100, nResults);
-        L2_vs_L2_simple_test<double>(100, nResults);
+        EXPECT_TRUE(
+            min_idx == ret_indexes[0] &&
+            (std::abs(out_dists_sqr[0] - min_dist_L2) < 1e-3))
+            << " query_pt: [" << query_pt[0] << "," << query_pt[1] << ","
+            << query_pt[2] << "]"
+            << "\n GT pt   : [" << cloud.pts.at(min_idx).x << ","
+            << cloud.pts.at(min_idx).y << "," << cloud.pts.at(min_idx).z << "]"
+            << "\n returned: [" << cloud.pts.at(ret_indexes[0]).x << ","
+            << cloud.pts.at(ret_indexes[0]).y << ","
+            << cloud.pts.at(ret_indexes[0]).z << "]"
+            << "\n GT dist: " << min_dist_L2
+            << "\n returned:" << out_dists_sqr[0] << std::endl;
     }
 }
 
@@ -423,66 +426,6 @@ TEST(kdtree, robust_empty_tree)
     resultSet.init(&ret_index[0], &out_dist_sqr[0]);
     bool result = index1.findNeighbors(resultSet, &query_pt[0]);
     EXPECT_EQ(result, false);
-}
-
-TEST(kdtree, L2_vs_bruteforce)
-{
-    srand(static_cast<unsigned int>(time(nullptr)));
-    for (int i = 0; i < 10; i++)
-    {
-        L2_vs_bruteforce_test<float>(100, 2);
-        L2_vs_bruteforce_test<float>(100, 3);
-        L2_vs_bruteforce_test<float>(100, 7);
-
-        L2_vs_bruteforce_test<double>(100, 2);
-        L2_vs_bruteforce_test<double>(100, 3);
-        L2_vs_bruteforce_test<double>(100, 7);
-    }
-}
-
-TEST(kdtree, SO3_vs_bruteforce)
-{
-    srand(static_cast<unsigned int>(time(nullptr)));
-    for (int i = 0; i < 10; i++)
-    {
-        SO3_vs_bruteforce_test<float>(100);
-        SO3_vs_bruteforce_test<float>(100);
-        SO3_vs_bruteforce_test<float>(100);
-
-        SO3_vs_bruteforce_test<double>(100);
-        SO3_vs_bruteforce_test<double>(100);
-        SO3_vs_bruteforce_test<double>(100);
-    }
-}
-
-TEST(kdtree, SO2_vs_bruteforce)
-{
-    srand(static_cast<unsigned int>(time(nullptr)));
-    for (int i = 0; i < 10; i++)
-    {
-        SO2_vs_bruteforce_test<float>(100);
-        SO2_vs_bruteforce_test<float>(100);
-        SO2_vs_bruteforce_test<float>(100);
-
-        SO2_vs_bruteforce_test<double>(100);
-        SO2_vs_bruteforce_test<double>(100);
-        SO2_vs_bruteforce_test<double>(100);
-    }
-}
-
-TEST(kdtree, L2_dynamic_vs_bruteforce)
-{
-    srand(static_cast<unsigned int>(time(nullptr)));
-    for (int i = 0; i < 10; i++)
-    {
-        L2_dynamic_vs_bruteforce_test<float>(100);
-        L2_dynamic_vs_bruteforce_test<float>(100);
-        L2_dynamic_vs_bruteforce_test<float>(100);
-
-        L2_dynamic_vs_bruteforce_test<double>(100);
-        L2_dynamic_vs_bruteforce_test<double>(100);
-        L2_dynamic_vs_bruteforce_test<double>(100);
-    }
 }
 
 TEST(kdtree, robust_nonempty_tree)
@@ -554,4 +497,65 @@ TEST(kdtree, add_and_remove_points)
     index.removePoint(2);
     actual = query();
     EXPECT_EQ(actual, static_cast<size_t>(0));
+}
+
+TEST(SO2, so2_diff)
+{
+    EXPECT_NEAR(nanoflann::so2_diff(.0, M_PI), M_PI, 1e-2);
+    EXPECT_NEAR(nanoflann::so2_diff(M_PI, .0), -M_PI, 1e-2);
+    EXPECT_NEAR(nanoflann::so2_diff(-3.1, 3.1), -0.08, 1e-2);
+    EXPECT_NEAR(nanoflann::so2_diff(3.1, -3.1), 0.08, 1e-2);
+}
+
+TEST(kdtree, L2_vs_L2_simple)
+{
+    srand(static_cast<unsigned int>(time(nullptr)));
+    for (int i = 0; i < 100; i += 10)
+    {
+        for (int nResults = 1; nResults < 10; nResults++)
+        {
+            L2_vs_L2_simple_test<float>(10 * i, nResults);
+            L2_vs_L2_simple_test<double>(10 * i, nResults);
+        }
+    }
+}
+
+TEST(kdtree, L2_vs_bruteforce)
+{
+    srand(static_cast<unsigned int>(time(nullptr)));
+    for (int i = 1; i < 200; i += 10)
+    {
+        L2_vs_bruteforce_test<float>(10 * i, 7);
+        L2_vs_bruteforce_test<double>(10 * i, 7);
+    }
+}
+
+TEST(kdtree, SO3_vs_bruteforce)
+{
+    srand(static_cast<unsigned int>(time(nullptr)));
+    for (int i = 1; i < 200; i += 10)
+    {
+        SO3_vs_bruteforce_test<float>(10 * i);
+        SO3_vs_bruteforce_test<double>(10 * i);
+    }
+}
+
+TEST(kdtree, SO2_vs_bruteforce)
+{
+    srand(static_cast<unsigned int>(time(nullptr)));
+    for (int i = 1; i < 200; i += 10)
+    {
+        SO2_vs_bruteforce_test<float>(10 * i);
+        SO2_vs_bruteforce_test<double>(10 * i);
+    }
+}
+
+TEST(kdtree, L2_dynamic_vs_bruteforce)
+{
+    srand(static_cast<unsigned int>(time(nullptr)));
+    for (int i = 1; i < 200; i += 10)
+    {
+        L2_dynamic_vs_bruteforce_test<float>(10 * i);
+        L2_dynamic_vs_bruteforce_test<double>(10 * i);
+    }
 }

@@ -143,8 +143,7 @@ void generateRandomPointCloud_Quat(PointCloud_Quat<T>& point, const size_t N)
     T theta, X, Y, Z, sinAng, cosAng, mag;
     for (size_t i = 0; i < N; i++)
     {
-        theta = static_cast<T>(
-            nanoflann::pi_const<double>() * (((double)rand()) / RAND_MAX));
+        theta = static_cast<T>(M_PI * (((double)rand()) / RAND_MAX));
         // Generate random value in [-1, 1]
         X   = static_cast<T>(2 * (((double)rand()) / RAND_MAX) - 1);
         Y   = static_cast<T>(2 * (((double)rand()) / RAND_MAX) - 1);
@@ -205,10 +204,8 @@ void generateRandomPointCloud_Orient(
     point.pts.resize(N);
     for (size_t i = 0; i < N; i++)
     {
-        point.pts[i].theta = static_cast<T>(
-            (2 * nanoflann::pi_const<double>() *
-             (((double)rand()) / RAND_MAX)) -
-            nanoflann::pi_const<double>());
+        point.pts[i].theta =
+            static_cast<T>((2 * M_PI * (((double)rand()) / RAND_MAX)) - M_PI);
     }
 }
 

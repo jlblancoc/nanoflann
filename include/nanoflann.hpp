@@ -47,7 +47,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cmath>  // for abs()
+#include <cmath>  // for abs(), M_PI, etc.
 #include <cstdlib>  // for abs()
 #include <functional>  // std::reference_wrapper
 #include <istream>
@@ -78,13 +78,6 @@ namespace nanoflann
 {
 /** @addtogroup nanoflann_grp nanoflann C++ library for KD-trees
  *  @{ */
-
-/** the PI constant (required to avoid MSVC missing symbols) */
-template <typename T>
-T pi_const()
-{
-    return static_cast<T>(3.14159265358979323846);
-}
 
 /**
  * Traits if object is resizable and assignable (typically has a resize | assign
@@ -152,6 +145,29 @@ inline typename std::enable_if<!has_assign<Container>::value, void>::type
     assign(Container& c, const size_t nElements, const T& value)
 {
     for (size_t i = 0; i < nElements; i++) c[i] = value;
+}
+
+/** Computes the shortest angular increment (or distance) between two SO(2)
+ *  orientations, such that it is constrained to [-π,π] and is correct for
+ *  any combination of angles, i.e. in particular near ±π.
+ * Examples: so2_diff(0,pi) -> +pi; so2_diff(pi,0) -> -pi;
+ *           so2_diff(-3.1,3.1) -> -0.08; so2_diff(3.1,-3.1) -> +0.08;
+
+ * \note *IMPORTANT*: Precondition is `from` and `to` ∈ [-π,π]
+ *
+ * \note Take care of not instancing this template for integer numbers, since
+ *       it only works for float, double and long double.
+ * (Note: modified from the mrpt::math library, BSD-3 License)
+ */
+template <class T>
+T so2_diff(T from, T to)
+{
+    T d = to - from;
+    if (d > M_PI)
+        d -= 2 * M_PI;
+    else if (d < -M_PI)
+        d += 2 * M_PI;
+    return d;
 }
 
 /** @addtogroup dimension_comparator_grp Comparison operators
@@ -471,7 +487,9 @@ struct L1_Adaptor
         /* Process last 0-3 components.  Not needed for standard vector lengths.
          */
         while (a < last)
-        { result += std::abs(*a++ - data_source.kdtree_get_pt(b_idx, d++)); }
+        {
+            result += std::abs(*a++ - data_source.kdtree_get_pt(b_idx, d++));
+        }
         return result;
     }
 
@@ -595,7 +613,7 @@ struct L2_Simple_Adaptor
 /** SO2 distance functor
  *  Corresponding distance traits: nanoflann::metric_SO2
  *
- * \tparam T Type of the elements (e.g. double, float, uint8_t)
+ * \tparam T Type of the elements (e.g. double, float)
  * \tparam DataSource Source of the data, i.e. where the vectors are stored
  * \tparam _DistanceType Type of distance variables (must be signed) (e.g.
  * float, double) orientation is constrained to be in [-pi, pi]
@@ -626,14 +644,7 @@ struct SO2_Adaptor
     template <typename U, typename V>
     DistanceType accum_dist(const U a, const V b, const size_t) const
     {
-        DistanceType result = DistanceType();
-        DistanceType PI     = pi_const<DistanceType>();
-        result              = b - a;
-        if (result > PI)
-            result -= 2 * PI;
-        else if (result < -PI)
-            result += 2 * PI;
-        return result;
+        return std::abs(nanoflann::so2_diff(a, b));
     }
 };
 
@@ -2324,7 +2335,9 @@ class KDTreeSingleIndexDynamicAdaptor
         const SearchParameters& searchParams = {}) const
     {
         for (size_t i = 0; i < treeCount_; i++)
-        { index_[i].findNeighbors(result, &vec[0], searchParams); }
+        {
+            index_[i].findNeighbors(result, &vec[0], searchParams);
+        }
         return result.full();
     }
 };
