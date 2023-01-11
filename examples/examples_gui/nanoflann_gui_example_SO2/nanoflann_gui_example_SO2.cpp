@@ -27,19 +27,13 @@
  *************************************************************************/
 
 /**
- * @file nanoflann_gui_example_bearings.cpp
+ * @file nanoflann_gui_example_SO2.cpp
  * @author Jose Luis Blanco-Claraco (joseluisblancoc@gmail.com)
  *
  * @brief This file shows how to use nanoflann to search for closest samples in
- * a dataset of bearings, parameterized as two angles:
- *  - θ (theta=angle around +Z), and
- *  - φ (phi=angle around the local, already rotated by θ, +Y axis).
- * So, θ=yaw and φ=pitch in the more common robotics notation.
+ * a dataset of SO(2) orientations, parameterized as one angle theta ∈ [-π,π].
  *
- * This code example shows how to search for "N" closest neighbors for each
- * bearing, for each sample in the dataset.
- *
- * @date 2022-11-15
+ * @date 2023-01-11
  */
 
 #include <mrpt/core/bits_math.h>  // square()
@@ -63,35 +57,34 @@
 #include <mrpt/opengl/stock_objects.h>
 #endif
 
-constexpr size_t NUM_NEIGHBORS = 40;
-constexpr size_t NUM_SAMPLES   = 4000;
+constexpr size_t NUM_NEIGHBORS = 10;
+constexpr size_t NUM_SAMPLES   = 400;
 
 // See docs at the top of this file for the meaning of variables, etc.
-struct Bearing
+struct Heading
 {
-    double yaw   = 0;
-    double pitch = 0;
+    double yaw = 0;
 
-    Bearing(double Yaw, double Pitch) : yaw(Yaw), pitch(Pitch) {}
+    Heading(double Yaw) : yaw(Yaw) {}
 };
 
 #ifdef SHOW_GUI
-mrpt::math::TPoint3D bearing_to_point(const Bearing& b)
+mrpt::math::TPoint3D bearing_to_point(const Heading& b)
 {
-    const auto R =
-        mrpt::poses::CPose3D::FromYawPitchRoll(b.yaw, b.pitch, 0.0 /*roll*/)
-            .getRotationMatrix();
+    const auto R = mrpt::poses::CPose3D::FromYawPitchRoll(
+                       b.yaw, 0.0 /*pitch*/, 0.0 /*roll*/)
+                       .getRotationMatrix();
     return {R(0, 0), R(1, 0), R(2, 0)};
 }
 #endif
 
-class BearingsDataset
+class HeadingsDataset
 {
    public:
-    BearingsDataset()  = default;
-    ~BearingsDataset() = default;
+    HeadingsDataset()  = default;
+    ~HeadingsDataset() = default;
 
-    std::vector<Bearing> samples;
+    std::vector<Heading> samples;
 
     // Must return the number of data points
     size_t kdtree_get_point_count() const { return samples.size(); }
@@ -102,10 +95,8 @@ class BearingsDataset
     //  "if/else's" are actually solved at compile time.
     inline double kdtree_get_pt(const size_t idx, const size_t dim) const
     {
-        if (dim == 0)
-            return samples[idx].yaw;
-        else
-            return samples[idx].pitch;
+        ASSERT_(dim == 0);
+        return samples[idx].yaw;
     }
 
     // Optional bounding-box computation: return false to default to a standard
@@ -121,7 +112,7 @@ class BearingsDataset
 };
 
 #ifdef SHOW_GUI
-mrpt::opengl::CPointCloud::Ptr pc_to_viz(const BearingsDataset& d)
+mrpt::opengl::CPointCloud::Ptr pc_to_viz(const HeadingsDataset& d)
 {
     auto gl = mrpt::opengl::CPointCloud::Create();
     for (const auto sample : d.samples)
@@ -134,73 +125,23 @@ mrpt::opengl::CPointCloud::Ptr pc_to_viz(const BearingsDataset& d)
 }
 #endif
 
-BearingsDataset generateRandomSamples(const size_t N)
+HeadingsDataset generateRandomSamples(const size_t N)
 {
-    BearingsDataset d;
+    HeadingsDataset d;
 
     auto& rng = mrpt::random::getRandomGenerator();
 
     for (size_t i = 0; i < N; i++)
     {
-        const double yaw   = rng.drawUniform(-M_PI, M_PI);
-        const double pitch = rng.drawUniform(-0.3 * M_PI, 0.3 * M_PI);
-        d.samples.emplace_back(yaw, pitch);
+        const double yaw = rng.drawUniform(-M_PI, M_PI);
+        d.samples.emplace_back(yaw);
     }
     return d;
 }
 
-//
-// ********************************* IMPORTANT ********************************
-//
-// This metric adaptor assumes as a precondition than "theta" is already
-// normalized to [-pi,pi], not [0,2*pi].
-//
-// ********************************* IMPORTANT ********************************
-//
-template <
-    class T, class DataSource, typename _DistanceType = T,
-    typename IndexType = uint32_t>
-struct ThetaPhiMetric_Adaptor
-{
-    using ElementType  = T;
-    using DistanceType = _DistanceType;
-
-    const DataSource& data_source;
-
-    ThetaPhiMetric_Adaptor(const DataSource& _data_source)
-        : data_source(_data_source)
-    {
-    }
-
-    DistanceType evalMetric(
-        const T* a, const IndexType b_idx, size_t /*size = 2*/) const
-    {
-        DistanceType result =
-            mrpt::square(nanoflann::so2_diff(
-                a[0], data_source.kdtree_get_pt(b_idx, 0))) +
-            mrpt::square(a[1] - data_source.kdtree_get_pt(b_idx, 1));
-
-        return result;
-    }
-
-    template <typename U, typename V>
-    DistanceType accum_dist(const U a, const V b, const size_t dimIdx) const
-    {
-        if (dimIdx == 0)
-        {  // theta:
-            return mrpt::square(nanoflann::so2_diff(a, b));
-        }
-        else
-        {
-            // phi:
-            return mrpt::square(a - b);
-        }
-    }
-};
-
 using my_kd_tree_t = nanoflann::KDTreeSingleIndexAdaptor<
-    ThetaPhiMetric_Adaptor<double, BearingsDataset>, BearingsDataset,
-    2 /* dim */
+    nanoflann::SO2_Adaptor<double, HeadingsDataset>, HeadingsDataset,
+    1 /* dim */
     >;
 
 void kdtree_demo(const size_t N)
@@ -210,7 +151,7 @@ void kdtree_demo(const size_t N)
 #endif
 
     // Generate points:
-    const BearingsDataset data = generateRandomSamples(N);
+    const HeadingsDataset data = generateRandomSamples(N);
 
 #ifdef SHOW_GUI
     // viz:
@@ -258,8 +199,7 @@ void kdtree_demo(const size_t N)
     for (size_t i = 0; i < N; i++)
 #endif
     {
-        const double queryPt[2] = {
-            data.kdtree_get_pt(i, 0), data.kdtree_get_pt(i, 1)};
+        const double queryPt[1] = {data.kdtree_get_pt(i, 0)};
 
         mrpt::system::CTimeLoggerEntry tle2(profiler, "query");
 
@@ -268,8 +208,8 @@ void kdtree_demo(const size_t N)
 
         tle2.stop();
 
-        std::cout << "\nQuery point: (" << queryPt[0] << "," << queryPt[1]
-                  << ") => " << numNN << " results.\n";
+        std::cout << "\nQuery point: (" << queryPt[0] << ") => " << numNN
+                  << " results.\n";
 
 #ifdef SHOW_GUI
         bool stop = false;
@@ -279,7 +219,7 @@ void kdtree_demo(const size_t N)
 
             glQueryPt->clear();
             {
-                const auto pt = bearing_to_point({queryPt[0], queryPt[1]});
+                const auto pt = bearing_to_point({queryPt[0]});
                 glQueryPt->insertPoint(pt.x, pt.y, pt.z);
                 stop = pt.x < -0.95;
             }

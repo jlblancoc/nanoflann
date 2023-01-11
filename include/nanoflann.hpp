@@ -162,6 +162,10 @@ inline typename std::enable_if<!has_assign<Container>::value, void>::type
 template <class T>
 T so2_diff(T from, T to)
 {
+#if defined(_DEBUG)
+    if (from < -M_PI || from > M_PI ||to < -M_PI || to> M_PI)
+    throw std::runtime_error("[nanoflann::so2_diff] Precondition not fulfilled: from and to must be in the range [-pi,pi]");
+#endif
     T d = to - from;
     if (d > M_PI)
         d -= 2 * M_PI;
