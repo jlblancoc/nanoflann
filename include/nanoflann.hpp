@@ -1507,7 +1507,7 @@ class KDTreeSingleIndexAdaptor
      * \return The number of points within the given radius (i.e. indices.size()
      * or dists.size() )
      *
-     * \note If L2 norms are used, search radius and all returned distances 
+     * \note If L2 norms are used, search radius and all returned distances
      *       are actually squared distances.
      */
     Size radiusSearch(
@@ -1789,12 +1789,12 @@ class KDTreeSingleIndexDynamicAdaptor_
      */
     KDTreeSingleIndexDynamicAdaptor_(
         const Dimension dimensionality, const DatasetAdaptor& inputData,
-        std::vector<int>&                     treeIndex_,
+        std::vector<int>&                     treeIndex,
         const KDTreeSingleIndexAdaptorParams& params =
             KDTreeSingleIndexAdaptorParams())
         : dataset_(inputData),
           index_params_(params),
-          treeIndex_(treeIndex_),
+          treeIndex_(treeIndex),
           distance_(inputData)
     {
         Base::size_                = 0;
@@ -1890,7 +1890,7 @@ class KDTreeSingleIndexDynamicAdaptor_
      * Their indices are stored inside the result object. \sa radiusSearch,
      * findNeighbors
      * \return Number `N` of valid points in
-     * the result set. 
+     * the result set.
      *
      * \note If L2 norms are used, all returned distances are actually squared
      *       distances.
@@ -1925,7 +1925,7 @@ class KDTreeSingleIndexDynamicAdaptor_
      * \return The number of points within the given radius (i.e. indices.size()
      * or dists.size() )
      *
-     * \note If L2 norms are used, search radius and all returned distances 
+     * \note If L2 norms are used, search radius and all returned distances
      *       are actually squared distances.
      */
     Size radiusSearch(
