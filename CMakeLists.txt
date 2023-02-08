@@ -24,7 +24,7 @@ file(WRITE "${nanoflann_BINARY_DIR}/version" "${NANOFLANN_VERSION_MAJOR}.${NANOF
 if (CMAKE_COMPILER_IS_GNUCXX)
 	# The -Wno-long-long is required in 64bit systems when including sytem headers.
 	# The -Wno-variadic-macros was needed for Eigen3, StdVector.h
-	add_compile_options(-Wall -Wno-long-long -Wno-variadic-macros)
+	add_compile_options(-Wall -Wshadow -Wno-long-long -Wno-variadic-macros)
 	if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
 		add_compile_options(-O2 -mtune=native)
 	endif()
