@@ -140,7 +140,7 @@ configure_file(
   "${nanoflann_BINARY_DIR}/cmake_uninstall.cmake"
   @ONLY IMMEDIATE)
 
-if (NOT TARGET uninstall)
+if ( 0 ) #NOT TARGET uninstall)
   add_custom_target(uninstall
     "${CMAKE_COMMAND}" -P "${nanoflann_BINARY_DIR}/cmake_uninstall.cmake")
 else()
