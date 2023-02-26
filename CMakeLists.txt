@@ -140,7 +140,9 @@ configure_file(
   "${nanoflann_BINARY_DIR}/cmake_uninstall.cmake"
   @ONLY IMMEDIATE)
 
-if ( 0 ) #NOT TARGET uninstall)
+option(MASTER_PROJECT_HAS_TARGET_UNINSTALL "uninstall target to master project CMakeLists.txt" OFF)
+
+if(NOT MASTER_PROJECT_HAS_TARGET_UNINSTALL OR NOT TARGET uninstall)
   add_custom_target(uninstall
     "${CMAKE_COMMAND}" -P "${nanoflann_BINARY_DIR}/cmake_uninstall.cmake")
 else()
