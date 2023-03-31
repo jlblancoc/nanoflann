@@ -46,10 +46,12 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cassert>
 #include <cmath>  // for abs()
 #include <cstdlib>  // for abs()
 #include <functional>  // std::reference_wrapper
+#include <future>
 #include <istream>
 #include <limits>  // std::numeric_limits
 #include <ostream>
@@ -692,14 +694,19 @@ inline std::underlying_type<KDTreeSingleIndexAdaptorFlags>::type operator&(
 struct KDTreeSingleIndexAdaptorParams
 {
     KDTreeSingleIndexAdaptorParams(
-        size_t _leaf_max_size = 10, KDTreeSingleIndexAdaptorFlags _flags =
-                                        KDTreeSingleIndexAdaptorFlags::None)
-        : leaf_max_size(_leaf_max_size), flags(_flags)
+        size_t                        _leaf_max_size = 10,
+        KDTreeSingleIndexAdaptorFlags _flags =
+            KDTreeSingleIndexAdaptorFlags::None,
+        unsigned int _n_thread_build = 1)
+        : leaf_max_size(_leaf_max_size),
+          flags(_flags),
+          n_thread_build(_n_thread_build)
     {
     }
 
     size_t                        leaf_max_size;
     KDTreeSingleIndexAdaptorFlags flags;
+    unsigned int                  n_thread_build;
 };
 
 /** Search options for KDTreeSingleIndexAdaptor::findNeighbors() */
@@ -954,6 +961,8 @@ class KDTreeBaseClass
 
     Size leaf_max_size_ = 0;
 
+    /// Number of thread for concurrent tree build
+    Size n_thread_build_ = 1;
     /// Number of current points in the dataset
     Size size_ = 0;
     /// Number of points in the dataset when the index was built
@@ -1070,6 +1079,117 @@ class KDTreeBaseClass
             BoundingBox right_bbox(bbox);
             right_bbox[cutfeat].low = cutval;
             node->child2 = this->divideTree(obj, left + idx, right, right_bbox);
+
+            node->node_type.sub.divlow  = left_bbox[cutfeat].high;
+            node->node_type.sub.divhigh = right_bbox[cutfeat].low;
+
+            for (Dimension i = 0; i < dims; ++i)
+            {
+                bbox[i].low  = std::min(left_bbox[i].low, right_bbox[i].low);
+                bbox[i].high = std::max(left_bbox[i].high, right_bbox[i].high);
+            }
+        }
+
+        return node;
+    }
+
+    /**
+     * Create a tree node that subdivides the list of vecs from vind[first] to
+     * vind[last] concurrently.  The routine is called recursively on each
+     * sublist.
+     *
+     * @param left index of the first vector
+     * @param right index of the last vector
+     * @param thread_count count of std::async threads
+     * @param mutex mutex for mempool allocation
+     */
+    NodePtr divideTreeConcurrent(
+        Derived& obj, const Offset left, const Offset right, BoundingBox& bbox,
+        std::atomic<unsigned int>& thread_count, std::mutex& mutex)
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+        NodePtr node = obj.pool_.template allocate<Node>();  // allocate memory
+        lock.unlock();
+
+        const auto dims = (DIM > 0 ? DIM : obj.dim_);
+
+        /* If too few exemplars remain, then make this a leaf node. */
+        if ((right - left) <= static_cast<Offset>(obj.leaf_max_size_))
+        {
+            node->child1 = node->child2 = nullptr; /* Mark as leaf node. */
+            node->node_type.lr.left     = left;
+            node->node_type.lr.right    = right;
+
+            // compute bounding-box of leaf points
+            for (Dimension i = 0; i < dims; ++i)
+            {
+                bbox[i].low  = dataset_get(obj, obj.vAcc_[left], i);
+                bbox[i].high = dataset_get(obj, obj.vAcc_[left], i);
+            }
+            for (Offset k = left + 1; k < right; ++k)
+            {
+                for (Dimension i = 0; i < dims; ++i)
+                {
+                    const auto val = dataset_get(obj, obj.vAcc_[k], i);
+                    if (bbox[i].low > val) bbox[i].low = val;
+                    if (bbox[i].high < val) bbox[i].high = val;
+                }
+            }
+        }
+        else
+        {
+            Offset       idx;
+            Dimension    cutfeat;
+            DistanceType cutval;
+            middleSplit_(obj, left, right - left, idx, cutfeat, cutval, bbox);
+
+            node->node_type.sub.divfeat = cutfeat;
+
+            std::future<NodePtr> left_future, right_future;
+
+            BoundingBox left_bbox(bbox);
+            left_bbox[cutfeat].high = cutval;
+            if (++thread_count < n_thread_build_)
+            {
+                left_future = std::async(
+                    std::launch::async, &KDTreeBaseClass::divideTreeConcurrent,
+                    this, std::ref(obj), left, left + idx, std::ref(left_bbox),
+                    std::ref(thread_count), std::ref(mutex));
+            }
+            else
+            {
+                --thread_count;
+                node->child1 = this->divideTreeConcurrent(
+                    obj, left, left + idx, left_bbox, thread_count, mutex);
+            }
+
+            BoundingBox right_bbox(bbox);
+            right_bbox[cutfeat].low = cutval;
+            if (++thread_count < n_thread_build_)
+            {
+                right_future = std::async(
+                    std::launch::async, &KDTreeBaseClass::divideTreeConcurrent,
+                    this, std::ref(obj), left + idx, right,
+                    std::ref(right_bbox), std::ref(thread_count),
+                    std::ref(mutex));
+            }
+            else
+            {
+                --thread_count;
+                node->child2 = this->divideTreeConcurrent(
+                    obj, left + idx, right, right_bbox, thread_count, mutex);
+            }
+
+            if (left_future.valid())
+            {
+                node->child1 = left_future.get();
+                --thread_count;
+            }
+            if (right_future.valid())
+            {
+                node->child2 = right_future.get();
+                --thread_count;
+            }
 
             node->node_type.sub.divlow  = left_bbox[cutfeat].high;
             node->node_type.sub.divhigh = right_bbox[cutfeat].low;
@@ -1397,6 +1517,15 @@ class KDTreeSingleIndexAdaptor
         Base::dim_                 = dimensionality;
         if (DIM > 0) Base::dim_ = DIM;
         Base::leaf_max_size_ = params.leaf_max_size;
+        if (params.n_thread_build > 0)
+        {
+            Base::n_thread_build_ = params.n_thread_build;
+        }
+        else
+        {
+            Base::n_thread_build_ =
+                std::max(std::thread::hardware_concurrency(), 1u);
+        }
 
         if (!(params.flags &
               KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex))
@@ -1420,8 +1549,18 @@ class KDTreeSingleIndexAdaptor
         if (Base::size_ == 0) return;
         computeBoundingBox(Base::root_bbox_);
         // construct the tree
-        Base::root_node_ =
-            this->divideTree(*this, 0, Base::size_, Base::root_bbox_);
+        if (Base::n_thread_build_ == 1)
+        {
+            Base::root_node_ =
+                this->divideTree(*this, 0, Base::size_, Base::root_bbox_);
+        }
+        else
+        {
+            std::atomic<unsigned int> thread_count = 0;
+            std::mutex                mutex;
+            Base::root_node_ = this->divideTreeConcurrent(
+                *this, 0, Base::size_, Base::root_bbox_, thread_count, mutex);
+        }
     }
 
     /** \name Query methods
@@ -1803,6 +1942,15 @@ class KDTreeSingleIndexDynamicAdaptor_
         Base::dim_ = dimensionality;
         if (DIM > 0) Base::dim_ = DIM;
         Base::leaf_max_size_ = params.leaf_max_size;
+        if (params.n_thread_build > 0)
+        {
+            Base::n_thread_build_ = params.n_thread_build;
+        }
+        else
+        {
+            Base::n_thread_build_ =
+                std::max(std::thread::hardware_concurrency(), 1u);
+        }
     }
 
     /** Explicitly default the copy constructor */
@@ -1837,8 +1985,18 @@ class KDTreeSingleIndexDynamicAdaptor_
         if (Base::size_ == 0) return;
         computeBoundingBox(Base::root_bbox_);
         // construct the tree
-        Base::root_node_ =
-            this->divideTree(*this, 0, Base::size_, Base::root_bbox_);
+        if (Base::n_thread_build_ == 1)
+        {
+            Base::root_node_ =
+                this->divideTree(*this, 0, Base::size_, Base::root_bbox_);
+        }
+        else
+        {
+            std::atomic<unsigned int> thread_count = 0;
+            std::mutex                mutex;
+            Base::root_node_ = this->divideTreeConcurrent(
+                *this, 0, Base::size_, Base::root_bbox_, thread_count, mutex);
+        }
     }
 
     /** \name Query methods

@@ -189,6 +189,10 @@ So, it seems that a `leaf_max_size` **between 10 and 50** would be optimum in ap
 
 This parameter is really ignored in `nanoflann`, but was kept for backward compatibility with the original FLANN interface. Just ignore it.
 
+### 2.3. `KDTreeSingleIndexAdaptorParams::n_thread_build`
+
+This parameter determines the maximum number of threads that can be called concurrently during the construction of the KD tree. The default value is 1. When the parameter is set to 0, `nanoflann` automatically determines the number of threads to use.
+
 -----
 
 ## 3. Performance
