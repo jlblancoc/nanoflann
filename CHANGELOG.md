@@ -10,6 +10,7 @@ nanoflann 1.5.0: UNRELEASED
      ctor parameters.
    - Added method RadiusResultSet::empty()
    - Template argument rename: `AccesorType` => `IndexType` (does not actually affect user code at all).
+   - Added concurrent tree building support, refer to `KDTreeSingleIndexAdaptorParams::n_thread_build`.
  * **Other changes:**
    - Macros to avoid conflicts with X11 symbols.
    - Inline an auxiliary example function in case users want to use it and

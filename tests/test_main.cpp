@@ -384,6 +384,94 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
     }
 }
 
+template <typename NUM>
+void L2_concurrent_build_vs_bruteforce_test(const size_t nSamples, 
+    const size_t DIM)
+{
+    std::vector<std::vector<NUM>> samples;
+
+    const NUM max_range = NUM(20.0);
+
+    // Generate points:
+    generateRandomPointCloud(samples, nSamples, DIM, max_range);
+
+    // Query point:
+    std::vector<NUM> query_pt(DIM);
+    for (size_t d = 0; d < DIM; d++)
+        query_pt[d] = static_cast<NUM>(max_range * (rand() % 1000) / (1000.0));
+
+    // construct a kd-tree index:
+    // Dimensionality set at run-time (default: L2)
+    // ------------------------------------------------------------
+    typedef KDTreeVectorOfVectorsAdaptor<std::vector<std::vector<NUM>>, NUM>
+        my_kd_tree_t;
+
+    my_kd_tree_t mat_index(DIM /*dim*/, samples, 10 /* max leaf */, 0 /* concurrent build */);
+
+    // do a knn search
+    const size_t        num_results = 1;
+    std::vector<size_t> ret_indexes(num_results);
+    std::vector<NUM>    out_dists_sqr(num_results);
+
+    nanoflann::KNNResultSet<NUM> resultSet(num_results);
+
+    resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
+    mat_index.index->findNeighbors(resultSet, &query_pt[0]);
+
+    // Brute force:
+    double min_dist_L2 = std::numeric_limits<double>::max();
+    size_t min_idx     = std::numeric_limits<size_t>::max();
+    {
+        for (size_t i = 0; i < nSamples; i++)
+        {
+            double dist = 0.0;
+            for (size_t d = 0; d < DIM; d++)
+                dist += (query_pt[d] - samples[i][d]) *
+                        (query_pt[d] - samples[i][d]);
+            if (dist < min_dist_L2)
+            {
+                min_dist_L2 = dist;
+                min_idx     = i;
+            }
+        }
+        ASSERT_TRUE(min_idx != std::numeric_limits<size_t>::max());
+    }
+
+    // Compare:
+    EXPECT_EQ(min_idx, ret_indexes[0]);
+    EXPECT_NEAR(min_dist_L2, out_dists_sqr[0], 1e-3);
+}
+
+template <typename NUM>
+void L2_concurrent_build_vs_L2_test(const size_t nSamples, 
+    const size_t DIM)
+{
+    std::vector<std::vector<NUM>> samples;
+
+    const NUM max_range = NUM(20.0);
+
+    // Generate points:
+    generateRandomPointCloud(samples, nSamples, DIM, max_range);
+
+    // Query point:
+    std::vector<NUM> query_pt(DIM);
+    for (size_t d = 0; d < DIM; d++)
+        query_pt[d] = static_cast<NUM>(max_range * (rand() % 1000) / (1000.0));
+
+    // construct a kd-tree index:
+    // Dimensionality set at run-time (default: L2)
+    // ------------------------------------------------------------
+    typedef KDTreeVectorOfVectorsAdaptor<std::vector<std::vector<NUM>>, NUM>
+        my_kd_tree_t;
+
+    my_kd_tree_t mat_index_concurrent_build(DIM /*dim*/, samples, 
+        10 /* max leaf */, 0 /* concurrent build */);
+    my_kd_tree_t mat_index(DIM /*dim*/, samples, 10 /* max leaf */);
+
+    // Compare:
+    EXPECT_EQ(mat_index.index->vAcc_, mat_index_concurrent_build.index->vAcc_);
+}
+
 TEST(kdtree, L2_vs_L2_simple)
 {
     for (int nResults = 1; nResults < 10; nResults++)
@@ -551,4 +639,34 @@ TEST(kdtree, add_and_remove_points)
     index.removePoint(2);
     actual = query();
     EXPECT_EQ(actual, static_cast<size_t>(0));
+}
+
+TEST(kdtree, L2_concurrent_build_vs_bruteforce)
+{
+    srand(static_cast<unsigned int>(time(nullptr)));
+    for (int i = 0; i < 10; i++)
+    {
+        L2_concurrent_build_vs_bruteforce_test<float>(100, 2);
+        L2_concurrent_build_vs_bruteforce_test<float>(100, 3);
+        L2_concurrent_build_vs_bruteforce_test<float>(100, 7);
+
+        L2_concurrent_build_vs_bruteforce_test<double>(100, 2);
+        L2_concurrent_build_vs_bruteforce_test<double>(100, 3);
+        L2_concurrent_build_vs_bruteforce_test<double>(100, 7);
+    }
+}
+
+TEST(kdtree, L2_concurrent_build_vs_L2)
+{
+    srand(static_cast<unsigned int>(time(nullptr)));
+    for (int i = 0; i < 10; i++)
+    {
+        L2_concurrent_build_vs_L2_test<float>(100, 2);
+        L2_concurrent_build_vs_L2_test<float>(100, 3);
+        L2_concurrent_build_vs_L2_test<float>(100, 7);
+
+        L2_concurrent_build_vs_L2_test<double>(100, 2);
+        L2_concurrent_build_vs_L2_test<double>(100, 3);
+        L2_concurrent_build_vs_L2_test<double>(100, 7);
+    }
 }
