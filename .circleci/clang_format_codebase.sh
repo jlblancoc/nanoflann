@@ -11,7 +11,7 @@
 # the  **root** of the MRPT repository
 
 DIRS_IN="include examples"
-DIRS_OUT="doc"
+DIRS_OUT="doc tests"
 LANGS=cpp
 FORMAT_CODE_BIN=".circleci/clang_git_format/format_code.py"
 
@@ -51,11 +51,11 @@ exit $?
 ######################
 
 # Make sure we are running it from the root
-if [ ! -f package.xml ]
+if [ ! -f CHANGELOG.md ]
 then
 	show_help 
 
-	echo "ERROR: Cannot find the file package.xml!"
+	echo "ERROR: Cannot find the file CHANGELOG.md!"
 	echo "Change to the root dir and rerun this."
 	echo "Exiting..."
 

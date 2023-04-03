@@ -14,7 +14,7 @@ set +e
 set +x
 
 DIRS_IN="include examples"
-DIRS_OUT="doc"
+DIRS_OUT="doc tests"
 LANGS=cpp
 FORMAT_CODE_BIN=".circleci/clang_git_format/format_code.py"
 
