@@ -84,6 +84,12 @@ target_include_directories(nanoflann
 install(TARGETS nanoflann
         EXPORT nanoflannTargets)
 
+# Since 2023-March, the parallel KD tree construction feature 
+# needs pthreads for gcc:
+find_package(Threads)
+target_link_libraries(nanoflann INTERFACE Threads::Threads)
+
+
 add_library(nanoflann::nanoflann ALIAS nanoflann)
 
 # Examples
