@@ -1,18 +1,81 @@
 version: 2
 jobs:
-  full-u20.04:
+  gcc-u18.04:
     docker:
-      - image: ubuntu:20.04
+      - image: ubuntu:bionic
     steps:
+      - run:
+          name: "Install dependencies"
+          command: |
+            apt update
+            export DEBIAN_FRONTEND=noninteractive
+            apt install software-properties-common -yq
+            add-apt-repository ppa:joseluisblancoc/mrpt -y
+            apt install build-essential g++ cmake libbox2d-dev libmrpt-dev -yq
+            apt install protobuf-compiler libprotobuf-dev libzmq3-dev -yq
+            apt install git -yq
       - checkout
-      - run: |
-          apt update
-          DEBIAN_FRONTEND=noninteractive apt install build-essential cmake libeigen3-dev -y
-      - run: cmake -DCMAKE_VERBOSE_MAKEFILE=ON -H. -Bbuild
-      - run: make -C build -j2
-      - run: make CTEST_OUTPUT_ON_FAILURE=1 test -C build  -j2
+      - run: git submodule sync
+      - run: git submodule update --init --recursive
+      - run:
+          name: Generate cmake files
+          command: |
+            cmake -H. -Bbuild
+      - run: make -C build
+#      - run: make CTEST_OUTPUT_ON_FAILURE=1 test -C build
+  gcc-u20.04:
+    docker:
+      - image: ubuntu:focal
+    steps:
+      - run:
+          name: "Install dependencies"
+          command: |
+            apt update
+            export DEBIAN_FRONTEND=noninteractive
+            apt install software-properties-common -yq
+            add-apt-repository ppa:joseluisblancoc/mrpt -y
+            apt install build-essential g++ cmake libbox2d-dev libmrpt-dev -yq
+            apt install protobuf-compiler libprotobuf-dev libzmq3-dev -yq
+            apt install git -yq
+      - checkout
+      - run: git submodule sync
+      - run: git submodule update --init --recursive
+      - run:
+          name: Generate cmake files
+          command: |
+            cmake -H. -Bbuild
+      - run: make -C build
+#      - run: make CTEST_OUTPUT_ON_FAILURE=1 test -C build
+  clang-u20.04:
+    docker:
+      - image: ubuntu:focal
+    steps:
+      - run:
+          name: "Install dependencies"
+          command: |
+            apt update
+            export DEBIAN_FRONTEND=noninteractive
+            apt install software-properties-common -yq
+            add-apt-repository ppa:joseluisblancoc/mrpt -y
+            apt install build-essential clang cmake libbox2d-dev libmrpt-dev -yq
+            apt install protobuf-compiler libprotobuf-dev libzmq3-dev -yq
+            apt install git -yq
+      - checkout
+      - run: git submodule sync
+      - run: git submodule update --init --recursive
+      - run:
+          name: Generate cmake files
+          environment:
+            CC: /usr/bin/clang
+            CXX: /usr/bin/clang++
+          command: |
+            cmake -H. -Bbuild
+      - run: make -C build
+#      - run: make CTEST_OUTPUT_ON_FAILURE=1 test -C build
 workflows:
   version: 2
   build:
     jobs:
-      - full-u20.04
+      - gcc-u18.04
+      - gcc-u20.04
+      - clang-u20.04
