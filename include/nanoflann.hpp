@@ -1556,7 +1556,7 @@ class KDTreeSingleIndexAdaptor
         }
         else
         {
-            std::atomic<unsigned int> thread_count = 0;
+            std::atomic<unsigned int> thread_count(0u);
             std::mutex                mutex;
             Base::root_node_ = this->divideTreeConcurrent(
                 *this, 0, Base::size_, Base::root_bbox_, thread_count, mutex);
@@ -1992,7 +1992,7 @@ class KDTreeSingleIndexDynamicAdaptor_
         }
         else
         {
-            std::atomic<unsigned int> thread_count = 0;
+            std::atomic<unsigned int> thread_count(0u);
             std::mutex                mutex;
             Base::root_node_ = this->divideTreeConcurrent(
                 *this, 0, Base::size_, Base::root_bbox_, thread_count, mutex);
