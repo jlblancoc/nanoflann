@@ -1,0 +1,85 @@
+# Based on GTSAM file (by @ProfFan)
+name: CI Linux
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: ${{ matrix.name }} ${{ matrix.build_type }}
+    runs-on: ${{ matrix.os }}
+
+    env:
+      CTEST_OUTPUT_ON_FAILURE: ON
+      CTEST_PARALLEL_LEVEL: 1
+      CMAKE_BUILD_TYPE: ${{ matrix.build_type }}
+      VERBOSE: 1  # to show all cmake scripts debug info
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Github Actions requires a single row to be added to the build matrix.
+        # See https://help.github.com/en/articles/workflow-syntax-for-github-actions.
+        name: [
+          ubuntu-20.04-gcc,
+          ubuntu-20.04-clang,
+          ubuntu-22.04-gcc,
+          ubuntu-22.04-clang,
+        ]
+
+        build_type: [ Release ]
+        include:
+          - name: ubuntu-20.04-clang
+            os: ubuntu-20.04
+            compiler: clang
+
+          - name: ubuntu-20.04-gcc
+            os: ubuntu-20.04
+            compiler: gcc
+
+          - name: ubuntu-22.04-gcc
+            os: ubuntu-22.04
+            compiler: gcc
+
+          - name: ubuntu-22.04-clang
+            os: ubuntu-22.04
+            compiler: clang
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+
+      - name: Git submodule
+        run: |
+          git submodule sync
+          git submodule update --init --recursive
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y upgrade
+
+          sudo apt install -y \
+            cmake build-essential cmake
+
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
+            sudo apt-get install -y g++ g++
+            echo "CC=gcc" >> $GITHUB_ENV
+            echo "CXX=g++" >> $GITHUB_ENV
+          else
+            sudo apt-get install -y clang g++-multilib
+            echo "CC=clang" >> $GITHUB_ENV
+            echo "CXX=clang++" >> $GITHUB_ENV
+          fi
+
+      - name: CMake configure
+        run: |
+          cmake -DCMAKE_VERBOSE_MAKEFILE=ON \
+                -H. -Bbuild
+
+      - name: Build
+        run: |
+          make -C build
+          
+      - name: Run tests
+        run: |
+          ctest --verbose --test-dir build
