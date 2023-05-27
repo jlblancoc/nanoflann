@@ -54,8 +54,8 @@ template <
     class Distance = nanoflann::metric_L2, typename IndexType = size_t>
 struct KDTreeVectorOfVectorsAdaptor
 {
-    using self_t =
-        KDTreeVectorOfVectorsAdaptor<VectorOfVectorsType, num_t, DIM, Distance>;
+    using self_t = KDTreeVectorOfVectorsAdaptor<
+        VectorOfVectorsType, num_t, DIM, Distance, IndexType>;
     using metric_t =
         typename Distance::template traits<num_t, self_t>::distance_t;
     using index_t =
