@@ -96,6 +96,16 @@ void kdtree_save_load_demo(const size_t N)
         std::cout << "ret_index=" << ret_index
                   << " out_dist_sqr=" << out_dist_sqr << std::endl;
     }
+
+    // Stress test: try to save an empty index
+    {
+        PointCloud<double> emptyCloud;
+        my_kd_tree_t       index(3 /*dim*/, emptyCloud);
+        std::ofstream      f("index2.bin", std::ofstream::binary);
+        if (f.bad()) throw std::runtime_error("Error writing index file!");
+        index.saveIndex(f);
+        f.close();
+    }
 }
 
 int main()

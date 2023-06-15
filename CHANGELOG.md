@@ -22,6 +22,8 @@ nanoflann 1.5.0: UNRELEASED
    - Add examples with GUI (requires [mrpt-gui](https://docs.mrpt.org/reference/latest/group_mrpt_gui_grp.html)):
      - nanoflann_gui_example_R3: Radius search on R³ Euclidean space.
      - nanoflann_gui_example_bearings: NN search on non-Euclidean spaces.
+ * BUGFIXES:
+     - Avoid segfault if saving an empty index (Closes [#205](https://github.com/jlblancoc/nanoflann/issues/205)).
 
 nanoflann 1.4.3: Released Jul 24, 2022
  * Added flag SkipInitialBuildIndex to allow not wasting time building a tree when it will be loaded from a file later on ([PR #171](https://github.com/jlblancoc/nanoflann/pull/171)).

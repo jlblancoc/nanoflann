@@ -418,7 +418,9 @@ struct L1_Adaptor
         /* Process last 0-3 components.  Not needed for standard vector lengths.
          */
         while (a < last)
-        { result += std::abs(*a++ - data_source.kdtree_get_pt(b_idx, d++)); }
+        {
+            result += std::abs(*a++ - data_source.kdtree_get_pt(b_idx, d++));
+        }
         return result;
     }
 
@@ -1362,7 +1364,7 @@ class KDTreeBaseClass
         save_value(stream, obj.root_bbox_);
         save_value(stream, obj.leaf_max_size_);
         save_value(stream, obj.vAcc_);
-        save_tree(obj, stream, obj.root_node_);
+        if (obj.root_node_) save_tree(obj, stream, obj.root_node_);
     }
 
     /**  Loads a previous index from a binary file.
@@ -1784,8 +1786,7 @@ class KDTreeSingleIndexAdaptor
         }
 
         /* Call recursively to search next level down. */
-        if (!searchLevel(
-                result_set, vec, bestChild, mindist, dists, epsError))
+        if (!searchLevel(result_set, vec, bestChild, mindist, dists, epsError))
         {
             // the resultset doesn't want to receive any more points, we're done
             // searching!
@@ -1793,7 +1794,7 @@ class KDTreeSingleIndexAdaptor
         }
 
         DistanceType dst = dists[idx];
-        mindist        = mindist + cut_dist - dst;
+        mindist          = mindist + cut_dist - dst;
         dists[idx]       = cut_dist;
         if (mindist * epsError <= result_set.worstDist())
         {
@@ -2217,12 +2218,11 @@ class KDTreeSingleIndexDynamicAdaptor_
         searchLevel(result_set, vec, bestChild, mindist, dists, epsError);
 
         DistanceType dst = dists[idx];
-        mindist        = mindist + cut_dist - dst;
+        mindist          = mindist + cut_dist - dst;
         dists[idx]       = cut_dist;
         if (mindist * epsError <= result_set.worstDist())
         {
-            searchLevel(
-                result_set, vec, otherChild, mindist, dists, epsError);
+            searchLevel(result_set, vec, otherChild, mindist, dists, epsError);
         }
         dists[idx] = dst;
     }
@@ -2440,7 +2440,9 @@ class KDTreeSingleIndexDynamicAdaptor
         const SearchParameters& searchParams = {}) const
     {
         for (size_t i = 0; i < treeCount_; i++)
-        { index_[i].findNeighbors(result, &vec[0], searchParams); }
+        {
+            index_[i].findNeighbors(result, &vec[0], searchParams);
+        }
         return result.full();
     }
 };
