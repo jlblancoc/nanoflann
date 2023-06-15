@@ -1,4 +1,4 @@
-nanoflann 1.5.0: UNRELEASED
+nanoflann 1.5.0: Released Jun 16, 2023
  * **API changes:**
    - Users of radius search should change their result placeholder type:
    `std::vector<std::pair<IndexType, DistanceType>>` => `std::vector<nanoflann::ResultItem<IndexType, DistanceType>>`. (See [#166](https://github.com/jlblancoc/nanoflann/issues/166) for the motivation of this change).
