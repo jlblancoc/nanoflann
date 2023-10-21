@@ -2060,11 +2060,11 @@ class KDTreeSingleIndexDynamicAdaptor_
      */
     Size knnSearch(
         const ElementType* query_point, const Size num_closest,
-        IndexType* out_indices, DistanceType* out_distances) const
+        IndexType* out_indices, DistanceType* out_distances, const SearchParameters& searchParams = {}) const
     {
         nanoflann::KNNResultSet<DistanceType, IndexType> resultSet(num_closest);
         resultSet.init(out_indices, out_distances);
-        findNeighbors(resultSet, query_point);
+        findNeighbors(resultSet, query_point, searchParams);
         return resultSet.size();
     }
 
