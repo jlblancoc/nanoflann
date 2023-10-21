@@ -1,3 +1,7 @@
+nanoflann 1.5.1: UNRELEASED
+ * **API changes:**
+   - Add missing `SearchParameters` argument to `KDTreeSingleIndexDynamicAdaptor_::knnSearch()` ([PR#213](https://github.com/jlblancoc/nanoflann/pull/213) by [ManosPapadakis95](https://github.com/ManosPapadakis95)).
+
 nanoflann 1.5.0: Released Jun 16, 2023
  * **API changes:**
    - Users of radius search should change their result placeholder type:
