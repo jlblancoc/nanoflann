@@ -233,3 +233,10 @@ These performance tests are only representative of our testing. If you want to r
 <br>
 
 *Note: The project logo is due to [CedarSeed](http://www.iconarchive.com/show/patisserie-icons-by-cedarseed/Flan-icon.html)*
+
+**Contributors**
+
+<a href="https://github.com/jlblancoc/nanoflann/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=jlblancoc/nanoflann" />
+</a>
+
