@@ -193,8 +193,7 @@ class KNNResultSet
 
     CountType size() const { return count; }
     bool      empty() const { return count == 0; }
-
-    bool full() const { return count == capacity; }
+    bool      full() const { return count == capacity; }
 
     /**
      * Called during search to add an element matching the criteria.
@@ -278,8 +277,8 @@ class RKNNResultSet
     }
 
     CountType size() const { return count; }
-
-    bool full() const { return count == capacity; }
+    bool      empty() const { return count == 0; }
+    bool      full() const { return count == capacity; }
 
     /**
      * Called during search to add an element matching the criteria.
@@ -288,7 +287,7 @@ class RKNNResultSet
      */
     bool addPoint(DistanceType dist, IndexType index)
     {
-        if (dist > maximumSearchDistanceSquared) return false;  // stop search
+        if (dist > maximumSearchDistanceSquared) return true;
 
         CountType i;
         for (i = count; i > 0; --i)
