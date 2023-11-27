@@ -79,7 +79,7 @@ void kdtree_demo(const size_t N)
         glFoundPts->setColor_u8(0x00, 0x00, 0xff, 0x80);
         scene->insert(glFoundPts);
 
-#if defined(USE_RADIUS_SEARCH)
+#if defined(USE_RADIUS_SEARCH) || defined(USE_RKNN_SEARCH)
         glQuerySphere->setColor_u8(0xe0, 0xe0, 0xe0, 0x30);
         glQuerySphere->enableDrawSolid3D(true);
 #else
@@ -108,21 +108,22 @@ void kdtree_demo(const size_t N)
 // Declare here to avoid reallocations:
 #if defined(USE_RADIUS_SEARCH)
     std::vector<nanoflann::ResultItem<size_t, double>> indicesDists;
-#elif defined(USE_KNN_SEARCH)
+#elif defined(USE_KNN_SEARCH) || defined(USE_RKNN_SEARCH)
     std::vector<size_t> indices;
     std::vector<double> distances;
 #else
-#error Expected either KNN or radius search build flag!
+#error Expected either KNN, radius, or RKNN search build flag!
 #endif
 
     // Loop: different searches until the window is closed:
     while (win.isOpen())
     {
         // Unsorted radius search:
-#if defined(USE_RADIUS_SEARCH)
+#if defined(USE_RADIUS_SEARCH) || defined(USE_RKNN_SEARCH)
         const double radius   = rng.drawUniform(0.1, maxRangeXY * 0.5);
         const double sqRadius = radius * radius;
-#else
+#endif
+#if defined(USE_KNN_SEARCH) || defined(USE_RKNN_SEARCH)
         const size_t nnToSearch = (rng.drawUniform32bit() % 10) + 1;
 #endif
         const double queryPt[3] = {
@@ -138,7 +139,16 @@ void kdtree_demo(const size_t N)
             sqRadius, indicesDists);
         index.findNeighbors(resultSet, queryPt);
 #else
+
+#if defined(USE_RKNN_SEARCH)
+        nanoflann::RKNNResultSet<double, size_t> resultSet(
+            nnToSearch, sqRadius);
+#elif defined(USE_KNN_SEARCH)
         nanoflann::KNNResultSet<double, size_t> resultSet(nnToSearch);
+#else
+#error Should not reach here!
+#endif
+
         indices.resize(nnToSearch);
         distances.resize(nnToSearch);
         resultSet.init(indices.data(), distances.data());
@@ -178,7 +188,7 @@ void kdtree_demo(const size_t N)
             glQueryPt->insertPoint(queryPt[0], queryPt[1], queryPt[2]);
 
             glQuerySphere->setLocation(queryPt[0], queryPt[1], queryPt[2]);
-#if defined(USE_RADIUS_SEARCH)
+#if defined(USE_RADIUS_SEARCH) || defined(USE_RKNN_SEARCH)
             glQuerySphere->setRadius(radius);
 #else
             glQuerySphere->setRadius(worstDist);
