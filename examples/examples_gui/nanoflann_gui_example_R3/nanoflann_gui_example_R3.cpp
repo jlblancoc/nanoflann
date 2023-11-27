@@ -79,7 +79,13 @@ void kdtree_demo(const size_t N)
         glFoundPts->setColor_u8(0x00, 0x00, 0xff, 0x80);
         scene->insert(glFoundPts);
 
+#if defined(USE_RADIUS_SEARCH)
         glQuerySphere->setColor_u8(0xe0, 0xe0, 0xe0, 0x30);
+        glQuerySphere->enableDrawSolid3D(true);
+#else
+        glQuerySphere->setColor_u8(0xe0, 0xe0, 0xe0, 0x30);
+        glQuerySphere->enableDrawSolid3D(false);
+#endif
         scene->insert(glQuerySphere);
     }
 
@@ -99,16 +105,26 @@ void kdtree_demo(const size_t N)
 
     auto& rng = mrpt::random::getRandomGenerator();
 
-    // Declare here to avoid reallocations:
+// Declare here to avoid reallocations:
+#if defined(USE_RADIUS_SEARCH)
     std::vector<nanoflann::ResultItem<size_t, double>> indicesDists;
+#elif defined(USE_KNN_SEARCH)
+    std::vector<size_t> indices;
+    std::vector<double> distances;
+#else
+#error Expected either KNN or radius search build flag!
+#endif
 
     // Loop: different searches until the window is closed:
     while (win.isOpen())
     {
         // Unsorted radius search:
+#if defined(USE_RADIUS_SEARCH)
         const double radius   = rng.drawUniform(0.1, maxRangeXY * 0.5);
         const double sqRadius = radius * radius;
-
+#else
+        const size_t nnToSearch = (rng.drawUniform32bit() % 10) + 1;
+#endif
         const double queryPt[3] = {
             rng.drawUniform(-0.3, maxRangeXY + 0.3),
             rng.drawUniform(-0.3, maxRangeXY + 0.3),
@@ -116,23 +132,42 @@ void kdtree_demo(const size_t N)
 
         mrpt::system::CTimeLoggerEntry tle2(profiler, "query");
 
+#if defined(USE_RADIUS_SEARCH)
         indicesDists.clear();
         nanoflann::RadiusResultSet<double, size_t> resultSet(
             sqRadius, indicesDists);
+        index.findNeighbors(resultSet, queryPt);
+#else
+        nanoflann::KNNResultSet<double, size_t> resultSet(nnToSearch);
+        indices.resize(nnToSearch);
+        distances.resize(nnToSearch);
+        resultSet.init(indices.data(), distances.data());
 
         index.findNeighbors(resultSet, queryPt);
 
+        indices.resize(resultSet.size());
+        distances.resize(resultSet.size());
+
+        const double worstDist = std::sqrt(resultSet.worstDist());
+#endif
         tle2.stop();
 
         std::cout << "\nQuery point: (" << queryPt[0] << "," << queryPt[1]
                   << "," << queryPt[2] << ") => " << resultSet.size()
                   << " results.\n";
+
         if (!resultSet.empty())
         {
+#if defined(USE_RADIUS_SEARCH)
             nanoflann::ResultItem<size_t, double> worstPair =
                 resultSet.worst_item();
             std::cout << "Worst pair: idx=" << worstPair.first
                       << " dist=" << std::sqrt(worstPair.second) << std::endl;
+#else
+            std::cout << "nnToSearch=" << nnToSearch
+                      << " actual found=" << indices.size()
+                      << " Worst found dist=" << worstDist << std::endl;
+#endif
         }
 
         // Color results:
@@ -143,12 +178,19 @@ void kdtree_demo(const size_t N)
             glQueryPt->insertPoint(queryPt[0], queryPt[1], queryPt[2]);
 
             glQuerySphere->setLocation(queryPt[0], queryPt[1], queryPt[2]);
+#if defined(USE_RADIUS_SEARCH)
             glQuerySphere->setRadius(radius);
-
+#else
+            glQuerySphere->setRadius(worstDist);
+#endif
             glFoundPts->clear();
-            for (const auto& ptIdx : indicesDists)
+#if defined(USE_RADIUS_SEARCH)
+            for (const auto& [idx, dist] : indicesDists)
+#else
+            for (const auto idx : indices)
+#endif
             {
-                const auto& pt = cloud.pts.at(ptIdx.first);
+                const auto& pt = cloud.pts.at(idx);
                 glFoundPts->insertPoint(pt.x, pt.y, pt.z);
             }
 
