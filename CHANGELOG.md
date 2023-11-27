@@ -1,9 +1,13 @@
 nanoflann 1.5.1: UNRELEASED
  * **API changes:**
+   - Add new search method `rknnSearch()` for knn searches with a maximum radius.
    - Add missing `SearchParameters` argument to `KDTreeSingleIndexDynamicAdaptor_::knnSearch()` ([PR#213](https://github.com/jlblancoc/nanoflann/pull/213) by [ManosPapadakis95](https://github.com/ManosPapadakis95)).
    - Add missing method `KNNResultSet::empty()` for consistency with the other result sets.
  * **Other changes**:
-   - Add examples: `nanoflann_gui_example_R3_knn` and `nanoflann_gui_example_R3_radius`
+   - Add GUI examples for each search type:
+     - `nanoflann_gui_example_R3_knn`
+     - `nanoflann_gui_example_R3_radius`
+     - `nanoflann_gui_example_R3_rknn`
 
 
 nanoflann 1.5.0: Released Jun 16, 2023
