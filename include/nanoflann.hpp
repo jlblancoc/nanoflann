@@ -3,7 +3,7 @@
  *
  * Copyright 2008-2009  Marius Muja (mariusm@cs.ubc.ca). All rights reserved.
  * Copyright 2008-2009  David G. Lowe (lowe@cs.ubc.ca). All rights reserved.
- * Copyright 2011-2022  Jose Luis Blanco (joseluisblancoc@gmail.com).
+ * Copyright 2011-2023  Jose Luis Blanco (joseluisblancoc@gmail.com).
  *   All rights reserved.
  *
  * THE BSD LICENSE
@@ -158,6 +158,8 @@ inline typename std::enable_if<!has_assign<Container>::value, void>::type
 
 /** @addtogroup result_sets_grp Result set classes
  *  @{ */
+
+/** Result set for KNN searches (N-closest neighbors) */
 template <
     typename _DistanceType, typename _IndexType = size_t,
     typename _CountType = size_t>
@@ -201,6 +203,93 @@ class KNNResultSet
      */
     bool addPoint(DistanceType dist, IndexType index)
     {
+        CountType i;
+        for (i = count; i > 0; --i)
+        {
+            /** If defined and two points have the same distance, the one with
+             *  the lowest-index will be returned first. */
+#ifdef NANOFLANN_FIRST_MATCH
+            if ((dists[i - 1] > dist) ||
+                ((dist == dists[i - 1]) && (indices[i - 1] > index)))
+            {
+#else
+            if (dists[i - 1] > dist)
+            {
+#endif
+                if (i < capacity)
+                {
+                    dists[i]   = dists[i - 1];
+                    indices[i] = indices[i - 1];
+                }
+            }
+            else
+                break;
+        }
+        if (i < capacity)
+        {
+            dists[i]   = dist;
+            indices[i] = index;
+        }
+        if (count < capacity) count++;
+
+        // tell caller that the search shall continue
+        return true;
+    }
+
+    DistanceType worstDist() const { return dists[capacity - 1]; }
+};
+
+/** Result set for RKNN searches (N-closest neighbors with a maximum radius) */
+template <
+    typename _DistanceType, typename _IndexType = size_t,
+    typename _CountType = size_t>
+class RKNNResultSet
+{
+   public:
+    using DistanceType = _DistanceType;
+    using IndexType    = _IndexType;
+    using CountType    = _CountType;
+
+   private:
+    IndexType*    indices;
+    DistanceType* dists;
+    CountType     capacity;
+    CountType     count;
+    DistanceType  maximumSearchDistanceSquared;
+
+   public:
+    explicit RKNNResultSet(
+        CountType capacity_, DistanceType maximumSearchDistanceSquared_)
+        : indices(nullptr),
+          dists(nullptr),
+          capacity(capacity_),
+          count(0),
+          maximumSearchDistanceSquared(maximumSearchDistanceSquared_)
+    {
+    }
+
+    void init(IndexType* indices_, DistanceType* dists_)
+    {
+        indices = indices_;
+        dists   = dists_;
+        count   = 0;
+        if (capacity)
+            dists[capacity - 1] = (std::numeric_limits<DistanceType>::max)();
+    }
+
+    CountType size() const { return count; }
+
+    bool full() const { return count == capacity; }
+
+    /**
+     * Called during search to add an element matching the criteria.
+     * @return true if the search should be continued, false if the results are
+     * sufficient
+     */
+    bool addPoint(DistanceType dist, IndexType index)
+    {
+        if (dist > maximumSearchDistanceSquared) return false;  // stop search
+
         CountType i;
         for (i = count; i > 0; --i)
         {
@@ -1678,6 +1767,34 @@ class KDTreeSingleIndexAdaptor
         const SearchParameters& searchParams = {}) const
     {
         findNeighbors(resultSet, query_point, searchParams);
+        return resultSet.size();
+    }
+
+    /**
+     * Find the first N neighbors to \a query_point[0:dim-1] within a maximum
+     * radius. The output is given as a vector of pairs, of which the first
+     * element is a point index and the second the corresponding distance.
+     * Previous contents of \a IndicesDists are cleared.
+     *
+     * \sa radiusSearch, findNeighbors
+     * \return Number `N` of valid points in the result set.
+     *
+     * \note If L2 norms are used, all returned distances are actually squared
+     *       distances.
+     *
+     * \note Only the first `N` entries in `out_indices` and `out_distances`
+     *       will be valid. Return is less than `num_closest` only if the
+     *       number of elements in the tree is less than `num_closest`.
+     */
+    Size rknnSearch(
+        const ElementType* query_point, const Size num_closest,
+        IndexType* out_indices, DistanceType* out_distances,
+        const DistanceType& radius) const
+    {
+        nanoflann::RKNNResultSet<DistanceType, IndexType> resultSet(
+            num_closest, radius);
+        resultSet.init(out_indices, out_distances);
+        findNeighbors(resultSet, query_point);
         return resultSet.size();
     }
 
