@@ -1,4 +1,4 @@
-nanoflann 1.5.1: UNRELEASED
+nanoflann 1.5.1: Released Nov 27, 2023
  * **API changes:**
    - Add new search method `rknnSearch()` for knn searches with a maximum radius.
    - Add missing `SearchParameters` argument to `KDTreeSingleIndexDynamicAdaptor_::knnSearch()` ([PR#213](https://github.com/jlblancoc/nanoflann/pull/213) by [ManosPapadakis95](https://github.com/ManosPapadakis95)).
