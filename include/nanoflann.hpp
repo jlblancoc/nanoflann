@@ -273,7 +273,7 @@ class RKNNResultSet
         dists   = dists_;
         count   = 0;
         if (capacity)
-            dists[capacity - 1] = (std::numeric_limits<DistanceType>::max)();
+            dists[capacity - 1] = maximumSearchDistanceSquared;
     }
 
     CountType size() const { return count; }
@@ -287,8 +287,6 @@ class RKNNResultSet
      */
     bool addPoint(DistanceType dist, IndexType index)
     {
-        if (dist > maximumSearchDistanceSquared) return true;
-
         CountType i;
         for (i = count; i > 0; --i)
         {
