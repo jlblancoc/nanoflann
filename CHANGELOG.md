@@ -1,3 +1,7 @@
+nanoflann 1.5.2: UNRELEASED
+ * **Other changes**:
+   - Improve RKNN search efficiency ([PR#219](https://github.com/jlblancoc/nanoflann/pull/219) by [kya8](https://github.com/kya8)).
+
 nanoflann 1.5.1: Released Nov 27, 2023
  * **API changes:**
    - Add new search method `rknnSearch()` for knn searches with a maximum radius.
