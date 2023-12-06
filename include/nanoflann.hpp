@@ -1307,25 +1307,26 @@ class KDTreeBaseClass
         }
         ElementType max_spread = -1;
         cutfeat                = 0;
+        ElementType  min_elem = 0, max_elem = 0;
         for (Dimension i = 0; i < dims; ++i)
         {
             ElementType span = bbox[i].high - bbox[i].low;
             if (span > (1 - EPS) * max_span)
             {
-                ElementType min_elem, max_elem;
-                computeMinMax(obj, ind, count, i, min_elem, max_elem);
-                ElementType spread = max_elem - min_elem;
+                ElementType min_elem_, max_elem_;
+                computeMinMax(obj, ind, count, i, min_elem_, max_elem_);
+                ElementType spread = max_elem_ - min_elem_;
                 if (spread > max_spread)
                 {
                     cutfeat    = i;
                     max_spread = spread;
+                    min_elem = min_elem_;
+                    max_elem = max_elem_;
                 }
             }
         }
         // split in the middle
         DistanceType split_val = (bbox[cutfeat].low + bbox[cutfeat].high) / 2;
-        ElementType  min_elem, max_elem;
-        computeMinMax(obj, ind, count, cutfeat, min_elem, max_elem);
 
         if (split_val < min_elem)
             cutval = min_elem;
