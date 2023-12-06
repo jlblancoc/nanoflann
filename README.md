@@ -23,6 +23,8 @@ Cite as:
 }
 ```
 
+See the release [CHANGELOG](CHANGELOG.md) for a list of project changes.
+
 ### 1.1. Obtaining the code
 
 * Easiest way: clone this GIT repository and take the `include/nanoflann.hpp` file for use where you need it.
