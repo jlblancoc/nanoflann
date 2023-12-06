@@ -1,3 +1,7 @@
+nanoflann 1.5.3: UNRELEASED
+ * **Other changes**:
+   - Save one redundant call to `computeMinMax()` in `middleSplit_` ([PR#220](https://github.com/jlblancoc/nanoflann/pull/220) by [qq422216549](https://github.com/qq422216549)).
+
 nanoflann 1.5.2: Released Nov 29, 2023
  * **Other changes**:
    - Improve RKNN search efficiency ([PR#219](https://github.com/jlblancoc/nanoflann/pull/219) by [kya8](https://github.com/kya8)).
