@@ -831,7 +831,7 @@ struct SearchParameters
  */
 class PooledAllocator
 {
-    static constexpr size_t WORDSIZE  = 16;
+    static constexpr size_t WORDSIZE  = 16;  //WORDSIZE must >= 8
     static constexpr size_t BLOCKSIZE = 8192;
 
     /* We maintain memory alignment to word boundaries by requiring that all
@@ -840,9 +840,7 @@ class PooledAllocator
     /* Minimum number of bytes requested at a time from	the system.  Must be
      * multiple of WORDSIZE. */
 
-    using Offset    = uint32_t;
-    using Size      = uint32_t;
-    using Dimension = int32_t;
+    using Size = size_t;
 
     Size  remaining_ = 0;  //!< Number of bytes left in current block of storage
     void* base_ = nullptr;  //!< Pointer to base of current block of storage
@@ -904,9 +902,9 @@ class PooledAllocator
 
             /* Allocate new storage. */
             const Size blocksize =
-                (size + sizeof(void*) + (WORDSIZE - 1) > BLOCKSIZE)
-                    ? size + sizeof(void*) + (WORDSIZE - 1)
-                    : BLOCKSIZE;
+                size > BLOCKSIZE
+                ? size + WORDSIZE
+                : BLOCKSIZE + WORDSIZE;
 
             // use the standard C malloc to allocate memory
             void* m = ::malloc(blocksize);
@@ -920,12 +918,8 @@ class PooledAllocator
             static_cast<void**>(m)[0] = base_;
             base_                     = m;
 
-            Size shift = 0;
-            // int size_t = (WORDSIZE - ( (((size_t)m) + sizeof(void*)) &
-            // (WORDSIZE-1))) & (WORDSIZE-1);
-
-            remaining_ = blocksize - sizeof(void*) - shift;
-            loc_       = (static_cast<char*>(m) + sizeof(void*) + shift);
+            remaining_ = blocksize - WORDSIZE;
+            loc_ = static_cast<char*>(m) + WORDSIZE;
         }
         void* rloc = loc_;
         loc_       = static_cast<char*>(loc_) + size;
@@ -1307,7 +1301,7 @@ class KDTreeBaseClass
         }
         ElementType max_spread = -1;
         cutfeat                = 0;
-        ElementType  min_elem = 0, max_elem = 0;
+        ElementType   min_elem = 0, max_elem = 0;
         for (Dimension i = 0; i < dims; ++i)
         {
             ElementType span = bbox[i].high - bbox[i].low;
