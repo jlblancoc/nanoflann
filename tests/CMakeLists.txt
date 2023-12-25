@@ -8,7 +8,9 @@ if(MSVC)
 	add_definitions(-D_VARIADIC_MAX=10)
 endif(MSVC)
 
-if(NOT TARGET gtest)
+if(NANOFLANN_USE_SYSTEM_GTEST)
+	find_package(GTest REQUIRED)
+else()
 	# Treat this directory as "system" to ignore pedantic warnings.
 	if(CMAKE_COMPILER_IS_GNUCXX)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem gtest-1.8.0/include")
@@ -37,4 +39,8 @@ ADD_TEST(unit_tests_run ${EXECUTABLE_OUTPUT_PATH}/unit_tests)
 set_tests_properties(unit_tests_run PROPERTIES DEPENDS unit_tests_build)
 
 # Add the required libraries for linking:
-TARGET_LINK_LIBRARIES(unit_tests mygtest nanoflann)
+if(NANOFLANN_USE_SYSTEM_GTEST)
+	target_link_libraries(unit_tests GTest::gtest nanoflann)
+else()
+	target_link_libraries(unit_tests mygtest nanoflann)
+endif()
