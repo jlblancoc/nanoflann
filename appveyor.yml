@@ -1,5 +1,5 @@
 # version format
-version: 1.4.2-{branch}-build{build}
+version: 1.5.0-{branch}-build{build}
 
 os: Visual Studio 2019
 
