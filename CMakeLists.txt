@@ -63,8 +63,16 @@ if(NOT DEFINED PKGCONFIG_INSTALL_DIR)
   set(PKGCONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 endif()
 
-# Save all executables (unit tests & examples) in the same place:
-set(EXECUTABLE_OUTPUT_PATH ${${PROJECT_NAME}_BINARY_DIR}/bin CACHE PATH "Output directory for executables")
+if (${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
+	# This is the root project
+	set(MASTER_PROJECT ON)
+else()
+	set(MASTER_PROJECT OFF)
+endif()
+if (MASTER_PROJECT)
+	# Save all executables (unit tests & examples) in the same place:
+	set(EXECUTABLE_OUTPUT_PATH ${${PROJECT_NAME}_BINARY_DIR}/bin CACHE PATH "Output directory for executables")
+endif()
 
 # Define nanoflann lib (header-only)
 add_library(nanoflann INTERFACE)
