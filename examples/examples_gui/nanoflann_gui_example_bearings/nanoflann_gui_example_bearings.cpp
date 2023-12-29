@@ -303,10 +303,10 @@ void kdtree_demo(const size_t N)
             }
 
             glFoundPts->clear();
-            for (size_t i = 0; i < numNN; i++)
+            for (size_t j = 0; j < numNN; j++)
             {
                 const auto pt =
-                    bearing_to_point(data.samples.at(nn_indices[i]));
+                    bearing_to_point(data.samples.at(nn_indices[j]));
                 glFoundPts->insertPoint(pt.x, pt.y, pt.z);
             }
 

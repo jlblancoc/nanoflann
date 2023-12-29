@@ -1,6 +1,8 @@
 ![nanoflann](https://raw.githubusercontent.com/jlblancoc/nanoflann/master/doc/logo.png)
 
 # nanoflann
+[![CI Linux](https://github.com/jlblancoc/nanoflann/actions/workflows/ci-linux.yml/badge.svg)](https://github.com/jlblancoc/nanoflann/actions/workflows/ci-linux.yml)
+[![CI Check clang-format](https://github.com/jlblancoc/nanoflann/actions/workflows/check-clang-format.yml/badge.svg)](https://github.com/jlblancoc/nanoflann/actions/workflows/check-clang-format.yml)
 [![CircleCI](https://circleci.com/gh/jlblancoc/nanoflann/tree/master.svg?style=svg)](https://circleci.com/gh/jlblancoc/nanoflann/tree/master)
 [![Windows build status](https://ci.appveyor.com/api/projects/status/h8k1apfogxyqhskd/branch/master?svg=true)](https://ci.appveyor.com/project/jlblancoc/nanoflann/branch/master)
 
@@ -20,6 +22,8 @@ Cite as:
   year         = {2014}
 }
 ```
+
+See the release [CHANGELOG](CHANGELOG.md) for a list of project changes.
 
 ### 1.1. Obtaining the code
 
@@ -189,6 +193,10 @@ So, it seems that a `leaf_max_size` **between 10 and 50** would be optimum in ap
 
 This parameter is really ignored in `nanoflann`, but was kept for backward compatibility with the original FLANN interface. Just ignore it.
 
+### 2.3. `KDTreeSingleIndexAdaptorParams::n_thread_build`
+
+This parameter determines the maximum number of threads that can be called concurrently during the construction of the KD tree. The default value is 1. When the parameter is set to 0, `nanoflann` automatically determines the number of threads to use.
+
 -----
 
 ## 3. Performance
@@ -227,3 +235,10 @@ These performance tests are only representative of our testing. If you want to r
 <br>
 
 *Note: The project logo is due to [CedarSeed](http://www.iconarchive.com/show/patisserie-icons-by-cedarseed/Flan-icon.html)*
+
+**Contributors**
+
+<a href="https://github.com/jlblancoc/nanoflann/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=jlblancoc/nanoflann" />
+</a>
+

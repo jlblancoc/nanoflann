@@ -57,7 +57,7 @@ endif()
 
 # Set relative install directories
 set(INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_INCLUDEDIR}")
-set(INSTALL_CMAKE_DIR "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake/")
+set(INSTALL_CMAKE_DIR "${CMAKE_INSTALL_DATADIR}/cmake/${PROJECT_NAME}")
 set(INSTALL_COPYRIGHT_DIR "${CMAKE_INSTALL_DOCDIR}")
 if(NOT DEFINED PKGCONFIG_INSTALL_DIR)
   set(PKGCONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
@@ -84,6 +84,12 @@ target_include_directories(nanoflann
 install(TARGETS nanoflann
         EXPORT nanoflannTargets)
 
+# Since 2023-March, the parallel KD tree construction feature
+# needs pthreads for gcc:
+find_package(Threads)
+target_link_libraries(nanoflann INTERFACE Threads::Threads)
+
+
 add_library(nanoflann::nanoflann ALIAS nanoflann)
 
 # Examples
@@ -94,6 +100,7 @@ endif()
 
 # Tests
 option(NANOFLANN_BUILD_TESTS "Build unit tests" ON)
+option(NANOFLANN_USE_SYSTEM_GTEST "Use system GTest dependency" OFF)
 if(NANOFLANN_BUILD_TESTS)
 	enable_testing()
 	add_subdirectory(tests)

@@ -54,8 +54,8 @@ template <
     class Distance = nanoflann::metric_L2, typename IndexType = size_t>
 struct KDTreeVectorOfVectorsAdaptor
 {
-    using self_t =
-        KDTreeVectorOfVectorsAdaptor<VectorOfVectorsType, num_t, DIM, Distance>;
+    using self_t = KDTreeVectorOfVectorsAdaptor<
+        VectorOfVectorsType, num_t, DIM, Distance, IndexType>;
     using metric_t =
         typename Distance::template traits<num_t, self_t>::distance_t;
     using index_t =
@@ -69,7 +69,7 @@ struct KDTreeVectorOfVectorsAdaptor
     /// data points
     KDTreeVectorOfVectorsAdaptor(
         const size_t /* dimensionality */, const VectorOfVectorsType& mat,
-        const int leaf_max_size = 10)
+        const int leaf_max_size = 10, const unsigned int n_thread_build = 1)
         : m_data(mat)
     {
         assert(mat.size() != 0 && mat[0].size() != 0);
@@ -80,7 +80,9 @@ struct KDTreeVectorOfVectorsAdaptor
                 "argument");
         index = new index_t(
             static_cast<int>(dims), *this /* adaptor */,
-            nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size));
+            nanoflann::KDTreeSingleIndexAdaptorParams(
+                leaf_max_size, nanoflann::KDTreeSingleIndexAdaptorFlags::None,
+                n_thread_build));
     }
 
     ~KDTreeVectorOfVectorsAdaptor() { delete index; }
