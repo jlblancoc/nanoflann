@@ -50,6 +50,7 @@
 #include <cassert>
 #include <cmath>  // for abs()
 #include <cstdlib>  // for abs()
+#include <cstdint>
 #include <functional>  // std::reference_wrapper
 #include <future>
 #include <istream>
