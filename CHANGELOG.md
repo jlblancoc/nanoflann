@@ -1,3 +1,6 @@
+# nanoflann 1.5.5: UNRELEASED
+ - (none yet)
+
 # nanoflann 1.5.4: Released Jan 10, 2024
  - Fix outdated NANOFLANN_VERSION macro in header file
  - Fix poll-allocator alignment problems
