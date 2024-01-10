@@ -1,3 +1,10 @@
+# nanoflann 1.5.4: Released Jan 10, 2024
+ - Fix outdated NANOFLANN_VERSION macro in header file
+ - Fix poll-allocator alignment problems
+ - Add NANOFLANN_USE_SYSTEM_GTEST option
+ - Look for Threads dependency in CMake config script
+
+
 # nanoflann 1.5.3: Released Dec 7, 2023
  * **Other changes**:
    - Save one redundant call to `computeMinMax()` in `middleSplit_` ([PR#220](https://github.com/jlblancoc/nanoflann/pull/220) by [qq422216549](https://github.com/qq422216549)).
