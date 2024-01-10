@@ -3,7 +3,7 @@
  *
  * Copyright 2008-2009  Marius Muja (mariusm@cs.ubc.ca). All rights reserved.
  * Copyright 2008-2009  David G. Lowe (lowe@cs.ubc.ca). All rights reserved.
- * Copyright 2011-2023  Jose Luis Blanco (joseluisblancoc@gmail.com).
+ * Copyright 2011-2024  Jose Luis Blanco (joseluisblancoc@gmail.com).
  *   All rights reserved.
  *
  * THE BSD LICENSE
@@ -49,8 +49,8 @@
 #include <atomic>
 #include <cassert>
 #include <cmath>  // for abs()
-#include <cstdlib>  // for abs()
 #include <cstdint>
+#include <cstdlib>  // for abs()
 #include <functional>  // std::reference_wrapper
 #include <future>
 #include <istream>
@@ -273,8 +273,7 @@ class RKNNResultSet
         indices = indices_;
         dists   = dists_;
         count   = 0;
-        if (capacity)
-            dists[capacity - 1] = maximumSearchDistanceSquared;
+        if (capacity) dists[capacity - 1] = maximumSearchDistanceSquared;
     }
 
     CountType size() const { return count; }
@@ -832,7 +831,7 @@ struct SearchParameters
  */
 class PooledAllocator
 {
-    static constexpr size_t WORDSIZE  = 16;  //WORDSIZE must >= 8
+    static constexpr size_t WORDSIZE  = 16;  // WORDSIZE must >= 8
     static constexpr size_t BLOCKSIZE = 8192;
 
     /* We maintain memory alignment to word boundaries by requiring that all
@@ -903,9 +902,7 @@ class PooledAllocator
 
             /* Allocate new storage. */
             const Size blocksize =
-                size > BLOCKSIZE
-                ? size + WORDSIZE
-                : BLOCKSIZE + WORDSIZE;
+                size > BLOCKSIZE ? size + WORDSIZE : BLOCKSIZE + WORDSIZE;
 
             // use the standard C malloc to allocate memory
             void* m = ::malloc(blocksize);
@@ -920,7 +917,7 @@ class PooledAllocator
             base_                     = m;
 
             remaining_ = blocksize - WORDSIZE;
-            loc_ = static_cast<char*>(m) + WORDSIZE;
+            loc_       = static_cast<char*>(m) + WORDSIZE;
         }
         void* rloc = loc_;
         loc_       = static_cast<char*>(loc_) + size;
@@ -1302,7 +1299,7 @@ class KDTreeBaseClass
         }
         ElementType max_spread = -1;
         cutfeat                = 0;
-        ElementType   min_elem = 0, max_elem = 0;
+        ElementType min_elem = 0, max_elem = 0;
         for (Dimension i = 0; i < dims; ++i)
         {
             ElementType span = bbox[i].high - bbox[i].low;
@@ -1315,8 +1312,8 @@ class KDTreeBaseClass
                 {
                     cutfeat    = i;
                     max_spread = spread;
-                    min_elem = min_elem_;
-                    max_elem = max_elem_;
+                    min_elem   = min_elem_;
+                    max_elem   = max_elem_;
                 }
             }
         }
