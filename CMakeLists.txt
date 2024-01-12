@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------
 # Root CMake file for nanoflann
 # ----------------------------------------------------------------------------
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.5)
 
 # Extract library version into "NANOFLANN_VERSION"
 # -----------------------------------------------------
