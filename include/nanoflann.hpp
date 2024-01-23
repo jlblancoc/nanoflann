@@ -1300,6 +1300,10 @@ class KDTreeBaseClass
         ElementType max_spread = -1;
         cutfeat                = 0;
         ElementType min_elem = 0, max_elem = 0;
+
+        if (max_span == 0)
+            computeMinMax(obj, ind, count, cutfeat, min_elem, max_elem);
+                
         for (Dimension i = 0; i < dims; ++i)
         {
             ElementType span = bbox[i].high - bbox[i].low;
