@@ -1226,28 +1226,13 @@ class KDTreeBaseClass
 
             node->node_type.sub.divfeat = cutfeat;
 
-            std::future<NodePtr> left_future, right_future;
-
-            BoundingBox left_bbox(bbox);
-            left_bbox[cutfeat].high = cutval;
-            if (++thread_count < n_thread_build_)
-            {
-                left_future = std::async(
-                    std::launch::async, &KDTreeBaseClass::divideTreeConcurrent,
-                    this, std::ref(obj), left, left + idx, std::ref(left_bbox),
-                    std::ref(thread_count), std::ref(mutex));
-            }
-            else
-            {
-                --thread_count;
-                node->child1 = this->divideTreeConcurrent(
-                    obj, left, left + idx, left_bbox, thread_count, mutex);
-            }
+            std::future<NodePtr> right_future;
 
             BoundingBox right_bbox(bbox);
             right_bbox[cutfeat].low = cutval;
             if (++thread_count < n_thread_build_)
             {
+                // Concurrent right sub-tree
                 right_future = std::async(
                     std::launch::async, &KDTreeBaseClass::divideTreeConcurrent,
                     this, std::ref(obj), left + idx, right,
@@ -1257,19 +1242,23 @@ class KDTreeBaseClass
             else
             {
                 --thread_count;
-                node->child2 = this->divideTreeConcurrent(
-                    obj, left + idx, right, right_bbox, thread_count, mutex);
             }
 
-            if (left_future.valid())
-            {
-                node->child1 = left_future.get();
-                --thread_count;
-            }
+            BoundingBox left_bbox(bbox);
+            left_bbox[cutfeat].high = cutval;
+            node->child1 = this->divideTreeConcurrent(
+                obj, left, left + idx, left_bbox, thread_count, mutex);
+
             if (right_future.valid())
             {
+                // Block and wait for concurrent right sub-tree
                 node->child2 = right_future.get();
                 --thread_count;
+            }
+            else
+            {
+                node->child2 = this->divideTreeConcurrent(
+                    obj, left + idx, right, right_bbox, thread_count, mutex);
             }
 
             node->node_type.sub.divlow  = left_bbox[cutfeat].high;
