@@ -1246,8 +1246,8 @@ class KDTreeBaseClass
 
             BoundingBox left_bbox(bbox);
             left_bbox[cutfeat].high = cutval;
-            node->child1 = this->divideTreeConcurrent(
-                obj, left, left + idx, left_bbox, thread_count, mutex);
+            node->child1            = this->divideTreeConcurrent(
+                           obj, left, left + idx, left_bbox, thread_count, mutex);
 
             if (right_future.valid())
             {

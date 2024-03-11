@@ -197,6 +197,8 @@ This parameter is really ignored in `nanoflann`, but was kept for backward compa
 
 This parameter determines the maximum number of threads that can be called concurrently during the construction of the KD tree. The default value is 1. When the parameter is set to 0, `nanoflann` automatically determines the number of threads to use.
 
+See [this pull request](https://github.com/jlblancoc/nanoflann/pull/236) for some benchmarking showing that using the maximum number of threads is not always the most efficient approach. Do benchmarking on your data!
+
 -----
 
 ## 3. Performance
