@@ -1627,10 +1627,14 @@ class KDTreeSingleIndexAdaptor
         }
         else
         {
+#ifndef NANOFLANN_NO_THREADS
             std::atomic<unsigned int> thread_count(0u);
             std::mutex                mutex;
             Base::root_node_ = this->divideTreeConcurrent(
                 *this, 0, Base::size_, Base::root_bbox_, thread_count, mutex);
+#else /* NANOFLANN_NO_THREADS */
+            throw std::runtime_error("Multithreading is disabled");
+#endif /* NANOFLANN_NO_THREADS */
         }
     }
 
@@ -2090,10 +2094,14 @@ class KDTreeSingleIndexDynamicAdaptor_
         }
         else
         {
+#ifndef NANOFLANN_NO_THREADS
             std::atomic<unsigned int> thread_count(0u);
             std::mutex                mutex;
             Base::root_node_ = this->divideTreeConcurrent(
                 *this, 0, Base::size_, Base::root_bbox_, thread_count, mutex);
+#else /* NANOFLANN_NO_THREADS */
+            throw std::runtime_error("Multithreading is disabled");
+#endif /* NANOFLANN_NO_THREADS */
         }
     }
 
