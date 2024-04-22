@@ -158,6 +158,12 @@ You can download and install nanoflann using the [vcpkg](https://github.com/Micr
 
 The nanoflann port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
 
+
+### 1.9. Compile time definitions
+
+  * `NANOFLANN_FIRST_MATCH`: If defined and two points have the same distance, the one with the lowest-index will be returned first. Otherwise there is no particular order.
+  * `NANOFLANN_NO_THREADS`: If defined, multithreading capabilities will be disabled, so that the library can be used without linking with pthreads. If one tries to use multiple threads, an exception will be thrown.
+
 ------
 
 ## 2. Any help choosing the KD-tree parameters?
