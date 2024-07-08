@@ -30,7 +30,7 @@ See the release [CHANGELOG](CHANGELOG.md) for a list of project changes.
 * Easiest way: clone this GIT repository and take the `include/nanoflann.hpp` file for use where you need it.
 * Debian or Ubuntu ([21.04 or newer](https://packages.ubuntu.com/source/hirsute/nanoflann)) users can install it simply with:
   ```bash 
-  sudo apt install libnanoflann-dev
+  $ sudo apt install libnanoflann-dev
   ```
 * macOS users can install `nanoflann` with [Homebrew](https://brew.sh) with:
   ```shell
@@ -42,7 +42,7 @@ See the release [CHANGELOG](CHANGELOG.md) for a list of project changes.
   $ brew install nanoflann
   ```
   MacPorts users can use:
-  ```
+  ```shell
   $ sudo port install nanoflann
   ```
 * Linux users can also install it with [Linuxbrew](https://docs.brew.sh/Homebrew-on-Linux) with: `brew install homebrew/science/nanoflann`
@@ -50,10 +50,11 @@ See the release [CHANGELOG](CHANGELOG.md) for a list of project changes.
 
 Although nanoflann itself doesn't have to be compiled, you can build some examples and tests with:
 
-    sudo apt-get install build-essential cmake libgtest-dev libeigen3-dev
-    mkdir build && cd build && cmake ..
-    make && make test
-
+```shell
+$ sudo apt-get install build-essential cmake libgtest-dev libeigen3-dev
+$ mkdir build && cd build && cmake ..
+$ make && make test
+```
 
 ### 1.2. C++ API reference
 
@@ -136,7 +137,7 @@ the CMake standard method is also available:
   target (Visual Studio).
   * Then, add something like this to the CMake script of your project:
 
-```
+```cmake
 # Find nanoflannConfig.cmake:
 find_package(nanoflann)
 
@@ -148,13 +149,30 @@ target_link_libraries(my_project nanoflann::nanoflann)
 
 ### 1.8. Package Managers
 
+#### Using `conan`
+
+You can install pre-built binaries for `nanoflann` or build it from source using [Conan](https://conan.io/). Use the following command to install latest version:
+
+```sh
+$ conan install --requires="nanoflann/[*]" --build=missing
+```
+
+For detailed instructions on how to use Conan, please refer to the [Conan documentation](https://docs.conan.io/2/).
+
+The `nanoflann` Conan recipe is kept up to date by Conan maintainers and community contributors.
+If the version is out of date, please [create an issue or pull request](https://github.com/conan-io/conan-center-index) on the ConanCenterIndex repository.
+
+#### Using `vcpkg`
+
 You can download and install nanoflann using the [vcpkg](https://github.com/Microsoft/vcpkg) dependency manager:
 
-    git clone https://github.com/Microsoft/vcpkg.git
-    cd vcpkg
-    ./bootstrap-vcpkg.sh
-    ./vcpkg integrate install
-    ./vcpkg install nanoflann
+```sh
+$ git clone https://github.com/Microsoft/vcpkg.git
+$ cd vcpkg
+$ ./bootstrap-vcpkg.sh
+$ ./vcpkg integrate install
+$ ./vcpkg install nanoflann
+```
 
 The nanoflann port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
 
