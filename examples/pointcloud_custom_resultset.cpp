@@ -82,6 +82,13 @@ class MyCustomResultSet
     }
 
     DistanceType worstDist() const { return radius; }
+
+    void sort()
+    {
+        std::sort(
+            m_indices_dists.begin(), m_indices_dists.end(),
+            nanoflann::IndexDist_Sorter());
+    }
 };
 
 void kdtree_demo(const size_t N)

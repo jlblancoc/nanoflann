@@ -1,3 +1,8 @@
+# nanoflann 1.6.0: Released Jul 11, 2024
+ - BUG FIX: nanoflann::SearchParameters::sorted was ignored for RadiusResultSet.
+ - ResultSet classes now must implement a sort() method.
+ - Added type IndexType to nanoflann:KDTreeBaseClass
+
 # nanoflann 1.5.5: Released Mar 12, 2024
  - Potentially more efficient scheduling of multi-thread index building ([PR #236](https://github.com/jlblancoc/nanoflann/pull/236))
  - Bump minimum required cmake version to 3.5 ([PR #230](https://github.com/jlblancoc/nanoflann/pull/230/))

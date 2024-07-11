@@ -59,16 +59,14 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
     num_t query_pt[3] = {0.5, 0.5, 0.5};
 
     // construct a kd-tree index:
-    typedef KDTreeSingleIndexAdaptor<
+    using my_kd_tree_simple_t = KDTreeSingleIndexAdaptor<
         L2_Simple_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>,
         3 /* dim */
-        >
-        my_kd_tree_simple_t;
+        >;
 
-    typedef KDTreeSingleIndexAdaptor<
+    using my_kd_tree_t = KDTreeSingleIndexAdaptor<
         L2_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>, 3 /* dim */
-        >
-        my_kd_tree_t;
+        >;
 
     my_kd_tree_simple_t index1(
         3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
@@ -94,6 +92,38 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
     {
         EXPECT_EQ(ret_index1[i], ret_index[i]);
         EXPECT_DOUBLE_EQ(out_dist_sqr1[i], out_dist_sqr[i]);
+    }
+    // Ensure results are sorted:
+    num_t lastDist = -1;
+    for (size_t i = 0; i < out_dist_sqr.size(); i++)
+    {
+        const num_t newDist = out_dist_sqr[i];
+        EXPECT_GE(newDist, lastDist);
+        lastDist = newDist;
+    }
+
+    // Test "RadiusResultSet" too:
+    const num_t maxRadiusSqrSearch = 10.0 * 10.0;
+
+    std::vector<nanoflann::ResultItem<
+        typename my_kd_tree_simple_t::IndexType,
+        typename my_kd_tree_simple_t::DistanceType>>
+        radiusIdxs;
+
+    nanoflann::RadiusResultSet<num_t, typename my_kd_tree_simple_t::IndexType>
+        radiusResults(maxRadiusSqrSearch, radiusIdxs);
+    radiusResults.init();
+    nanoflann::SearchParameters searchParams;
+    searchParams.sorted = true;
+    index1.findNeighbors(radiusResults, &query_pt[0], searchParams);
+
+    // Ensure results are sorted:
+    lastDist = -1;
+    for (const auto& r : radiusIdxs)
+    {
+        const num_t newDist = r.second;
+        EXPECT_GE(newDist, lastDist);
+        lastDist = newDist;
     }
 }
 
@@ -725,7 +755,8 @@ TEST(kdtree, add_and_remove_points)
     my_kd_tree_simple_t index(
         3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
 
-    const auto query = [&index]() -> size_t {
+    const auto query = [&index]() -> size_t
+    {
         const double                    query_pt[3] = {0.5, 0.5, 0.5};
         const size_t                    num_results = 1;
         std::vector<size_t>             ret_index(num_results);
