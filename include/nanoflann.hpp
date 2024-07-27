@@ -2620,7 +2620,8 @@ struct KDTreeEigenMatrixAdaptor
     explicit KDTreeEigenMatrixAdaptor(
         const Dimension                                 dimensionality,
         const std::reference_wrapper<const MatrixType>& mat,
-        const int                                       leaf_max_size = 10)
+        const int                                       leaf_max_size = 10,
+        const unsigned int                              n_thread_build = 1)
         : m_data_matrix(mat)
     {
         const auto dims = row_major ? mat.get().cols() : mat.get().rows();
@@ -2634,7 +2635,9 @@ struct KDTreeEigenMatrixAdaptor
                 "argument");
         index_ = new index_t(
             dims, *this /* adaptor */,
-            nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size));
+            nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size,
+            nanoflann::KDTreeSingleIndexAdaptorFlags::None,
+            n_thread_build));
     }
 
    public:
