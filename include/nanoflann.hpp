@@ -994,10 +994,11 @@ struct array_or_vector<-1, T>
  * \tparam DIM Dimensionality of data points (e.g. 3 for 3D points)
  * \tparam IndexType Type of the arguments with which the data can be
  * accessed (e.g. float, double, int64_t, T*)
+ * \tparam LOOSETREE Set to true to create kd-tree which can store the values in intermediate nodes.
  */
 template <
     class Derived, typename Distance, class DatasetAdaptor, int32_t DIM = -1,
-    typename index_t = uint32_t>
+    typename index_t = uint32_t, bool LOOSETREE = false>
 class KDTreeBaseClass
 {
    public:
@@ -1028,21 +1029,16 @@ class KDTreeBaseClass
      * --------------------------*/
     struct Node
     {
-        /** Union used because a node can be either a LEAF node or a non-leaf
-         * node, so both data fields are never used simultaneously */
-        union
+        struct leaf
         {
-            struct leaf
-            {
-                Offset left, right;  //!< Indices of points in leaf node
-            } lr;
-            struct nonleaf
-            {
-                Dimension divfeat;  //!< Dimension used for subdivision.
-                /// The values used for subdivision.
-                DistanceType divlow, divhigh;
-            } sub;
-        } node_type;
+            Offset left, right;  //!< Indices of points in leaf node
+        } lr;
+        struct nonleaf
+        {
+            Dimension divfeat;  //!< Dimension used for subdivision.
+            /// The values used for subdivision.
+            DistanceType divlow, divhigh;
+        } sub;
 
         /** Child nodes (both=nullptr mean its a leaf node) */
         Node *child1 = nullptr, *child2 = nullptr;
@@ -1101,6 +1097,28 @@ class KDTreeBaseClass
         return obj.dataset_.kdtree_get_pt(element, component);
     }
 
+    /// Helper accessor to the dataset points limits:
+    void dataset_get_limits(
+        const Derived& obj, const IndexType* ix, Size count,
+        Dimension component, ElementType& limit_min,
+        ElementType& limit_max) const
+    {
+        if (count == 0)
+            limit_min = limit_max = 0;
+        else
+            obj.dataset_.kdtree_get_limits(
+                ix, count, component, limit_min, limit_max);
+    }
+
+    /// Helper for checking if input value is in range of a point (or if a point overlaps given value):
+    inline bool dataset_is_overlap(
+        const Derived& obj, IndexType idx, Dimension component, ElementType val) const
+    {
+        ElementType limit_min, limit_max;
+        obj.dataset_.kdtree_get_limits(&idx, 1, component, limit_min, limit_max);
+        return limit_min <= val && val <= limit_max;
+    }
+
     /**
      * Computes the inde memory usage
      * Returns: memory used by the index
@@ -1112,17 +1130,24 @@ class KDTreeBaseClass
                    sizeof(IndexType);  // pool memory and vind array memory
     }
 
-    void computeMinMax(
-        const Derived& obj, Offset ind, Size count, Dimension element,
-        ElementType& min_elem, ElementType& max_elem)
+    void computeBoundingBox(
+        const Derived& obj, const IndexType* ix, Size count, BoundingBox& bbox) const
     {
-        min_elem = dataset_get(obj, vAcc_[ind], element);
-        max_elem = min_elem;
-        for (Offset i = 1; i < count; ++i)
+        const auto dims = (DIM > 0 ? DIM : dim_);
+        for (Dimension i = 0; i < dims; ++i)
         {
-            ElementType val = dataset_get(obj, vAcc_[ind + i], element);
-            if (val < min_elem) min_elem = val;
-            if (val > max_elem) max_elem = val;
+            bbox[i].low = bbox[i].high = dataset_get(obj, ix[0], i);
+        }
+        for (Size k = 1; k < count; ++k)
+        {
+            for (Dimension i = 0; i < dims; ++i)
+            {
+                const auto val = dataset_get(obj, ix[k], i);
+                if (val < bbox[i].low)
+                    bbox[i].low = val;
+                if (val > bbox[i].high)
+                    bbox[i].high = val;
+            }
         }
     }
 
@@ -1134,7 +1159,7 @@ class KDTreeBaseClass
      * @param right index of the last vector
      */
     NodePtr divideTree(
-        Derived& obj, const Offset left, const Offset right, BoundingBox& bbox)
+        Derived& obj, const Offset left, Offset right, BoundingBox& bbox)
     {
         NodePtr node = obj.pool_.template allocate<Node>();  // allocate memory
         const auto dims = (DIM > 0 ? DIM : obj.dim_);
@@ -1143,8 +1168,8 @@ class KDTreeBaseClass
         if ((right - left) <= static_cast<Offset>(obj.leaf_max_size_))
         {
             node->child1 = node->child2 = nullptr; /* Mark as leaf node. */
-            node->node_type.lr.left     = left;
-            node->node_type.lr.right    = right;
+            node->lr.left     = left;
+            node->lr.right    = right;
 
             // compute bounding-box of leaf points
             for (Dimension i = 0; i < dims; ++i)
@@ -1167,9 +1192,14 @@ class KDTreeBaseClass
             Offset       idx;
             Dimension    cutfeat;
             DistanceType cutval;
-            middleSplit_(obj, left, right - left, idx, cutfeat, cutval, bbox);
+            const auto numOverlapped = middleSplit_(obj, left, right - left, idx, cutfeat, cutval, bbox);
+            right -= numOverlapped;
 
-            node->node_type.sub.divfeat = cutfeat;
+            // store overlapped items directly inside this node
+            node->lr.left  = right;
+            node->lr.right = right + numOverlapped;
+
+            node->sub.divfeat = cutfeat;
 
             BoundingBox left_bbox(bbox);
             left_bbox[cutfeat].high = cutval;
@@ -1179,13 +1209,26 @@ class KDTreeBaseClass
             right_bbox[cutfeat].low = cutval;
             node->child2 = this->divideTree(obj, left + idx, right, right_bbox);
 
-            node->node_type.sub.divlow  = left_bbox[cutfeat].high;
-            node->node_type.sub.divhigh = right_bbox[cutfeat].low;
+            node->sub.divlow  = left_bbox[cutfeat].high;
+            node->sub.divhigh = right_bbox[cutfeat].low;
 
             for (Dimension i = 0; i < dims; ++i)
             {
                 bbox[i].low  = std::min(left_bbox[i].low, right_bbox[i].low);
                 bbox[i].high = std::max(left_bbox[i].high, right_bbox[i].high);
+            }
+            if (numOverlapped > 0)
+            {
+                BoundingBox curr_bbox;
+                computeBoundingBox(obj, &vAcc_[right], numOverlapped, curr_bbox);
+
+                for (Dimension i = 0; i < dims; ++i)
+                {
+                    if (curr_bbox[i].low < bbox[i].low)
+                        bbox[i].low = curr_bbox[i].low;
+                    if (curr_bbox[i].high > bbox[i].high)
+                        bbox[i].high = curr_bbox[i].high;
+                }
             }
         }
 
@@ -1203,7 +1246,7 @@ class KDTreeBaseClass
      * @param mutex mutex for mempool allocation
      */
     NodePtr divideTreeConcurrent(
-        Derived& obj, const Offset left, const Offset right, BoundingBox& bbox,
+        Derived& obj, const Offset left, Offset right, BoundingBox& bbox,
         std::atomic<unsigned int>& thread_count, std::mutex& mutex)
     {
         std::unique_lock<std::mutex> lock(mutex);
@@ -1216,8 +1259,8 @@ class KDTreeBaseClass
         if ((right - left) <= static_cast<Offset>(obj.leaf_max_size_))
         {
             node->child1 = node->child2 = nullptr; /* Mark as leaf node. */
-            node->node_type.lr.left     = left;
-            node->node_type.lr.right    = right;
+            node->lr.left     = left;
+            node->lr.right    = right;
 
             // compute bounding-box of leaf points
             for (Dimension i = 0; i < dims; ++i)
@@ -1240,9 +1283,14 @@ class KDTreeBaseClass
             Offset       idx;
             Dimension    cutfeat;
             DistanceType cutval;
-            middleSplit_(obj, left, right - left, idx, cutfeat, cutval, bbox);
+            const auto numOverlapped = middleSplit_(obj, left, right - left, idx, cutfeat, cutval, bbox);
+            right -= numOverlapped;
 
-            node->node_type.sub.divfeat = cutfeat;
+            // store overlapped items directly inside this node
+            node->lr.left  = right;
+            node->lr.right = right + numOverlapped;
+
+            node->sub.divfeat = cutfeat;
 
             std::future<NodePtr> right_future;
 
@@ -1276,21 +1324,34 @@ class KDTreeBaseClass
                     obj, left + idx, right, right_bbox, thread_count, mutex);
             }
 
-            node->node_type.sub.divlow  = left_bbox[cutfeat].high;
-            node->node_type.sub.divhigh = right_bbox[cutfeat].low;
+            node->sub.divlow  = left_bbox[cutfeat].high;
+            node->sub.divhigh = right_bbox[cutfeat].low;
 
             for (Dimension i = 0; i < dims; ++i)
             {
                 bbox[i].low  = std::min(left_bbox[i].low, right_bbox[i].low);
                 bbox[i].high = std::max(left_bbox[i].high, right_bbox[i].high);
             }
+            if (numOverlapped > 0)
+            {
+                BoundingBox curr_bbox;
+                computeBoundingBox(obj, &vAcc_[right], numOverlapped, curr_bbox);
+
+                for (Dimension i = 0; i < dims; ++i)
+                {
+                    if (curr_bbox[i].low < bbox[i].low)
+                        bbox[i].low = curr_bbox[i].low;
+                    if (curr_bbox[i].high > bbox[i].high)
+                        bbox[i].high = curr_bbox[i].high;
+                }
+            }
         }
 
         return node;
     }
 
-    void middleSplit_(
-        const Derived& obj, const Offset ind, const Size count, Offset& index,
+    Size middleSplit_(
+        const Derived& obj, const Offset ind, Size count, Offset& index,
         Dimension& cutfeat, DistanceType& cutval, const BoundingBox& bbox)
     {
         const auto  dims     = (DIM > 0 ? DIM : obj.dim_);
@@ -1310,7 +1371,7 @@ class KDTreeBaseClass
             if (span > (1 - EPS) * max_span)
             {
                 ElementType min_elem_, max_elem_;
-                computeMinMax(obj, ind, count, i, min_elem_, max_elem_);
+                dataset_get_limits(obj, &vAcc_[ind], count, i, min_elem_, max_elem_);
                 ElementType spread = max_elem_ - min_elem_;
                 if (spread > max_spread)
                 {
@@ -1332,7 +1393,8 @@ class KDTreeBaseClass
             cutval = split_val;
 
         Offset lim1, lim2;
-        planeSplit(obj, ind, count, cutfeat, cutval, lim1, lim2);
+        const auto numOverlapped = planeSplit(obj, ind, count, cutfeat, cutval, lim1, lim2);
+        count -= numOverlapped;
 
         if (lim1 > count / 2)
             index = lim1;
@@ -1340,6 +1402,8 @@ class KDTreeBaseClass
             index = lim2;
         else
             index = count / 2;
+
+        return numOverlapped;
     }
 
     /**
@@ -1351,14 +1415,37 @@ class KDTreeBaseClass
      *  dataset[ind[lim1..lim2-1]][cutfeat]==cutval
      *  dataset[ind[lim2..count]][cutfeat]>cutval
      */
-    void planeSplit(
-        const Derived& obj, const Offset ind, const Size count,
+    Size planeSplit(
+        const Derived& obj, const Offset ind, Size count,
         const Dimension cutfeat, const DistanceType& cutval, Offset& lim1,
         Offset& lim2)
     {
-        /* Move vector indices for left subtree to front of list. */
+        Size numOverlapped = 0;
         Offset left  = 0;
         Offset right = count - 1;
+        if (LOOSETREE)
+        {
+            /* Put all overlapping distances to the end of array */
+            for (;;)
+            {
+                while (left <= right &&
+                       !dataset_is_overlap(obj, vAcc_[ind + left], cutfeat, cutval))
+                    ++left;
+                while (left <= right &&
+                       dataset_is_overlap(obj, vAcc_[ind + right], cutfeat, cutval))
+                    --right;
+                if (left > right) break;
+                std::swap(vAcc_[ind + left], vAcc_[ind + right]);
+                ++left;
+                --right;
+            }
+            numOverlapped = count - right - 1;
+            count         = right + 1;  // skip all overlapped values
+        }
+
+        /* Move vector indices for left subtree to front of list. */
+        left  = 0;
+        right = count - 1;
         for (;;)
         {
             while (left <= right &&
@@ -1393,6 +1480,8 @@ class KDTreeBaseClass
             --right;
         }
         lim2 = left;
+
+        return numOverlapped;
     }
 
     DistanceType computeInitialDistances(
@@ -1482,9 +1571,11 @@ class KDTreeBaseClass
  *   // Must return the number of data poins
  *   size_t kdtree_get_point_count() const { ... }
  *
- *
  *   // Must return the dim'th component of the idx'th point in the class:
- *   T kdtree_get_pt(const size_t idx, const size_t dim) const { ... }
+ *   T kdtree_get_pt(const IndexType idx, const Dimension dim) const { ... }
+ *
+ *   // Get limits for list of points
+ *   void kdtree_get_limits(const IndexType* ix, size_t count, const Dimension dim, T& limit_min, T& limit_max) const { ... }
  *
  *   // Optional bounding-box computation: return false to default to a standard
  * bbox computation loop.
@@ -1504,23 +1595,23 @@ class KDTreeBaseClass
  * \tparam DatasetAdaptor The user-provided adaptor, which must be ensured to
  *         have a lifetime equal or longer than the instance of this class.
  * \tparam Distance The distance metric to use: nanoflann::metric_L1,
- * nanoflann::metric_L2, nanoflann::metric_L2_Simple, etc. \tparam DIM
- * Dimensionality of data points (e.g. 3 for 3D points) \tparam IndexType Will
- * be typically size_t or int
+ *         nanoflann::metric_L2, nanoflann::metric_L2_Simple, etc.
+ * \tparam DIM Dimensionality of data points (e.g. 3 for 3D points) \tparam IndexType Will
+ *         be typically size_t or int
  */
 template <
     typename Distance, class DatasetAdaptor, int32_t DIM = -1,
-    typename index_t = uint32_t>
+    typename index_t = uint32_t, bool LOOSETREE = false>
 class KDTreeSingleIndexAdaptor
     : public KDTreeBaseClass<
-          KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, index_t>,
-          Distance, DatasetAdaptor, DIM, index_t>
+          KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, index_t, LOOSETREE>,
+          Distance, DatasetAdaptor, DIM, index_t, LOOSETREE>
 {
    public:
     /** Deleted copy constructor*/
     explicit KDTreeSingleIndexAdaptor(
         const KDTreeSingleIndexAdaptor<
-            Distance, DatasetAdaptor, DIM, index_t>&) = delete;
+            Distance, DatasetAdaptor, DIM, index_t, LOOSETREE>&) = delete;
 
     /** The data source used by this index */
     const DatasetAdaptor& dataset_;
@@ -1531,8 +1622,8 @@ class KDTreeSingleIndexAdaptor
 
     using Base = typename nanoflann::KDTreeBaseClass<
         nanoflann::KDTreeSingleIndexAdaptor<
-            Distance, DatasetAdaptor, DIM, index_t>,
-        Distance, DatasetAdaptor, DIM, index_t>;
+            Distance, DatasetAdaptor, DIM, index_t, LOOSETREE>,
+        Distance, DatasetAdaptor, DIM, index_t, LOOSETREE>;
 
     using Offset    = typename Base::Offset;
     using Size      = typename Base::Size;
@@ -1807,7 +1898,7 @@ class KDTreeSingleIndexAdaptor
         // Create a permutable array of indices to the input vectors.
         Base::size_ = dataset_.kdtree_get_point_count();
         if (Base::vAcc_.size() != Base::size_) Base::vAcc_.resize(Base::size_);
-        for (Size i = 0; i < Base::size_; i++) Base::vAcc_[i] = i;
+        for (Size i = 0; i < Base::size_; i++) Base::vAcc_[i] = IndexType(i);
     }
 
     void computeBoundingBox(BoundingBox& bbox)
@@ -1855,34 +1946,34 @@ class KDTreeSingleIndexAdaptor
         DistanceType mindist, distance_vector_t& dists,
         const float epsError) const
     {
-        /* If this is a leaf node, then do check and return. */
-        if ((node->child1 == nullptr) && (node->child2 == nullptr))
+        /* Check all items stored in this node */
+        DistanceType worst_dist = result_set.worstDist();
+        for (Offset i = node->lr.left;
+                i < node->lr.right; ++i)
         {
-            DistanceType worst_dist = result_set.worstDist();
-            for (Offset i = node->node_type.lr.left;
-                 i < node->node_type.lr.right; ++i)
+            const IndexType accessor = Base::vAcc_[i];  // reorder... : i;
+            DistanceType    dist     = distance_.evalMetric(
+                        vec, accessor, (DIM > 0 ? DIM : Base::dim_));
+            if (dist < worst_dist)
             {
-                const IndexType accessor = Base::vAcc_[i];  // reorder... : i;
-                DistanceType    dist     = distance_.evalMetric(
-                           vec, accessor, (DIM > 0 ? DIM : Base::dim_));
-                if (dist < worst_dist)
+                if (!result_set.addPoint(dist, Base::vAcc_[i]))
                 {
-                    if (!result_set.addPoint(dist, Base::vAcc_[i]))
-                    {
-                        // the resultset doesn't want to receive any more
-                        // points, we're done searching!
-                        return false;
-                    }
+                    // the resultset doesn't want to receive any more
+                    // points, we're done searching!
+                    return false;
                 }
             }
-            return true;
         }
 
+        /* If we reached a leaf, stop searching */
+        if (node->child1 == nullptr && node->child2 == nullptr)
+            return true;
+
         /* Which child branch should be taken first? */
-        Dimension    idx   = node->node_type.sub.divfeat;
+        Dimension    idx   = node->sub.divfeat;
         ElementType  val   = vec[idx];
-        DistanceType diff1 = val - node->node_type.sub.divlow;
-        DistanceType diff2 = val - node->node_type.sub.divhigh;
+        DistanceType diff1 = val - node->sub.divlow;
+        DistanceType diff2 = val - node->sub.divhigh;
 
         NodePtr      bestChild;
         NodePtr      otherChild;
@@ -1892,14 +1983,14 @@ class KDTreeSingleIndexAdaptor
             bestChild  = node->child1;
             otherChild = node->child2;
             cut_dist =
-                distance_.accum_dist(val, node->node_type.sub.divhigh, idx);
+                distance_.accum_dist(val, node->sub.divhigh, idx);
         }
         else
         {
             bestChild  = node->child2;
             otherChild = node->child1;
             cut_dist =
-                distance_.accum_dist(val, node->node_type.sub.divlow, idx);
+                distance_.accum_dist(val, node->sub.divlow, idx);
         }
 
         /* Call recursively to search next level down. */
@@ -2282,38 +2373,38 @@ class KDTreeSingleIndexDynamicAdaptor_
         DistanceType mindist, distance_vector_t& dists,
         const float epsError) const
     {
-        /* If this is a leaf node, then do check and return. */
-        if ((node->child1 == nullptr) && (node->child2 == nullptr))
+        /* Check all items stored in this node */
+        DistanceType worst_dist = result_set.worstDist();
+        for (Offset i = node->lr.left;
+             i < node->lr.right; ++i)
         {
-            DistanceType worst_dist = result_set.worstDist();
-            for (Offset i = node->node_type.lr.left;
-                 i < node->node_type.lr.right; ++i)
+            const IndexType index = Base::vAcc_[i];  // reorder... : i;
+            if (treeIndex_[index] == -1) continue;
+            DistanceType dist = distance_.evalMetric(
+                vec, index, (DIM > 0 ? DIM : Base::dim_));
+            if (dist < worst_dist)
             {
-                const IndexType index = Base::vAcc_[i];  // reorder... : i;
-                if (treeIndex_[index] == -1) continue;
-                DistanceType dist = distance_.evalMetric(
-                    vec, index, (DIM > 0 ? DIM : Base::dim_));
-                if (dist < worst_dist)
+                if (!result_set.addPoint(
+                        static_cast<typename RESULTSET::DistanceType>(dist),
+                        static_cast<typename RESULTSET::IndexType>(
+                            Base::vAcc_[i])))
                 {
-                    if (!result_set.addPoint(
-                            static_cast<typename RESULTSET::DistanceType>(dist),
-                            static_cast<typename RESULTSET::IndexType>(
-                                Base::vAcc_[i])))
-                    {
-                        // the resultset doesn't want to receive any more
-                        // points, we're done searching!
-                        return;  // false;
-                    }
+                    // the resultset doesn't want to receive any more
+                    // points, we're done searching!
+                    return;  // false;
                 }
             }
-            return;
         }
 
+        /* If we reached a leaf, stop searching */
+        if (node->child1 == nullptr && node->child2 == nullptr)
+            return;
+
         /* Which child branch should be taken first? */
-        Dimension    idx   = node->node_type.sub.divfeat;
+        Dimension    idx   = node->sub.divfeat;
         ElementType  val   = vec[idx];
-        DistanceType diff1 = val - node->node_type.sub.divlow;
-        DistanceType diff2 = val - node->node_type.sub.divhigh;
+        DistanceType diff1 = val - node->sub.divlow;
+        DistanceType diff2 = val - node->sub.divhigh;
 
         NodePtr      bestChild;
         NodePtr      otherChild;
@@ -2323,14 +2414,14 @@ class KDTreeSingleIndexDynamicAdaptor_
             bestChild  = node->child1;
             otherChild = node->child2;
             cut_dist =
-                distance_.accum_dist(val, node->node_type.sub.divhigh, idx);
+                distance_.accum_dist(val, node->sub.divhigh, idx);
         }
         else
         {
             bestChild  = node->child2;
             otherChild = node->child1;
             cut_dist =
-                distance_.accum_dist(val, node->node_type.sub.divlow, idx);
+                distance_.accum_dist(val, node->sub.divlow, idx);
         }
 
         /* Call recursively to search next level down. */

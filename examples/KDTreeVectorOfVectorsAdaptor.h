@@ -118,6 +118,20 @@ struct KDTreeVectorOfVectorsAdaptor
         return m_data[idx][dim];
     }
 
+    // Get limits for list of points
+    inline void kdtree_get_limits(
+        const IndexType* ix, size_t count, const size_t dim, num_t& limit_min,
+        num_t& limit_max) const
+    {
+        limit_min = limit_max = kdtree_get_pt(ix[0], dim);
+        for (size_t k = 1; k < count; ++k)
+        {
+            const num_t value = kdtree_get_pt(ix[k], dim);
+            if (value < limit_min) limit_min = value;
+            if (value > limit_max) limit_max = value;
+        }
+    }
+
     // Optional bounding-box computation: return false to default to a standard
     // bbox computation loop.
     // Return true if the BBOX was already computed by the class and returned

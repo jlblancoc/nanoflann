@@ -48,7 +48,7 @@ int main(int argc, char** argv)
     return RUN_ALL_TESTS();
 }
 
-template <typename num_t>
+template <typename num_t, bool LOOSETREE>
 void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
 {
     PointCloud<num_t> cloud;
@@ -61,11 +61,13 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
     // construct a kd-tree index:
     using my_kd_tree_simple_t = KDTreeSingleIndexAdaptor<
         L2_Simple_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>,
-        3 /* dim */
+        3 /* dim */,
+        uint32_t /* index type*/,
+        LOOSETREE
         >;
 
     using my_kd_tree_t = KDTreeSingleIndexAdaptor<
-        L2_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>, 3 /* dim */
+        L2_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>, 3 /* dim */, uint32_t /* index type */, LOOSETREE
         >;
 
     my_kd_tree_simple_t index1(
@@ -596,8 +598,11 @@ TEST(kdtree, L2_vs_L2_simple)
 {
     for (int nResults = 1; nResults < 10; nResults++)
     {
-        L2_vs_L2_simple_test<float>(100, nResults);
-        L2_vs_L2_simple_test<double>(100, nResults);
+        L2_vs_L2_simple_test<float, false>(100, nResults);
+        L2_vs_L2_simple_test<double, false>(100, nResults);
+
+        L2_vs_L2_simple_test<float, true>(100, nResults);
+        L2_vs_L2_simple_test<double, true>(100, nResults);
     }
 }
 

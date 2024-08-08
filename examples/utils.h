@@ -59,6 +59,19 @@ struct PointCloud
             return pts[idx].z;
     }
 
+    // Get limits for list of points
+    inline void kdtree_get_limits(
+        const uint32_t* ix, size_t count, const size_t dim, T& limit_min, T& limit_max) const
+    {
+        limit_min = limit_max = kdtree_get_pt(ix[0], dim);
+        for (size_t k = 1; k < count; ++k)
+        {
+            const T value = kdtree_get_pt(ix[k], dim);
+            if (value < limit_min) limit_min = value;
+            if (value > limit_max) limit_max = value;
+        }
+    }
+
     // Optional bounding-box computation: return false to default to a standard
     // bbox computation loop.
     //   Return true if the BBOX was already computed by the class and returned
@@ -123,6 +136,20 @@ struct PointCloud_Quat
             return pts[idx].z;
     }
 
+    // Get limits for list of points
+    inline void kdtree_get_limits(
+        const uint32_t* ix, size_t count, const size_t dim, T& limit_min,
+        T& limit_max) const
+    {
+        limit_min = limit_max = kdtree_get_pt(ix[0], dim);
+        for (size_t k = 1; k < count; ++k)
+        {
+            const T value = kdtree_get_pt(ix[k], dim);
+            if (value < limit_min) limit_min = value;
+            if (value > limit_max) limit_max = value;
+        }
+    }
+
     // Optional bounding-box computation: return false to default to a standard
     // bbox computation loop.
     //   Return true if the BBOX was already computed by the class and returned
@@ -183,6 +210,20 @@ struct PointCloud_Orient
     inline T kdtree_get_pt(const size_t idx, const size_t dim = 0) const
     {
         return pts[idx].theta;
+    }
+
+    // Get limits for list of points
+    inline void kdtree_get_limits(
+        const uint32_t* ix, size_t count, const size_t dim, T& limit_min,
+        T& limit_max) const
+    {
+        limit_min = limit_max = kdtree_get_pt(ix[0], dim);
+        for (size_t k = 1; k < count; ++k)
+        {
+            const T value = kdtree_get_pt(ix[k], dim);
+            if (value < limit_min) limit_min = value;
+            if (value > limit_max) limit_max = value;
+        }
     }
 
     // Optional bounding-box computation: return false to default to a standard
