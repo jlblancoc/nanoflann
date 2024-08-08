@@ -33,7 +33,7 @@ endif()
 
 # Test project:
 ADD_EXECUTABLE(unit_tests test_main.cpp)
-set_target_properties(unit_tests PROPERTIES FOLDER "./")
+#set_target_properties(unit_tests PROPERTIES FOLDER "./")
 ADD_TEST(unit_tests_build "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target unit_tests)
 ADD_TEST(unit_tests_run ${EXECUTABLE_OUTPUT_PATH}/unit_tests)
 set_tests_properties(unit_tests_run PROPERTIES DEPENDS unit_tests_build)
