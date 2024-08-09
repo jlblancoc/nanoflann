@@ -150,14 +150,15 @@ void generateGridPointCloud(
     PointCloud<T>& point, const size_t X, const size_t Y, const size_t Z,
     const T cell_size = 1)
 {
-    point.pts.resize(X * Y * Z);
+    const auto offset = point.pts.size();
+    point.pts.resize(offset + X * Y * Z);
     for (size_t z = 0; z < Z; ++z)
     {
         for (size_t y = 0; y < Y; ++y)
         {
             for (size_t x = 0; x < X; ++x)
             {
-                const size_t ix = x + y * X + z * X * Y;
+                const size_t ix = offset + x + y * X + z * X * Y;
                 point.pts[ix].x = x * cell_size;
                 point.pts[ix].y = y * cell_size;
                 point.pts[ix].z = z * cell_size;

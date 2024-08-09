@@ -2121,12 +2121,12 @@ class KDTreeSingleIndexAdaptor
  */
 template <
     typename Distance, class DatasetAdaptor, int32_t DIM = -1,
-    typename IndexType = uint32_t>
+    typename IndexType = uint32_t, bool LOOSETREE = false>
 class KDTreeSingleIndexDynamicAdaptor_
     : public KDTreeBaseClass<
           KDTreeSingleIndexDynamicAdaptor_<
-              Distance, DatasetAdaptor, DIM, IndexType>,
-          Distance, DatasetAdaptor, DIM, IndexType>
+              Distance, DatasetAdaptor, DIM, IndexType, LOOSETREE>,
+          Distance, DatasetAdaptor, DIM, IndexType, LOOSETREE>
 {
    public:
     /**
@@ -2142,8 +2142,8 @@ class KDTreeSingleIndexDynamicAdaptor_
 
     using Base = typename nanoflann::KDTreeBaseClass<
         nanoflann::KDTreeSingleIndexDynamicAdaptor_<
-            Distance, DatasetAdaptor, DIM, IndexType>,
-        Distance, DatasetAdaptor, DIM, IndexType>;
+            Distance, DatasetAdaptor, DIM, IndexType, LOOSETREE>,
+        Distance, DatasetAdaptor, DIM, IndexType, LOOSETREE>;
 
     using ElementType  = typename Base::ElementType;
     using DistanceType = typename Base::DistanceType;
@@ -2481,7 +2481,7 @@ class KDTreeSingleIndexDynamicAdaptor_
  */
 template <
     typename Distance, class DatasetAdaptor, int32_t DIM = -1,
-    typename IndexType = uint32_t>
+    typename IndexType = uint32_t, bool LOOSETREE = false>
 class KDTreeSingleIndexDynamicAdaptor
 {
    public:
@@ -2490,11 +2490,11 @@ class KDTreeSingleIndexDynamicAdaptor
     using PointType    = typename DatasetAdaptor::PointType;
 
     using Offset = typename KDTreeSingleIndexDynamicAdaptor_<
-        Distance, DatasetAdaptor, DIM>::Offset;
+        Distance, DatasetAdaptor, DIM, IndexType, LOOSETREE>::Offset;
     using Size = typename KDTreeSingleIndexDynamicAdaptor_<
-        Distance, DatasetAdaptor, DIM>::Size;
+        Distance, DatasetAdaptor, DIM, IndexType, LOOSETREE>::Size;
     using Dimension = typename KDTreeSingleIndexDynamicAdaptor_<
-        Distance, DatasetAdaptor, DIM>::Dimension;
+        Distance, DatasetAdaptor, DIM, IndexType, LOOSETREE>::Dimension;
 
    protected:
     Size leaf_max_size_;
@@ -2516,7 +2516,7 @@ class KDTreeSingleIndexDynamicAdaptor
     Dimension dim_;  //!< Dimensionality of each data point
 
     using index_container_t = KDTreeSingleIndexDynamicAdaptor_<
-        Distance, DatasetAdaptor, DIM, IndexType>;
+        Distance, DatasetAdaptor, DIM, IndexType, LOOSETREE>;
     std::vector<index_container_t> index_;
 
    public:
@@ -2544,7 +2544,7 @@ class KDTreeSingleIndexDynamicAdaptor
     void init()
     {
         using my_kd_tree_t = KDTreeSingleIndexDynamicAdaptor_<
-            Distance, DatasetAdaptor, DIM, IndexType>;
+            Distance, DatasetAdaptor, DIM, IndexType, LOOSETREE>;
         std::vector<my_kd_tree_t> index(
             treeCount_,
             my_kd_tree_t(dim_ /*dim*/, dataset_, treeIndex_, index_params_));
@@ -2590,7 +2590,7 @@ class KDTreeSingleIndexDynamicAdaptor
     /** Deleted copy constructor*/
     explicit KDTreeSingleIndexDynamicAdaptor(
         const KDTreeSingleIndexDynamicAdaptor<
-            Distance, DatasetAdaptor, DIM, IndexType>&) = delete;
+            Distance, DatasetAdaptor, DIM, IndexType, LOOSETREE>&) = delete;
 
     /** Add points to the set, Inserts all points from [start, end] */
     void addPoints(IndexType start, IndexType end)
@@ -2642,6 +2642,49 @@ class KDTreeSingleIndexDynamicAdaptor
     }
 
     /**
+     * Find all the neighbors to \a query_point[0:dim-1] within a maximum
+     * radius. The output is given as a vector of pairs, of which the first
+     * element is a point index and the second the corresponding distance.
+     * Previous contents of \a IndicesDists are cleared.
+     *
+     *  If searchParams.sorted==true, the output list is sorted by ascending
+     * distances.
+     *
+     *  For a better performance, it is advisable to do a .reserve() on the
+     * vector if you have any wild guess about the number of expected matches.
+     *
+     *  \sa knnSearch, findNeighbors, radiusSearchCustomCallback
+     * \return The number of points within the given radius (i.e. indices.size()
+     * or dists.size() )
+     *
+     * \note If L2 norms are used, search radius and all returned distances
+     *       are actually squared distances.
+     */
+    Size radiusSearch(
+        const PointType& query_point, const DistanceType& radius,
+        std::vector<ResultItem<IndexType, DistanceType>>& IndicesDists,
+        const SearchParameters& searchParams = {}) const
+    {
+        RadiusResultSet<DistanceType, IndexType> resultSet(radius, IndicesDists);
+        const Size nFound = radiusSearchCustomCallback(query_point, resultSet, searchParams);
+        return nFound;
+    }
+
+    /**
+     * Just like radiusSearch() but with a custom callback class for each point
+     * found in the radius of the query. See the source of RadiusResultSet<> as
+     * a start point for your own classes. \sa radiusSearch
+     */
+    template <class SEARCH_CALLBACK>
+    Size radiusSearchCustomCallback(
+        const PointType& query_point, SEARCH_CALLBACK& resultSet,
+        const SearchParameters& searchParams = {}) const
+    {
+        findNeighbors(resultSet, query_point, searchParams);
+        return resultSet.size();
+    }
+
+    /**
      * Find set of nearest neighbors to vec[0:dim-1]. Their indices are stored
      * inside the result object.
      *
@@ -2662,10 +2705,14 @@ class KDTreeSingleIndexDynamicAdaptor
         RESULTSET& result, const PointType& pt,
         const SearchParameters& searchParams = {}) const
     {
+        const SearchParameters dontSort{searchParams.eps, false};
         for (size_t i = 0; i < treeCount_; i++)
         {
-            index_[i].findNeighbors(result, pt, searchParams);
+            index_[i].findNeighbors(result, pt, dontSort);
         }
+        if (searchParams.sorted)
+            result.sort();
+
         return result.full();
     }
 };

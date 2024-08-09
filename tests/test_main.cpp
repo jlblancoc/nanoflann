@@ -638,6 +638,56 @@ void radius_search_test()
 }
 
 template <typename num_t, bool LOOSETREE>
+void radius_search_dynamic_test()
+{
+    PointCloud<num_t> cloud;
+    generateGridPointCloud(cloud, 3, 4, 5);
+
+    const PointCloud<num_t>::Point query_pt{
+        num_t(1.22), num_t(2.12), num_t(3.47)};
+
+    // construct a kd-tree index:
+    typedef KDTreeSingleIndexDynamicAdaptor<
+        L2_Simple_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>,
+        3 /* dim */, uint32_t, LOOSETREE>
+        my_kd_tree_simple_t;
+
+    // the constructor also adds the points currently stored in cloud
+    my_kd_tree_simple_t index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */), 1000 /* maximum points count */);
+
+    // add some more points
+    const size_t numPoints = cloud.pts.size();
+    generateGridPointCloud(cloud, 3, 4, 5);
+    for (size_t k = numPoints; k < cloud.pts.size(); ++k)
+        cloud.pts[k].x += num_t(0.5);
+    index.addPoints(numPoints, cloud.pts.size() - 1);
+
+    // do a radius search
+    const num_t radius = num_t(1.88);
+    std::vector<ResultItem<uint32_t, num_t>> matches;
+    matches.reserve(30);
+    const auto num_results = index.radiusSearch(query_pt, radius, matches);
+    ASSERT_EQ(num_results, matches.size());
+
+    // execute linear search through the points
+    std::vector<std::pair<uint32_t, num_t>> checkMatches;
+    checkMatches.reserve(30);
+    for (size_t i = 0; i < cloud.kdtree_get_point_count(); ++i)
+    {
+        const auto dist = cloud.kdtree_get_pt(i).get_distance_to(query_pt);
+        if (dist < radius) checkMatches.emplace_back(i, dist);
+    }
+    ASSERT_EQ(num_results, checkMatches.size());
+    std::sort(checkMatches.begin(), checkMatches.end(), IndexDist_Sorter());
+
+    for (size_t i = 0; i < num_results; i++)
+    {
+        EXPECT_EQ(matches[i].first, checkMatches[i].first);
+        EXPECT_EQ(matches[i].second, checkMatches[i].second);
+    }
+}
+
+template <typename num_t, bool LOOSETREE>
 void box_search_test()
 {
     PointCloud<num_t> cloud;
@@ -920,6 +970,12 @@ TEST(kdtree, RadiusSearch)
 
     radius_search_test<float, true>();
     radius_search_test<double, true>();
+
+    radius_search_dynamic_test<float, false>();
+    radius_search_dynamic_test<double, false>();
+
+    radius_search_dynamic_test<float, true>();
+    radius_search_dynamic_test<double, true>();
 }
 
 TEST(kdtree, BoxSearch)
