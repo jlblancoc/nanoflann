@@ -84,7 +84,7 @@ void kdtree_demo(const size_t nSamples, const size_t dim)
     nanoflann::KNNResultSet<double> resultSet(num_results);
 
     resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-    mat_index.index->findNeighbors(resultSet, &query_pt[0]);
+    mat_index.index->findNeighbors(resultSet, {query_pt});
 
     std::cout << "knnSearch(nn=" << num_results << "): \n";
     for (size_t i = 0; i < resultSet.size(); i++)

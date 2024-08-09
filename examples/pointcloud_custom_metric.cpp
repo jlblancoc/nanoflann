@@ -47,6 +47,7 @@ struct My_Custom_Metric_Adaptor
 {
     using ElementType  = T;
     using DistanceType = _DistanceType;
+    using PointType    = typename DataSource::PointType;
 
     const DataSource& data_source;
 
@@ -58,21 +59,21 @@ struct My_Custom_Metric_Adaptor
     }
 
     inline DistanceType evalMetric(
-        const T* a, const IndexType b_idx, size_t size) const
+        const PointType& pt, const IndexType b_idx, size_t size) const
     {
         DistanceType result = DistanceType();
         for (size_t i = 0; i < size; ++i)
         {
             const DistanceType diff =
-                a[i] - data_source.kdtree_get_pt(b_idx, i);
+                pt.get_component(i) - data_source.kdtree_get_pt(b_idx).get_component(i);
             result += std::pow(diff, _myParam);
         }
         return result;
     }
 
-    template <typename U, typename V>
-    inline DistanceType accum_dist(const U a, const V b, const size_t) const
+    inline DistanceType accum_dist(const PointType& pt, const size_t dim, const ElementType b) const
     {
+        const auto a = pt.get_component(dim);
         return std::pow((a - b), _myParam);
     }
 };
@@ -86,7 +87,7 @@ static void kdtree_custom_metric_demo(const size_t N)
     // Generate points:
     generateRandomPointCloud(cloud, N);
 
-    num_t query_pt[3] = {0.5, 0.5, 0.5};
+    const PointCloud<num_t>::Point query_pt{0.5, 0.5, 0.5};
 
     // construct a kd-tree index:
     using my_kd_tree_t = KDTreeSingleIndexAdaptor<
@@ -109,7 +110,7 @@ static void kdtree_custom_metric_demo(const size_t N)
         num_t                          out_dist_sqr;
         nanoflann::KNNResultSet<num_t> resultSet(num_results);
         resultSet.init(&ret_index, &out_dist_sqr);
-        index.findNeighbors(resultSet, &query_pt[0]);
+        index.findNeighbors(resultSet, query_pt);
 
         std::cout << "knnSearch(nn=" << num_results << "\n";
         std::cout << "ret_index=" << ret_index

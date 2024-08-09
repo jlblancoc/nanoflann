@@ -490,48 +490,45 @@ struct L1_Adaptor
 {
     using ElementType  = T;
     using DistanceType = _DistanceType;
+    using PointType = typename DataSource::PointType;
 
     const DataSource& data_source;
 
     L1_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
     DistanceType evalMetric(
-        const T* a, const IndexType b_idx, size_t size,
+        const PointType& pt, const IndexType b_idx, size_t size,
         DistanceType worst_dist = -1) const
     {
         DistanceType result    = DistanceType();
-        const T*     last      = a + size;
-        const T*     lastgroup = last - 3;
-        size_t       d         = 0;
 
         /* Process 4 items with each loop for efficiency. */
-        while (a < lastgroup)
+        const PointType& dst = data_source.kdtree_get_pt(b_idx);
+        size_t dim = 0;
+        for (; dim + 3 < static_cast<int>(size); dim += 4)
         {
             const DistanceType diff0 =
-                std::abs(a[0] - data_source.kdtree_get_pt(b_idx, d++));
+                std::abs(pt.get_component(dim) - dst.get_component(dim));
             const DistanceType diff1 =
-                std::abs(a[1] - data_source.kdtree_get_pt(b_idx, d++));
+                std::abs(pt.get_component(dim + 1) - dst.get_component(dim + 1));
             const DistanceType diff2 =
-                std::abs(a[2] - data_source.kdtree_get_pt(b_idx, d++));
+                std::abs(pt.get_component(dim + 2) - dst.get_component(dim + 2));
             const DistanceType diff3 =
-                std::abs(a[3] - data_source.kdtree_get_pt(b_idx, d++));
+                std::abs(pt.get_component(dim + 3) - dst.get_component(dim + 3));
             result += diff0 + diff1 + diff2 + diff3;
-            a += 4;
             if ((worst_dist > 0) && (result > worst_dist)) { return result; }
         }
-        /* Process last 0-3 components.  Not needed for standard vector lengths.
-         */
-        while (a < last)
+        /* Process last 0-3 components.  Not needed for standard vector lengths. */
+        for (; dim < size; ++dim)
         {
-            result += std::abs(*a++ - data_source.kdtree_get_pt(b_idx, d++));
+            result += std::abs(pt.get_component(dim) - dst.get_component(dim));
         }
         return result;
     }
 
-    template <typename U, typename V>
-    DistanceType accum_dist(const U a, const V b, const size_t) const
+    DistanceType accum_dist(const PointType& pt, size_t dim, ElementType b) const
     {
-        return std::abs(a - b);
+        return std::abs(pt.get_signed_distance(dim, b));
     }
 };
 
@@ -552,51 +549,49 @@ struct L2_Adaptor
 {
     using ElementType  = T;
     using DistanceType = _DistanceType;
+    using PointType    = typename DataSource::PointType;
 
     const DataSource& data_source;
 
     L2_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
     DistanceType evalMetric(
-        const T* a, const IndexType b_idx, size_t size,
+        const PointType& pt, const IndexType b_idx, size_t size,
         DistanceType worst_dist = -1) const
     {
         DistanceType result    = DistanceType();
-        const T*     last      = a + size;
-        const T*     lastgroup = last - 3;
-        size_t       d         = 0;
 
         /* Process 4 items with each loop for efficiency. */
-        while (a < lastgroup)
+        const PointType& dst = data_source.kdtree_get_pt(b_idx);
+        size_t dim = 0;
+        for (; dim + 3 < size; dim += 4)
         {
             const DistanceType diff0 =
-                a[0] - data_source.kdtree_get_pt(b_idx, d++);
+                pt.get_component(dim) - dst.get_component(dim);
             const DistanceType diff1 =
-                a[1] - data_source.kdtree_get_pt(b_idx, d++);
+                pt.get_component(dim + 1) - dst.get_component(dim + 1);
             const DistanceType diff2 =
-                a[2] - data_source.kdtree_get_pt(b_idx, d++);
+                pt.get_component(dim + 2) - dst.get_component(dim + 2);
             const DistanceType diff3 =
-                a[3] - data_source.kdtree_get_pt(b_idx, d++);
+                pt.get_component(dim + 3) - dst.get_component(dim + 3);
             result +=
                 diff0 * diff0 + diff1 * diff1 + diff2 * diff2 + diff3 * diff3;
-            a += 4;
             if ((worst_dist > 0) && (result > worst_dist)) { return result; }
         }
-        /* Process last 0-3 components.  Not needed for standard vector lengths.
-         */
-        while (a < last)
+        /* Process last 0-3 components.  Not needed for standard vector lengths. */
+        for (; dim < size; ++dim)
         {
             const DistanceType diff0 =
-                *a++ - data_source.kdtree_get_pt(b_idx, d++);
+                pt.get_component(dim) - dst.get_component(dim);
             result += diff0 * diff0;
         }
         return result;
     }
 
-    template <typename U, typename V>
-    DistanceType accum_dist(const U a, const V b, const size_t) const
+    DistanceType accum_dist(const PointType& pt, size_t dim, ElementType b) const
     {
-        return (a - b) * (a - b);
+        const auto dist = pt.get_signed_distance(dim, b);
+        return dist * dist;
     }
 };
 
@@ -617,6 +612,7 @@ struct L2_Simple_Adaptor
 {
     using ElementType  = T;
     using DistanceType = _DistanceType;
+    using PointType    = typename DataSource::PointType;
 
     const DataSource& data_source;
 
@@ -626,22 +622,15 @@ struct L2_Simple_Adaptor
     }
 
     DistanceType evalMetric(
-        const T* a, const IndexType b_idx, size_t size) const
+        const PointType& pt, const IndexType b_idx, size_t size) const
     {
-        DistanceType result = DistanceType();
-        for (size_t i = 0; i < size; ++i)
-        {
-            const DistanceType diff =
-                a[i] - data_source.kdtree_get_pt(b_idx, i);
-            result += diff * diff;
-        }
-        return result;
+        return data_source.kdtree_get_pt(b_idx).get_distance_to(pt);
     }
 
-    template <typename U, typename V>
-    DistanceType accum_dist(const U a, const V b, const size_t) const
+    DistanceType accum_dist(const PointType& pt, size_t dim, ElementType b) const
     {
-        return (a - b) * (a - b);
+        const auto dist = pt.get_signed_distance(dim, b);
+        return dist * dist;
     }
 };
 
@@ -662,23 +651,24 @@ struct SO2_Adaptor
 {
     using ElementType  = T;
     using DistanceType = _DistanceType;
+    using PointType    = typename DataSource::PointType;
 
     const DataSource& data_source;
 
     SO2_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
     DistanceType evalMetric(
-        const T* a, const IndexType b_idx, size_t size) const
+        const PointType& pt, const IndexType b_idx, size_t size) const
     {
         return accum_dist(
-            a[size - 1], data_source.kdtree_get_pt(b_idx, size - 1), size - 1);
+            pt, size - 1, data_source.kdtree_get_pt(b_idx).get_component(size - 1));
     }
 
     /** Note: this assumes that input angles are already in the range [-pi,pi]
      */
-    template <typename U, typename V>
-    DistanceType accum_dist(const U a, const V b, const size_t) const
+    DistanceType accum_dist(const PointType& pt, size_t dim, ElementType b) const
     {
+        const auto a = pt.get_component(dim);
         DistanceType result = DistanceType();
         DistanceType PI     = pi_const<DistanceType>();
         result              = b - a;
@@ -707,6 +697,7 @@ struct SO3_Adaptor
 {
     using ElementType  = T;
     using DistanceType = _DistanceType;
+    using PointType    = typename DataSource::PointType;
 
     L2_Simple_Adaptor<T, DataSource, DistanceType, IndexType>
         distance_L2_Simple;
@@ -717,15 +708,14 @@ struct SO3_Adaptor
     }
 
     DistanceType evalMetric(
-        const T* a, const IndexType b_idx, size_t size) const
+        const PointType& pt, const IndexType b_idx, size_t size) const
     {
-        return distance_L2_Simple.evalMetric(a, b_idx, size);
+        return distance_L2_Simple.evalMetric(pt, b_idx, size);
     }
 
-    template <typename U, typename V>
-    DistanceType accum_dist(const U a, const V b, const size_t idx) const
+    DistanceType accum_dist(const PointType& pt, size_t dim, ElementType b) const
     {
-        return distance_L2_Simple.accum_dist(a, b, idx);
+        return distance_L2_Simple.accum_dist(pt, dim, b);
     }
 };
 
@@ -1014,6 +1004,7 @@ class KDTreeBaseClass
     using ElementType  = typename Distance::ElementType;
     using DistanceType = typename Distance::DistanceType;
     using IndexType    = index_t;
+    using PointType    = typename DatasetAdaptor::PointType;
 
     /**
      *  Array of indices to vectors in the dataset_.
@@ -1094,7 +1085,7 @@ class KDTreeBaseClass
     ElementType dataset_get(
         const Derived& obj, IndexType element, Dimension component) const
     {
-        return obj.dataset_.kdtree_get_pt(element, component);
+        return obj.dataset_.kdtree_get_pt(element).get_component(component);
     }
 
     /// Helper accessor to the dataset points limits:
@@ -1134,6 +1125,8 @@ class KDTreeBaseClass
         const Derived& obj, const IndexType* ix, Size count, BoundingBox& bbox) const
     {
         const auto dims = (DIM > 0 ? DIM : dim_);
+        resize(bbox, dims);
+
         for (Dimension i = 0; i < dims; ++i)
         {
             bbox[i].low = bbox[i].high = dataset_get(obj, ix[0], i);
@@ -1485,24 +1478,23 @@ class KDTreeBaseClass
     }
 
     DistanceType computeInitialDistances(
-        const Derived& obj, const ElementType* vec,
+        const Derived& obj, const PointType& pt,
         distance_vector_t& dists) const
     {
-        assert(vec);
         DistanceType dist = DistanceType();
 
         for (Dimension i = 0; i < (DIM > 0 ? DIM : obj.dim_); ++i)
         {
-            if (vec[i] < obj.root_bbox_[i].low)
+            if (pt.get_signed_distance(i, obj.root_bbox_[i].low) < 0)
             {
                 dists[i] =
-                    obj.distance_.accum_dist(vec[i], obj.root_bbox_[i].low, i);
+                    obj.distance_.accum_dist(pt, i, obj.root_bbox_[i].low);
                 dist += dists[i];
             }
-            if (vec[i] > obj.root_bbox_[i].high)
+            if (pt.get_signed_distance(i, obj.root_bbox_[i].high) > 0)
             {
                 dists[i] =
-                    obj.distance_.accum_dist(vec[i], obj.root_bbox_[i].high, i);
+                    obj.distance_.accum_dist(pt, i, obj.root_bbox_[i].high);
                 dist += dists[i];
             }
         }
@@ -1568,27 +1560,28 @@ class KDTreeBaseClass
  * non-virtual, inlined methods):
  *
  *  \code
+ *   Must defines type PointType with following interface (can be non-virtual, inlined methods):
+ *      // Must return the Euclidean (L2) distance between the this point and input point:
+ *      // note: it is necessary to define it only when using knnSearch or radiusSearch with L2_Simple_Adaptor
+ *      T get_distance_to(const PointType& other) const { ... }
+ *
+ *      // Must return the dim'th component this point:
+ *      T get_component(const Dimension dim) const { ... }
+ *
+ *      // Must return signed distance between dim'th component of this point and input value
+ *      // if the point it to the left of the val, returned value must be negative, otherwise positive
+ *      // note: default implementation can look like:
+ *      //       return get_component(dim) - val;
+ *      T get_signed_distance(const Dimension dim, const T val) const { ... }
+ *
  *   // Must return the number of data poins
  *   size_t kdtree_get_point_count() const { ... }
  *
  *   // Must return the dim'th component of the idx'th point in the class:
- *   T kdtree_get_pt(const IndexType idx, const Dimension dim) const { ... }
+ *   const PointType& kdtree_get_pt(const IndexType idx) const { ... }
  *
  *   // Get limits for list of points
  *   void kdtree_get_limits(const IndexType* ix, size_t count, const Dimension dim, T& limit_min, T& limit_max) const { ... }
- *
- *   // Optional bounding-box computation: return false to default to a standard
- * bbox computation loop.
- *   //   Return true if the BBOX was already computed by the class and returned
- * in "bb" so it can be avoided to redo it again.
- *   //   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3
- * for point clouds) template <class BBOX> bool kdtree_get_bbox(BBOX &bb) const
- *   {
- *      bb[0].low = ...; bb[0].high = ...;  // 0th dimension limits
- *      bb[1].low = ...; bb[1].high = ...;  // 1st dimension limits
- *      ...
- *      return true;
- *   }
  *
  *  \endcode
  *
@@ -1725,7 +1718,8 @@ class KDTreeSingleIndexAdaptor
         this->freeIndex(*this);
         Base::size_at_index_build_ = Base::size_;
         if (Base::size_ == 0) return;
-        computeBoundingBox(Base::root_bbox_);
+        computeBoundingBox(*this, vAcc_.data(), vAcc_.size(), Base::root_bbox_);
+
         // construct the tree
         if (Base::n_thread_build_ == 1)
         {
@@ -1766,10 +1760,9 @@ class KDTreeSingleIndexAdaptor
      */
     template <typename RESULTSET>
     bool findNeighbors(
-        RESULTSET& result, const ElementType* vec,
+        RESULTSET& result, const PointType& pt,
         const SearchParameters& searchParams = {}) const
     {
-        assert(vec);
         if (this->size(*this) == 0) return false;
         if (!Base::root_node_)
             throw std::runtime_error(
@@ -1782,8 +1775,8 @@ class KDTreeSingleIndexAdaptor
         // Fill it with zeros.
         auto zero = static_cast<decltype(result.worstDist())>(0);
         assign(dists, (DIM > 0 ? DIM : Base::dim_), zero);
-        DistanceType dist = this->computeInitialDistances(*this, vec, dists);
-        searchLevel(result, vec, Base::root_node_, dist, dists, epsError);
+        DistanceType dist = this->computeInitialDistances(*this, pt, dists);
+        searchLevel(result, pt, Base::root_node_, dist, dists, epsError);
 
         if (searchParams.sorted) result.sort();
 
@@ -1806,7 +1799,7 @@ class KDTreeSingleIndexAdaptor
      *       number of elements in the tree is less than `num_closest`.
      */
     Size knnSearch(
-        const ElementType* query_point, const Size num_closest,
+        const PointType& query_point, const Size num_closest,
         IndexType* out_indices, DistanceType* out_distances) const
     {
         nanoflann::KNNResultSet<DistanceType, IndexType> resultSet(num_closest);
@@ -1835,7 +1828,7 @@ class KDTreeSingleIndexAdaptor
      *       are actually squared distances.
      */
     Size radiusSearch(
-        const ElementType* query_point, const DistanceType& radius,
+        const PointType& query_point, const DistanceType& radius,
         std::vector<ResultItem<IndexType, DistanceType>>& IndicesDists,
         const SearchParameters& searchParams = {}) const
     {
@@ -1853,7 +1846,7 @@ class KDTreeSingleIndexAdaptor
      */
     template <class SEARCH_CALLBACK>
     Size radiusSearchCustomCallback(
-        const ElementType* query_point, SEARCH_CALLBACK& resultSet,
+        const PointType& query_point, SEARCH_CALLBACK& resultSet,
         const SearchParameters& searchParams = {}) const
     {
         findNeighbors(resultSet, query_point, searchParams);
@@ -1877,7 +1870,7 @@ class KDTreeSingleIndexAdaptor
      *       number of elements in the tree is less than `num_closest`.
      */
     Size rknnSearch(
-        const ElementType* query_point, const Size num_closest,
+        const PointType& query_point, const Size num_closest,
         IndexType* out_indices, DistanceType* out_distances,
         const DistanceType& radius) const
     {
@@ -1901,39 +1894,6 @@ class KDTreeSingleIndexAdaptor
         for (Size i = 0; i < Base::size_; i++) Base::vAcc_[i] = IndexType(i);
     }
 
-    void computeBoundingBox(BoundingBox& bbox)
-    {
-        const auto dims = (DIM > 0 ? DIM : Base::dim_);
-        resize(bbox, dims);
-        if (dataset_.kdtree_get_bbox(bbox))
-        {
-            // Done! It was implemented in derived class
-        }
-        else
-        {
-            const Size N = dataset_.kdtree_get_point_count();
-            if (!N)
-                throw std::runtime_error(
-                    "[nanoflann] computeBoundingBox() called but "
-                    "no data points found.");
-            for (Dimension i = 0; i < dims; ++i)
-            {
-                bbox[i].low = bbox[i].high =
-                    this->dataset_get(*this, Base::vAcc_[0], i);
-            }
-            for (Offset k = 1; k < N; ++k)
-            {
-                for (Dimension i = 0; i < dims; ++i)
-                {
-                    const auto val =
-                        this->dataset_get(*this, Base::vAcc_[k], i);
-                    if (val < bbox[i].low) bbox[i].low = val;
-                    if (val > bbox[i].high) bbox[i].high = val;
-                }
-            }
-        }
-    }
-
     /**
      * Performs an exact search in the tree starting from a node.
      * \tparam RESULTSET Should be any ResultSet<DistanceType>
@@ -1942,7 +1902,7 @@ class KDTreeSingleIndexAdaptor
      */
     template <class RESULTSET>
     bool searchLevel(
-        RESULTSET& result_set, const ElementType* vec, const NodePtr node,
+        RESULTSET& result_set, const PointType& pt, const NodePtr node,
         DistanceType mindist, distance_vector_t& dists,
         const float epsError) const
     {
@@ -1953,7 +1913,7 @@ class KDTreeSingleIndexAdaptor
         {
             const IndexType accessor = Base::vAcc_[i];  // reorder... : i;
             DistanceType    dist     = distance_.evalMetric(
-                        vec, accessor, (DIM > 0 ? DIM : Base::dim_));
+                        pt, accessor, (DIM > 0 ? DIM : Base::dim_));
             if (dist < worst_dist)
             {
                 if (!result_set.addPoint(dist, Base::vAcc_[i]))
@@ -1971,7 +1931,7 @@ class KDTreeSingleIndexAdaptor
 
         /* Which child branch should be taken first? */
         Dimension    idx   = node->sub.divfeat;
-        ElementType  val   = vec[idx];
+        ElementType  val   = pt.get_component(idx);
         DistanceType diff1 = val - node->sub.divlow;
         DistanceType diff2 = val - node->sub.divhigh;
 
@@ -1983,18 +1943,18 @@ class KDTreeSingleIndexAdaptor
             bestChild  = node->child1;
             otherChild = node->child2;
             cut_dist =
-                distance_.accum_dist(val, node->sub.divhigh, idx);
+                distance_.accum_dist(pt, idx, node->sub.divhigh);
         }
         else
         {
             bestChild  = node->child2;
             otherChild = node->child1;
             cut_dist =
-                distance_.accum_dist(val, node->sub.divlow, idx);
+                distance_.accum_dist(pt, idx, node->sub.divlow);
         }
 
         /* Call recursively to search next level down. */
-        if (!searchLevel(result_set, vec, bestChild, mindist, dists, epsError))
+        if (!searchLevel(result_set, pt, bestChild, mindist, dists, epsError))
         {
             // the resultset doesn't want to receive any more points, we're done
             // searching!
@@ -2007,7 +1967,7 @@ class KDTreeSingleIndexAdaptor
         if (mindist * epsError <= result_set.worstDist())
         {
             if (!searchLevel(
-                    result_set, vec, otherChild, mindist, dists, epsError))
+                    result_set, pt, otherChild, mindist, dists, epsError))
             {
                 // the resultset doesn't want to receive any more points, we're
                 // done searching!
@@ -2053,19 +2013,6 @@ class KDTreeSingleIndexAdaptor
  *   // Must return the dim'th component of the idx'th point in the class:
  *   T kdtree_get_pt(const size_t idx, const size_t dim) const { ... }
  *
- *   // Optional bounding-box computation: return false to default to a standard
- * bbox computation loop.
- *   //   Return true if the BBOX was already computed by the class and returned
- * in "bb" so it can be avoided to redo it again.
- *   //   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3
- * for point clouds) template <class BBOX> bool kdtree_get_bbox(BBOX &bb) const
- *   {
- *      bb[0].low = ...; bb[0].high = ...;  // 0th dimension limits
- *      bb[1].low = ...; bb[1].high = ...;  // 1st dimension limits
- *      ...
- *      return true;
- *   }
- *
  *  \endcode
  *
  * \tparam DatasetAdaptor The user-provided adaptor (see comments above).
@@ -2103,6 +2050,7 @@ class KDTreeSingleIndexDynamicAdaptor_
 
     using ElementType  = typename Base::ElementType;
     using DistanceType = typename Base::DistanceType;
+    using PointType    = typename Base::PointType;
 
     using Offset    = typename Base::Offset;
     using Size      = typename Base::Size;
@@ -2192,7 +2140,8 @@ class KDTreeSingleIndexDynamicAdaptor_
         this->freeIndex(*this);
         Base::size_at_index_build_ = Base::size_;
         if (Base::size_ == 0) return;
-        computeBoundingBox(Base::root_bbox_);
+        computeBoundingBox(*this, vAcc_.data(), vAcc_.size(), Base::root_bbox_);
+
         // construct the tree
         if (Base::n_thread_build_ == 1)
         {
@@ -2237,10 +2186,9 @@ class KDTreeSingleIndexDynamicAdaptor_
      */
     template <typename RESULTSET>
     bool findNeighbors(
-        RESULTSET& result, const ElementType* vec,
+        RESULTSET& result, const PointType& pt,
         const SearchParameters& searchParams = {}) const
     {
-        assert(vec);
         if (this->size(*this) == 0) return false;
         if (!Base::root_node_) return false;
         float epsError = 1 + searchParams.eps;
@@ -2251,8 +2199,8 @@ class KDTreeSingleIndexDynamicAdaptor_
         assign(
             dists, (DIM > 0 ? DIM : Base::dim_),
             static_cast<typename distance_vector_t::value_type>(0));
-        DistanceType dist = this->computeInitialDistances(*this, vec, dists);
-        searchLevel(result, vec, Base::root_node_, dist, dists, epsError);
+        DistanceType dist = this->computeInitialDistances(*this, pt, dists);
+        searchLevel(result, pt, Base::root_node_, dist, dists, epsError);
         return result.full();
     }
 
@@ -2271,7 +2219,7 @@ class KDTreeSingleIndexDynamicAdaptor_
      *       number of elements in the tree is less than `num_closest`.
      */
     Size knnSearch(
-        const ElementType* query_point, const Size num_closest,
+        const PointType& query_point, const Size num_closest,
         IndexType* out_indices, DistanceType* out_distances,
         const SearchParameters& searchParams = {}) const
     {
@@ -2301,7 +2249,7 @@ class KDTreeSingleIndexDynamicAdaptor_
      *       are actually squared distances.
      */
     Size radiusSearch(
-        const ElementType* query_point, const DistanceType& radius,
+        const PointType& query_point, const DistanceType& radius,
         std::vector<ResultItem<IndexType, DistanceType>>& IndicesDists,
         const SearchParameters& searchParams = {}) const
     {
@@ -2319,7 +2267,7 @@ class KDTreeSingleIndexDynamicAdaptor_
      */
     template <class SEARCH_CALLBACK>
     Size radiusSearchCustomCallback(
-        const ElementType* query_point, SEARCH_CALLBACK& resultSet,
+        const PointType& query_point, SEARCH_CALLBACK& resultSet,
         const SearchParameters& searchParams = {}) const
     {
         findNeighbors(resultSet, query_point, searchParams);
@@ -2329,39 +2277,6 @@ class KDTreeSingleIndexDynamicAdaptor_
     /** @} */
 
    public:
-    void computeBoundingBox(BoundingBox& bbox)
-    {
-        const auto dims = (DIM > 0 ? DIM : Base::dim_);
-        resize(bbox, dims);
-
-        if (dataset_.kdtree_get_bbox(bbox))
-        {
-            // Done! It was implemented in derived class
-        }
-        else
-        {
-            const Size N = Base::size_;
-            if (!N)
-                throw std::runtime_error(
-                    "[nanoflann] computeBoundingBox() called but "
-                    "no data points found.");
-            for (Dimension i = 0; i < dims; ++i)
-            {
-                bbox[i].low = bbox[i].high =
-                    this->dataset_get(*this, Base::vAcc_[0], i);
-            }
-            for (Offset k = 1; k < N; ++k)
-            {
-                for (Dimension i = 0; i < dims; ++i)
-                {
-                    const auto val =
-                        this->dataset_get(*this, Base::vAcc_[k], i);
-                    if (val < bbox[i].low) bbox[i].low = val;
-                    if (val > bbox[i].high) bbox[i].high = val;
-                }
-            }
-        }
-    }
 
     /**
      * Performs an exact search in the tree starting from a node.
@@ -2369,7 +2284,7 @@ class KDTreeSingleIndexDynamicAdaptor_
      */
     template <class RESULTSET>
     void searchLevel(
-        RESULTSET& result_set, const ElementType* vec, const NodePtr node,
+        RESULTSET& result_set, const PointType& pt, const NodePtr node,
         DistanceType mindist, distance_vector_t& dists,
         const float epsError) const
     {
@@ -2381,7 +2296,7 @@ class KDTreeSingleIndexDynamicAdaptor_
             const IndexType index = Base::vAcc_[i];  // reorder... : i;
             if (treeIndex_[index] == -1) continue;
             DistanceType dist = distance_.evalMetric(
-                vec, index, (DIM > 0 ? DIM : Base::dim_));
+                pt, index, (DIM > 0 ? DIM : Base::dim_));
             if (dist < worst_dist)
             {
                 if (!result_set.addPoint(
@@ -2402,7 +2317,7 @@ class KDTreeSingleIndexDynamicAdaptor_
 
         /* Which child branch should be taken first? */
         Dimension    idx   = node->sub.divfeat;
-        ElementType  val   = vec[idx];
+        ElementType  val   = pt.get_component(idx);
         DistanceType diff1 = val - node->sub.divlow;
         DistanceType diff2 = val - node->sub.divhigh;
 
@@ -2414,25 +2329,25 @@ class KDTreeSingleIndexDynamicAdaptor_
             bestChild  = node->child1;
             otherChild = node->child2;
             cut_dist =
-                distance_.accum_dist(val, node->sub.divhigh, idx);
+                distance_.accum_dist(pt, idx, node->sub.divhigh);
         }
         else
         {
             bestChild  = node->child2;
             otherChild = node->child1;
             cut_dist =
-                distance_.accum_dist(val, node->sub.divlow, idx);
+                distance_.accum_dist(pt, idx, node->sub.divlow);
         }
 
         /* Call recursively to search next level down. */
-        searchLevel(result_set, vec, bestChild, mindist, dists, epsError);
+        searchLevel(result_set, pt, bestChild, mindist, dists, epsError);
 
         DistanceType dst = dists[idx];
         mindist          = mindist + cut_dist - dst;
         dists[idx]       = cut_dist;
         if (mindist * epsError <= result_set.worstDist())
         {
-            searchLevel(result_set, vec, otherChild, mindist, dists, epsError);
+            searchLevel(result_set, pt, otherChild, mindist, dists, epsError);
         }
         dists[idx] = dst;
     }
@@ -2453,7 +2368,7 @@ class KDTreeSingleIndexDynamicAdaptor_
     void loadIndex(std::istream& stream) { loadIndex(*this, stream); }
 };
 
-/** kd-tree dynaimic index
+/** kd-tree dynamic index
  *
  * class to create multiple static index and merge their results to behave as
  * single dynamic index as proposed in Logarithmic Approach.
@@ -2475,6 +2390,7 @@ class KDTreeSingleIndexDynamicAdaptor
    public:
     using ElementType  = typename Distance::ElementType;
     using DistanceType = typename Distance::DistanceType;
+    using PointType    = typename DatasetAdaptor::PointType;
 
     using Offset = typename KDTreeSingleIndexDynamicAdaptor_<
         Distance, DatasetAdaptor, DIM>::Offset;
@@ -2646,12 +2562,12 @@ class KDTreeSingleIndexDynamicAdaptor
      */
     template <typename RESULTSET>
     bool findNeighbors(
-        RESULTSET& result, const ElementType* vec,
+        RESULTSET& result, const PointType& pt,
         const SearchParameters& searchParams = {}) const
     {
         for (size_t i = 0; i < treeCount_; i++)
         {
-            index_[i].findNeighbors(result, &vec[0], searchParams);
+            index_[i].findNeighbors(result, pt, searchParams);
         }
         return result.full();
     }
@@ -2775,17 +2691,6 @@ struct KDTreeEigenMatrixAdaptor
             return m_data_matrix.get().coeff(idx, IndexType(dim));
         else
             return m_data_matrix.get().coeff(IndexType(dim), idx);
-    }
-
-    // Optional bounding-box computation: return false to default to a standard
-    // bbox computation loop.
-    //   Return true if the BBOX was already computed by the class and returned
-    //   in "bb" so it can be avoided to redo it again. Look at bb.size() to
-    //   find out the expected dimensionality (e.g. 2 or 3 for point clouds)
-    template <class BBOX>
-    bool kdtree_get_bbox(BBOX& /*bb*/) const
-    {
-        return false;
     }
 
     /** @} */

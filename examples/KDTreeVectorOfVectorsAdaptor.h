@@ -61,6 +61,23 @@ struct KDTreeVectorOfVectorsAdaptor
     using index_t =
         nanoflann::KDTreeSingleIndexAdaptor<metric_t, self_t, DIM, IndexType>;
 
+    /* Adaptor for a Point */
+    struct PointAdaptor
+    {
+        const typename VectorOfVectorsType::value_type& row;
+
+        inline num_t get_component(size_t dim) const
+        {
+            return row[dim];
+        }
+
+        inline num_t get_signed_distance(size_t dim, num_t val) const
+        {
+            return row[dim] - val;
+        }
+    };
+    using PointType = PointAdaptor;
+
     /** The kd-tree index for the user to call its methods as usual with any
      * other FLANN index */
     index_t* index = nullptr;
@@ -113,9 +130,9 @@ struct KDTreeVectorOfVectorsAdaptor
     inline size_t kdtree_get_point_count() const { return m_data.size(); }
 
     // Returns the dim'th component of the idx'th point in the class:
-    inline num_t kdtree_get_pt(const size_t idx, const size_t dim) const
+    inline PointType kdtree_get_pt(const size_t idx) const
     {
-        return m_data[idx][dim];
+        return PointType{m_data[idx]};
     }
 
     // Get limits for list of points
@@ -123,10 +140,10 @@ struct KDTreeVectorOfVectorsAdaptor
         const IndexType* ix, size_t count, const size_t dim, num_t& limit_min,
         num_t& limit_max) const
     {
-        limit_min = limit_max = kdtree_get_pt(ix[0], dim);
+        limit_min = limit_max = kdtree_get_pt(ix[0]).get_component(dim);
         for (size_t k = 1; k < count; ++k)
         {
-            const num_t value = kdtree_get_pt(ix[k], dim);
+            const num_t value = kdtree_get_pt(ix[k]).get_component(dim);
             if (value < limit_min) limit_min = value;
             if (value > limit_max) limit_max = value;
         }

@@ -36,8 +36,35 @@ struct PointCloud
     struct Point
     {
         T x, y, z;
+
+        inline T get_component(size_t dim) const
+        {
+            // Since this is inlined and the "dim" argument is typically an
+            // immediate value, the
+            //  "if/else's" are actually solved at compile time.
+            if (dim == 0)
+                return x;
+            else if (dim == 1)
+                return y;
+            else
+                return z;
+        }
+
+        inline T get_signed_distance(size_t dim, T val) const
+        {
+            return get_component(dim) - val;
+        }
+
+        inline T get_distance_to(const Point& other) const
+        {
+            const auto dx = x - other.x;
+            const auto dy = y - other.y;
+            const auto dz = z - other.z;
+            return dx * dx + dy * dy + dz * dz;
+        }
     };
 
+    using PointType = Point;
     using coord_t = T;  //!< The type of each coordinate
 
     std::vector<Point> pts;
@@ -46,41 +73,22 @@ struct PointCloud
     inline size_t kdtree_get_point_count() const { return pts.size(); }
 
     // Returns the dim'th component of the idx'th point in the class:
-    // Since this is inlined and the "dim" argument is typically an immediate
-    // value, the
-    //  "if/else's" are actually solved at compile time.
-    inline T kdtree_get_pt(const size_t idx, const size_t dim) const
+    inline const PointType& kdtree_get_pt(const size_t idx) const
     {
-        if (dim == 0)
-            return pts[idx].x;
-        else if (dim == 1)
-            return pts[idx].y;
-        else
-            return pts[idx].z;
+        return pts[idx];
     }
 
     // Get limits for list of points
     inline void kdtree_get_limits(
         const uint32_t* ix, size_t count, const size_t dim, T& limit_min, T& limit_max) const
     {
-        limit_min = limit_max = kdtree_get_pt(ix[0], dim);
+        limit_min = limit_max = kdtree_get_pt(ix[0]).get_component(dim);
         for (size_t k = 1; k < count; ++k)
         {
-            const T value = kdtree_get_pt(ix[k], dim);
+            const T value = kdtree_get_pt(ix[k]).get_component(dim);
             if (value < limit_min) limit_min = value;
             if (value > limit_max) limit_max = value;
         }
-    }
-
-    // Optional bounding-box computation: return false to default to a standard
-    // bbox computation loop.
-    //   Return true if the BBOX was already computed by the class and returned
-    //   in "bb" so it can be avoided to redo it again. Look at bb.size() to
-    //   find out the expected dimensionality (e.g. 2 or 3 for point clouds)
-    template <class BBOX>
-    bool kdtree_get_bbox(BBOX& /* bb */) const
-    {
-        return false;
     }
 };
 
@@ -113,7 +121,38 @@ struct PointCloud_Quat
     struct Point
     {
         T w, x, y, z;
+
+        inline T get_component(size_t dim) const
+        {
+            // Since this is inlined and the "dim" argument is typically an
+            // immediate value, the
+            //  "if/else's" are actually solved at compile time.
+            if (dim == 0)
+                return w;
+            else if (dim == 1)
+                return x;
+            else if (dim == 2)
+                return y;
+            else
+                return z;
+        }
+
+        inline T get_signed_distance(size_t dim, T val) const
+        {
+            return get_component(dim) - val;
+        }
+
+        inline T get_distance_to(const Point& pt) const
+        {
+            const auto dw = w - pt.w;
+            const auto dx = x - pt.x;
+            const auto dy = y - pt.y;
+            const auto dz = z - pt.z;
+            return dw * dw + dx * dx + dy * dy + dz * dz;
+        }
     };
+
+    using PointType = Point;
 
     std::vector<Point> pts;
 
@@ -121,19 +160,9 @@ struct PointCloud_Quat
     inline size_t kdtree_get_point_count() const { return pts.size(); }
 
     // Returns the dim'th component of the idx'th point in the class:
-    // Since this is inlined and the "dim" argument is typically an immediate
-    // value, the
-    //  "if/else's" are actually solved at compile time.
-    inline T kdtree_get_pt(const size_t idx, const size_t dim) const
+    inline const PointType& kdtree_get_pt(const size_t idx) const
     {
-        if (dim == 0)
-            return pts[idx].w;
-        else if (dim == 1)
-            return pts[idx].x;
-        else if (dim == 2)
-            return pts[idx].y;
-        else
-            return pts[idx].z;
+        return pts[idx];
     }
 
     // Get limits for list of points
@@ -141,24 +170,13 @@ struct PointCloud_Quat
         const uint32_t* ix, size_t count, const size_t dim, T& limit_min,
         T& limit_max) const
     {
-        limit_min = limit_max = kdtree_get_pt(ix[0], dim);
+        limit_min = limit_max = kdtree_get_pt(ix[0]).get_component(dim);
         for (size_t k = 1; k < count; ++k)
         {
-            const T value = kdtree_get_pt(ix[k], dim);
+            const T value = kdtree_get_pt(ix[k]).get_component(dim);
             if (value < limit_min) limit_min = value;
             if (value > limit_max) limit_max = value;
         }
-    }
-
-    // Optional bounding-box computation: return false to default to a standard
-    // bbox computation loop.
-    //   Return true if the BBOX was already computed by the class and returned
-    //   in "bb" so it can be avoided to redo it again. Look at bb.size() to
-    //   find out the expected dimensionality (e.g. 2 or 3 for point clouds)
-    template <class BBOX>
-    bool kdtree_get_bbox(BBOX& /* bb */) const
-    {
-        return false;
     }
 };
 
@@ -196,7 +214,24 @@ struct PointCloud_Orient
     struct Point
     {
         T theta;
+
+        inline T get_component(size_t) const
+        {
+            return theta;
+        }
+
+        inline T get_signed_distance(size_t, T val) const
+        {
+            return theta - val;
+        }
+
+        inline T get_distance_to(const Point& other) const
+        {
+            return (theta - other.theta) * (theta - other.theta);
+        }
     };
+
+    using PointType = Point;
 
     std::vector<Point> pts;
 
@@ -204,12 +239,9 @@ struct PointCloud_Orient
     inline size_t kdtree_get_point_count() const { return pts.size(); }
 
     // Returns the dim'th component of the idx'th point in the class:
-    // Since this is inlined and the "dim" argument is typically an immediate
-    // value, the
-    //  "if/else's" are actually solved at compile time.
-    inline T kdtree_get_pt(const size_t idx, const size_t dim = 0) const
+    inline const PointType& kdtree_get_pt(const size_t idx) const
     {
-        return pts[idx].theta;
+        return pts[idx];
     }
 
     // Get limits for list of points
@@ -217,24 +249,13 @@ struct PointCloud_Orient
         const uint32_t* ix, size_t count, const size_t dim, T& limit_min,
         T& limit_max) const
     {
-        limit_min = limit_max = kdtree_get_pt(ix[0], dim);
+        limit_min = limit_max = kdtree_get_pt(ix[0]).get_component(dim);
         for (size_t k = 1; k < count; ++k)
         {
-            const T value = kdtree_get_pt(ix[k], dim);
+            const T value = kdtree_get_pt(ix[k]).get_component(dim);
             if (value < limit_min) limit_min = value;
             if (value > limit_max) limit_max = value;
         }
-    }
-
-    // Optional bounding-box computation: return false to default to a standard
-    // bbox computation loop.
-    //   Return true if the BBOX was already computed by the class and returned
-    //   in "bb" so it can be avoided to redo it again. Look at bb.size() to
-    //   find out the expected dimensionality (e.g. 2 or 3 for point clouds)
-    template <class BBOX>
-    bool kdtree_get_bbox(BBOX& /* bb */) const
-    {
-        return false;
     }
 };
 

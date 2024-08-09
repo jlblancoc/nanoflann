@@ -51,7 +51,7 @@ void kdtree_demo(const size_t N)
     // Generate points:
     generateRandomPointCloud(cloud, N);
 
-    num_t query_pt[3] = {0.5, 0.5, 0.5};
+    const PointCloud<num_t>::Point query_pt{0.5, 0.5, 0.5};
 
     // add points in chunks at a time
     size_t chunk_size = 100;

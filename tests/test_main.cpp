@@ -56,7 +56,7 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
     // Generate points:
     generateRandomPointCloud(cloud, N);
 
-    num_t query_pt[3] = {0.5, 0.5, 0.5};
+    const PointCloud<num_t>::Point query_pt{num_t(0.5), num_t(0.5), num_t(0.5)};
 
     // construct a kd-tree index:
     using my_kd_tree_simple_t = KDTreeSingleIndexAdaptor<
@@ -81,14 +81,14 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
     std::vector<num_t>             out_dist_sqr(num_results);
     nanoflann::KNNResultSet<num_t> resultSet(num_results);
     resultSet.init(&ret_index[0], &out_dist_sqr[0]);
-    index1.findNeighbors(resultSet, &query_pt[0]);
+    index1.findNeighbors(resultSet, query_pt);
 
     std::vector<size_t> ret_index1    = ret_index;
     std::vector<num_t>  out_dist_sqr1 = out_dist_sqr;
 
     resultSet.init(&ret_index[0], &out_dist_sqr[0]);
 
-    index2.findNeighbors(resultSet, &query_pt[0]);
+    index2.findNeighbors(resultSet, query_pt);
 
     for (size_t i = 0; i < num_results; i++)
     {
@@ -117,7 +117,7 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
     radiusResults.init();
     nanoflann::SearchParameters searchParams;
     searchParams.sorted = true;
-    index1.findNeighbors(radiusResults, &query_pt[0], searchParams);
+    index1.findNeighbors(radiusResults, query_pt, searchParams);
 
     // Ensure results are sorted:
     lastDist = -1;
@@ -178,7 +178,7 @@ void L2_vs_bruteforce_test(
     nanoflann::KNNResultSet<NUM> resultSet(num_results);
 
     resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-    mat_index.index->findNeighbors(resultSet, &query_pt[0]);
+    mat_index.index->findNeighbors(resultSet, my_kd_tree_t::PointType{query_pt});
 
     const auto nFound = resultSet.size();
 
@@ -250,7 +250,7 @@ void rknn_L2_vs_bruteforce_test(
     nanoflann::RKNNResultSet<NUM> resultSet(num_results, maxRadiusSqr);
 
     resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-    mat_index.index->findNeighbors(resultSet, &query_pt[0]);
+    mat_index.index->findNeighbors(resultSet, my_kd_tree_t::PointType{query_pt});
 
     const auto nFound = resultSet.size();
 
@@ -300,7 +300,7 @@ void SO3_vs_bruteforce_test(const size_t nSamples)
     // Generate points:
     generateRandomPointCloud_Quat(cloud, nSamples);
 
-    NUM query_pt[4] = {0.5, 0.5, 0.5, 0.5};
+    const PointCloud_Quat<NUM>::PointType query_pt{0.5, 0.5, 0.5, 0.5};
 
     // construct a kd-tree index:
     typedef KDTreeSingleIndexAdaptor<
@@ -319,7 +319,7 @@ void SO3_vs_bruteforce_test(const size_t nSamples)
     nanoflann::KNNResultSet<NUM> resultSet(num_results);
 
     resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-    index.findNeighbors(resultSet, &query_pt[0]);
+    index.findNeighbors(resultSet, query_pt);
 
     // Brute force:
     double min_dist_L2 = std::numeric_limits<double>::max();
@@ -329,8 +329,8 @@ void SO3_vs_bruteforce_test(const size_t nSamples)
         {
             double dist = 0.0;
             for (int d = 0; d < 4; d++)
-                dist += (query_pt[d] - cloud.kdtree_get_pt(i, d)) *
-                        (query_pt[d] - cloud.kdtree_get_pt(i, d));
+                dist += (query_pt.get_component(d) - cloud.kdtree_get_pt(i).get_component(d)) *
+                        (query_pt.get_component(d) - cloud.kdtree_get_pt(i).get_component(d));
             if (dist < min_dist_L2)
             {
                 min_dist_L2 = dist;
@@ -353,7 +353,7 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
     // Generate points:
     generateRandomPointCloud_Orient(cloud, nSamples);
 
-    NUM query_pt[1] = {0.5};
+    const PointCloud_Orient<NUM>::PointType query_pt{0.5};
 
     // construct a kd-tree index:
     typedef KDTreeSingleIndexAdaptor<
@@ -372,7 +372,7 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
     nanoflann::KNNResultSet<NUM> resultSet(num_results);
 
     resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-    index.findNeighbors(resultSet, &query_pt[0]);
+    index.findNeighbors(resultSet, query_pt);
 
     // Brute force:
     double min_dist_SO2 = std::numeric_limits<double>::max();
@@ -381,7 +381,7 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
         for (size_t i = 0; i < nSamples; i++)
         {
             double dist = 0.0;
-            dist        = cloud.kdtree_get_pt(i, 0) - query_pt[0];
+            dist        = cloud.kdtree_get_pt(i).get_component(0) - query_pt.get_component(0);
             if (dist > nanoflann::pi_const<double>())
                 dist -= 2 * nanoflann::pi_const<double>();
             else if (dist < -nanoflann::pi_const<double>())
@@ -421,7 +421,7 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
     // Generate points:
     generateRandomPointCloud(cloud, nSamples, max_range);
 
-    NUM query_pt[3] = {0.5, 0.5, 0.5};
+    const PointCloud<NUM>::PointType query_pt{0.5, 0.5, 0.5};
 
     // add points in chunks at a time
     size_t chunk_size = 100;
@@ -441,7 +441,7 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
         nanoflann::KNNResultSet<NUM> resultSet(num_results);
 
         resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-        index.findNeighbors(resultSet, &query_pt[0]);
+        index.findNeighbors(resultSet, query_pt);
 
         // Brute force:
         double min_dist_L2 = std::numeric_limits<double>::max();
@@ -451,8 +451,8 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
             {
                 double dist = 0.0;
                 for (int d = 0; d < 3; d++)
-                    dist += (query_pt[d] - cloud.kdtree_get_pt(i, d)) *
-                            (query_pt[d] - cloud.kdtree_get_pt(i, d));
+                    dist += (query_pt.get_component(d) - cloud.kdtree_get_pt(i).get_component(d)) *
+                            (query_pt.get_component(d) - cloud.kdtree_get_pt(i).get_component(d));
                 if (dist < min_dist_L2)
                 {
                     min_dist_L2 = dist;
@@ -480,7 +480,7 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
         nanoflann::KNNResultSet<NUM> resultSet(num_results);
 
         resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-        index.findNeighbors(resultSet, &query_pt[0]);
+        index.findNeighbors(resultSet, query_pt);
 
         // Brute force:
         double min_dist_L2 = std::numeric_limits<double>::max();
@@ -490,8 +490,8 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
             {
                 double dist = 0.0;
                 for (int d = 0; d < 3; d++)
-                    dist += (query_pt[d] - cloud.kdtree_get_pt(i, d)) *
-                            (query_pt[d] - cloud.kdtree_get_pt(i, d));
+                    dist += (query_pt.get_component(d) - cloud.kdtree_get_pt(i).get_component(d)) *
+                            (query_pt.get_component(d) - cloud.kdtree_get_pt(i).get_component(d));
                 if (dist < min_dist_L2)
                 {
                     min_dist_L2 = dist;
@@ -539,7 +539,7 @@ void L2_concurrent_build_vs_bruteforce_test(
     nanoflann::KNNResultSet<NUM> resultSet(num_results);
 
     resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-    mat_index.index->findNeighbors(resultSet, &query_pt[0]);
+    mat_index.index->findNeighbors(resultSet, my_kd_tree_t::PointType{query_pt});
 
     // Brute force:
     double min_dist_L2 = std::numeric_limits<double>::max();
@@ -612,7 +612,7 @@ TEST(kdtree, robust_empty_tree)
     // robustness against this situation:
     PointCloud<double> cloud;
 
-    double query_pt[3] = {0.5, 0.5, 0.5};
+    const PointCloud<double>::Point query_pt{0.5, 0.5, 0.5};
 
     // construct a kd-tree index:
     typedef KDTreeSingleIndexAdaptor<
@@ -631,7 +631,7 @@ TEST(kdtree, robust_empty_tree)
     std::vector<double>             out_dist_sqr(num_results);
     nanoflann::KNNResultSet<double> resultSet(num_results);
     resultSet.init(&ret_index[0], &out_dist_sqr[0]);
-    bool result = index1.findNeighbors(resultSet, &query_pt[0]);
+    bool result = index1.findNeighbors(resultSet, query_pt);
     EXPECT_EQ(result, false);
 }
 
@@ -726,7 +726,7 @@ TEST(kdtree, robust_nonempty_tree)
     const size_t       max_point_count = 1000;
     generateRandomPointCloud(cloud, max_point_count);
 
-    const double query_pt[3] = {0.5, 0.5, 0.5};
+    const PointCloud<double>::Point query_pt{0.5, 0.5, 0.5};
 
     // construct a kd-tree index:
     typedef KDTreeSingleIndexDynamicAdaptor<
@@ -744,7 +744,7 @@ TEST(kdtree, robust_nonempty_tree)
     std::vector<double>             out_dist_sqr(num_results);
     nanoflann::KNNResultSet<double> resultSet(num_results);
     resultSet.init(&ret_index[0], &out_dist_sqr[0]);
-    bool result = index1.findNeighbors(resultSet, &query_pt[0]);
+    bool result = index1.findNeighbors(resultSet, query_pt);
     EXPECT_EQ(result, true);
 }
 
@@ -762,14 +762,14 @@ TEST(kdtree, add_and_remove_points)
 
     const auto query = [&index]() -> size_t
     {
-        const double                    query_pt[3] = {0.5, 0.5, 0.5};
+        const PointCloud<double>::Point query_pt{0.5, 0.5, 0.5};
         const size_t                    num_results = 1;
         std::vector<size_t>             ret_index(num_results);
         std::vector<double>             out_dist_sqr(num_results);
         nanoflann::KNNResultSet<double> resultSet(num_results);
 
         resultSet.init(&ret_index[0], &out_dist_sqr[0]);
-        index.findNeighbors(resultSet, &query_pt[0]);
+        index.findNeighbors(resultSet, query_pt);
 
         return ret_index[0];
     };
