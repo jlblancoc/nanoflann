@@ -89,6 +89,12 @@ T pi_const()
     return static_cast<T>(3.14159265358979323846);
 }
 
+template <int v>
+struct Int2Type
+{
+    enum { value = v };
+};
+
 /**
  * Traits if object is resizable and assignable (typically has a resize | assign
  * method)
@@ -1636,10 +1642,11 @@ class KDTreeSingleIndexAdaptor
     using Offset    = typename Base::Offset;
     using Size      = typename Base::Size;
     using Dimension = typename Base::Dimension;
-
+ 
     using ElementType  = typename Base::ElementType;
     using DistanceType = typename Base::DistanceType;
     using IndexType    = typename Base::IndexType;
+    using PointType    = typename Base::PointType;
 
     using Node    = typename Base::Node;
     using NodePtr = Node*;
@@ -2030,11 +2037,19 @@ class KDTreeSingleIndexAdaptor
     {
         // Check intersection between node's bounding box and the line segment.
         DistanceType worst_dist = result_set.worstDist();
-        if (!dataset_.kdtree_intersects(lineSegStart, lineSegEnd, bbox, worst_dist, (DIM > 0 ? DIM : Base::dim_)))
-            return true;
+        if (DIM > 0)
+        {
+            if (!dataset_.kdtree_intersects(lineSegStart, lineSegEnd, bbox, worst_dist, Int2Type<DIM>()))
+                return true;
+        }
+        else
+        {
+            if (!dataset_.kdtree_intersects(lineSegStart, lineSegEnd, bbox, worst_dist, Base::dim_))
+                return true;
+        }
 
         // check all items stored in this node
-        for (IndexType i = node->lr.left; i < node->lr.right; ++i)
+        for (Offset i = node->lr.left; i < node->lr.right; ++i)
         {
             const IndexType index = vAcc_[i];  // reorder... : i;
             DistanceType    dist  = distance_.evalMetric(lineSegStart, lineSegEnd, index, (DIM > 0 ? DIM : Base::dim_));
