@@ -594,6 +594,98 @@ void L2_concurrent_build_vs_L2_test(const size_t nSamples, const size_t DIM)
     EXPECT_EQ(mat_index.index->vAcc_, mat_index_concurrent_build.index->vAcc_);
 }
 
+template <typename num_t, bool LOOSETREE>
+void radius_search_test()
+{
+    PointCloud<num_t> cloud;
+    generateGridPointCloud(cloud, 3, 4, 5);
+
+    const PointCloud<num_t>::Point query_pt{num_t(1.22), num_t(2.12), num_t(3.47)};
+
+    // construct a kd-tree index:
+    typedef KDTreeSingleIndexAdaptor<
+        L2_Simple_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>,
+        3 /* dim */, uint32_t, LOOSETREE>
+        my_kd_tree_simple_t;
+
+    my_kd_tree_simple_t index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
+    index.buildIndex();
+
+    // do a radius search
+    const num_t radius = num_t(1.88);
+    std::vector<ResultItem<uint32_t, num_t>> matches;
+    matches.reserve(30);
+    const auto num_results = index.radiusSearch(query_pt, radius, matches);
+    ASSERT_EQ(num_results, matches.size());
+
+    // execute linear search through the points
+    std::vector<std::pair<uint32_t, num_t>> checkMatches;
+    checkMatches.reserve(30);
+    for (size_t i = 0; i < cloud.kdtree_get_point_count(); ++i)
+    {
+        const auto dist = cloud.kdtree_get_pt(i).get_distance_to(query_pt);
+        if (dist < radius)
+            checkMatches.emplace_back(i, dist);
+    }
+    ASSERT_EQ(num_results, checkMatches.size());
+    std::sort(checkMatches.begin(), checkMatches.end(), IndexDist_Sorter());
+
+    for (size_t i = 0; i < num_results; i++)
+    {
+        EXPECT_EQ(matches[i].first, checkMatches[i].first);
+        EXPECT_EQ(matches[i].second, checkMatches[i].second);
+    }
+}
+
+template <typename num_t, bool LOOSETREE>
+void box_search_test()
+{
+    PointCloud<num_t> cloud;
+    generateGridPointCloud(cloud, 6, 7, 8);
+
+    // do a box search (using lineSeg and interpreting start/end points as
+    // min/max points of a box)
+    const PointCloud<num_t>::Point minPoint{num_t(1.22), num_t(2.12), num_t(3.47)};
+    const PointCloud<num_t>::Point maxPoint{num_t(2.42), num_t(3.82), num_t(5.17)};
+
+    // distance from the box (don't use 0.0)
+    constexpr num_t cRadius = num_t(1e-6);
+
+    // construct a kd-tree index:
+    typedef KDTreeSingleIndexAdaptor<
+        L2_Simple_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>,
+        3 /* dim */, uint32_t, LOOSETREE>
+        my_kd_tree_simple_t;
+
+    my_kd_tree_simple_t index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
+    index.buildIndex();
+
+    // do the search
+    std::vector<ResultItem<uint32_t, num_t>> matches;
+    matches.reserve(30);
+    const auto num_results = index.lineSegSearch(minPoint, maxPoint, cRadius, matches);
+    ASSERT_EQ(num_results, matches.size());
+    std::sort(matches.begin(), matches.end());
+
+    // execute linear search through the points
+    std::vector<ResultItem<uint32_t, num_t>> checkMatches;
+    checkMatches.reserve(30);
+    for (size_t i = 0; i < cloud.kdtree_get_point_count(); ++i)
+    {
+        const auto dist = cloud.kdtree_get_pt(i).get_distance_to(minPoint, maxPoint);
+        if (dist < cRadius)
+            checkMatches.emplace_back(i, dist);
+    }
+    ASSERT_EQ(num_results, checkMatches.size());
+    std::sort(checkMatches.begin(), checkMatches.end());
+
+    for (size_t i = 0; i < num_results; i++)
+    {
+        EXPECT_EQ(matches[i].first, checkMatches[i].first);
+        EXPECT_EQ(matches[i].second, checkMatches[i].second);
+    }
+}
+
 TEST(kdtree, L2_vs_L2_simple)
 {
     for (int nResults = 1; nResults < 10; nResults++)
@@ -819,4 +911,22 @@ TEST(kdtree, L2_concurrent_build_vs_L2)
         L2_concurrent_build_vs_L2_test<double>(100, 3);
         L2_concurrent_build_vs_L2_test<double>(100, 7);
     }
+}
+
+TEST(kdtree, RadiusSearch)
+{
+    radius_search_test<float, false>();
+    radius_search_test<double, false>();
+
+    radius_search_test<float, true>();
+    radius_search_test<double, true>();
+}
+
+TEST(kdtree, BoxSearch)
+{
+    box_search_test<float, false>();
+    box_search_test<double, false>();
+
+    box_search_test<float, true>();
+    box_search_test<double, true>();
 }

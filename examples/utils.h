@@ -62,6 +62,18 @@ struct PointCloud
             const auto dz = z - other.z;
             return dx * dx + dy * dy + dz * dz;
         }
+
+		// Distance of this point from box.
+		inline T get_distance_to(const Point& minPoint, const Point& maxPoint) const
+		{
+			const auto minmaxx = std::minmax(minPoint.x, maxPoint.x);
+			const auto minmaxy = std::minmax(minPoint.y, maxPoint.y);
+			const auto minmaxz = std::minmax(minPoint.z, maxPoint.z);
+			const auto dx = x < minmaxx.first ? minmaxx.first - x : (minmaxx.second < x ? x - minmaxx.second : T(0));
+			const auto dy = y < minmaxy.first ? minmaxy.first - y : (minmaxy.second < y ? y - minmaxy.second : T(0));
+			const auto dz = z < minmaxz.first ? minmaxz.first - z : (minmaxz.second < z ? z - minmaxz.second : T(0));
+			return dx * dx + dy * dy + dz * dz;
+		}
     };
 
     using PointType = Point;
@@ -90,6 +102,25 @@ struct PointCloud
             if (value > limit_max) limit_max = value;
         }
     }
+
+	// Intersection between node's bounding box and line segment (required only if nanoflann::KDTreeSingleIndexAdaptor<>::lineSegSearch is used)
+	template<class BBOX>
+	bool kdtree_intersects(const PointType& minPoint, const PointType& maxPoint, const BBOX& bbox, T max_dist, size_t /*dim*/) const
+	{
+		const auto minmaxx = std::minmax(minPoint.x, maxPoint.x);
+		if (minmaxx.second + max_dist < bbox[0].low || bbox[0].high + max_dist < minmaxx.first)
+			return false;
+
+		const auto minmaxy = std::minmax(minPoint.y, maxPoint.y);
+		if (minmaxy.second + max_dist < bbox[1].low && bbox[1].high + max_dist < minmaxy.first)
+			return false;
+
+		const auto minmaxz = std::minmax(minPoint.z, maxPoint.z);
+		if (minmaxz.second + max_dist < bbox[2].low && bbox[2].high + max_dist < minmaxz.first)
+			return false;
+		
+		return true;
+	}
 };
 
 template <typename T>
@@ -112,6 +143,27 @@ void generateRandomPointCloud(
     PointCloud<T>& pc, const size_t N, const T max_range = 10)
 {
     generateRandomPointCloudRanges(pc, N, max_range, max_range, max_range);
+}
+
+template <typename T>
+void generateGridPointCloud(
+    PointCloud<T>& point, const size_t X, const size_t Y, const size_t Z,
+    const T cell_size = 1)
+{
+    point.pts.resize(X * Y * Z);
+    for (size_t z = 0; z < Z; ++z)
+    {
+        for (size_t y = 0; y < Y; ++y)
+        {
+            for (size_t x = 0; x < X; ++x)
+            {
+                const size_t ix = x + y * X + z * X * Y;
+                point.pts[ix].x = x * cell_size;
+                point.pts[ix].y = y * cell_size;
+                point.pts[ix].z = z * cell_size;
+            }
+        }
+    }
 }
 
 // This is an exampleof a custom data set class

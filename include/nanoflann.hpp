@@ -188,6 +188,12 @@ struct ResultItem
 
     IndexType    first;  //!< Index of the sample in the dataset
     DistanceType second;  //!< Distance from sample to query point
+
+    bool operator<(const ResultItem<IndexType, DistanceType>& other) const
+    {
+        // Sort by distance and then by index.
+        return second < other.second || (second == other.second && first < other.first);
+    }
 };
 
 /** @addtogroup result_sets_grp Result set classes
@@ -622,9 +628,15 @@ struct L2_Simple_Adaptor
     }
 
     DistanceType evalMetric(
-        const PointType& pt, const IndexType b_idx, size_t size) const
+        const PointType& pt, const IndexType b_idx, size_t) const
     {
         return data_source.kdtree_get_pt(b_idx).get_distance_to(pt);
+    }
+
+    DistanceType evalMetric(
+        const PointType& lineSegStart, const PointType& lineSegEnd, const IndexType b_idx, size_t) const
+    {
+        return data_source.kdtree_get_pt(b_idx).get_distance_to(lineSegStart, lineSegEnd);
     }
 
     DistanceType accum_dist(const PointType& pt, size_t dim, ElementType b) const
@@ -1097,8 +1109,7 @@ class KDTreeBaseClass
         if (count == 0)
             limit_min = limit_max = 0;
         else
-            obj.dataset_.kdtree_get_limits(
-                ix, count, component, limit_min, limit_max);
+            obj.dataset_.kdtree_get_limits(ix, count, component, limit_min, limit_max);
     }
 
     /// Helper for checking if input value is in range of a point (or if a point overlaps given value):
@@ -1565,6 +1576,10 @@ class KDTreeBaseClass
  *      // note: it is necessary to define it only when using knnSearch or radiusSearch with L2_Simple_Adaptor
  *      T get_distance_to(const PointType& other) const { ... }
  *
+ *      // Must return the Euclidean (L2) distance between this point and input line segment defined by start/end points:
+ *      // note: it is necessary to define it only when using lineSegSearch
+ *      T get_distance_to(const PointType& lineSegStart, const PointType& lineSegEnd) const { ... }
+ *
  *      // Must return the dim'th component this point:
  *      T get_component(const Dimension dim) const { ... }
  *
@@ -1854,6 +1869,31 @@ class KDTreeSingleIndexAdaptor
     }
 
     /**
+     * Find all the neighbors which distance to line segment is smaller than
+     * radius. Previous contents of \a IndicesDists are cleared.
+     *
+     *  If searchParams.sorted==true, the output list is sorted by ascending
+     * distances.
+     *
+     *  For a better performance, it is advisable to do a .reserve() on the
+     * vector if you have any wild guess about the number of expected matches.
+     * \return The number of points within the given radius (i.e. indices.size()
+     * or dists.size() )
+     */
+    Size lineSegSearch(
+        const PointType& queryLineSegStart, const PointType& queryLineSegEnd, const DistanceType radius,
+        std::vector<ResultItem<IndexType, DistanceType>>& IndicesDists, const SearchParameters& searchParams = {}) const
+    {
+        RadiusResultSet<DistanceType, IndexType> resultSet(radius, IndicesDists);
+        searchLevel(resultSet, queryLineSegStart, queryLineSegEnd, Base::root_node_, Base::root_bbox_);
+
+        if (searchParams.sorted)
+            std::sort(IndicesDists.begin(), IndicesDists.end(), IndexDist_Sorter());
+
+        return resultSet.size();
+    }
+
+    /**
      * Find the first N neighbors to \a query_point[0:dim-1] within a maximum
      * radius. The output is given as a vector of pairs, of which the first
      * element is a point index and the second the corresponding distance.
@@ -1975,6 +2015,63 @@ class KDTreeSingleIndexAdaptor
             }
         }
         dists[idx] = dst;
+        return true;
+    }
+
+    /**
+     * Performs an exact search in the tree starting from a node.
+     * \tparam RESULTSET Should be any ResultSet<DistanceType>
+     */
+    template <class RESULTSET>
+    bool searchLevel(
+        RESULTSET& result_set, const PointType& lineSegStart,
+        const PointType& lineSegEnd, const NodePtr node,
+        const BoundingBox& bbox) const
+    {
+        // Check intersection between node's bounding box and the line segment.
+        DistanceType worst_dist = result_set.worstDist();
+        if (!dataset_.kdtree_intersects(lineSegStart, lineSegEnd, bbox, worst_dist, (DIM > 0 ? DIM : Base::dim_)))
+            return true;
+
+        // check all items stored in this node
+        for (IndexType i = node->lr.left; i < node->lr.right; ++i)
+        {
+            const IndexType index = vAcc_[i];  // reorder... : i;
+            DistanceType    dist  = distance_.evalMetric(lineSegStart, lineSegEnd, index, (DIM > 0 ? DIM : Base::dim_));
+            if (dist < worst_dist)
+            {
+                if (!result_set.addPoint(dist, vAcc_[i]))
+                {
+                    // the resultset doesn't want to receive any more
+                    // points, we're done searching!
+                    return false;
+                }
+            }
+        }
+
+        // if we reached a leaf, stop searching
+        if (node->child1 == nullptr && node->child2 == nullptr)
+            return true;
+
+        // search both children
+        BoundingBox left_bbox(bbox);
+        left_bbox[node->sub.divfeat].high = node->sub.divlow;
+        if (!searchLevel(result_set, lineSegStart, lineSegEnd, node->child1, left_bbox))
+        {
+            // the resultset doesn't want to receive any more
+            // points, we're done searching!
+            return false;
+        }
+
+        BoundingBox right_bbox(bbox);
+        right_bbox[node->sub.divfeat].low = node->sub.divhigh;
+        if (!searchLevel(result_set, lineSegStart, lineSegEnd, node->child2, right_bbox))
+        {
+            // the resultset doesn't want to receive any more
+            // points, we're done searching!
+            return false;
+        }
+
         return true;
     }
 
