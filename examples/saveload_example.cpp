@@ -41,7 +41,7 @@ void kdtree_save_load_demo(const size_t N)
     // Generate points:
     generateRandomPointCloud(cloud, N);
 
-    double query_pt[3] = {0.5, 0.5, 0.5};
+    const PointCloud<double>::Point query_pt{0.5, 0.5, 0.5};
 
     // construct a kd-tree index:
     using my_kd_tree_t = nanoflann::KDTreeSingleIndexAdaptor<
@@ -90,7 +90,7 @@ void kdtree_save_load_demo(const size_t N)
         double                          out_dist_sqr;
         nanoflann::KNNResultSet<double> resultSet(num_results);
         resultSet.init(&ret_index, &out_dist_sqr);
-        index.findNeighbors(resultSet, &query_pt[0]);
+        index.findNeighbors(resultSet, query_pt);
 
         std::cout << "knnSearch(nn=" << num_results << "): \n";
         std::cout << "ret_index=" << ret_index

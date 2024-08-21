@@ -42,6 +42,27 @@ struct PointCloudAdaptor
 {
     using coord_t = typename Derived::coord_t;
 
+    struct PointAdaptor
+    {
+        const typename Derived::PointType& point;
+
+        inline coord_t get_component(size_t dim) const
+        {
+            return point.get_component(dim);
+        }
+
+        inline coord_t get_signed_distance(size_t dim, coord_t val) const
+        {
+            return point.get_signed_distance(dim, val);
+        }
+
+        inline coord_t get_distance_to(const PointAdaptor& pt) const
+        {
+            return point.get_distance_to(pt.point);
+        }
+    };
+    using PointType = PointAdaptor;
+
     const Derived& obj;  //!< A const ref to the data set origin
 
     /// The constructor that sets the data set source
@@ -60,25 +81,23 @@ struct PointCloudAdaptor
     // Since this is inlined and the "dim" argument is typically an immediate
     // value, the
     //  "if/else's" are actually solved at compile time.
-    inline coord_t kdtree_get_pt(const size_t idx, const size_t dim) const
+    inline PointAdaptor kdtree_get_pt(const size_t idx) const
     {
-        if (dim == 0)
-            return derived().pts[idx].x;
-        else if (dim == 1)
-            return derived().pts[idx].y;
-        else
-            return derived().pts[idx].z;
+        return PointAdaptor{derived().pts[idx]};
     }
 
-    // Optional bounding-box computation: return false to default to a standard
-    // bbox computation loop.
-    //   Return true if the BBOX was already computed by the class and returned
-    //   in "bb" so it can be avoided to redo it again. Look at bb.size() to
-    //   find out the expected dimensionality (e.g. 2 or 3 for point clouds)
-    template <class BBOX>
-    bool kdtree_get_bbox(BBOX& /*bb*/) const
+    // Get limits for list of points
+    inline void kdtree_get_limits(
+        const uint32_t* ix, size_t count, const size_t dim, coord_t& limit_min,
+        coord_t& limit_max) const
     {
-        return false;
+        limit_min = limit_max = kdtree_get_pt(ix[0]).get_component(dim);
+        for (size_t k = 1; k < count; ++k)
+        {
+            const coord_t value = kdtree_get_pt(ix[k]).get_component(dim);
+            if (value < limit_min) limit_min = value;
+            if (value > limit_max) limit_max = value;
+        }
     }
 
 };  // end of PointCloudAdaptor
@@ -107,10 +126,10 @@ void kdtree_demo(const size_t N)
         size_t                         ret_index;
         num_t                          out_dist_sqr;
         nanoflann::KNNResultSet<num_t> resultSet(num_results);
-        num_t                          query_pt[3] = {0.5, 0.5, 0.5};
+        const PointCloud<num_t>::Point query_pt{0.5, 0.5, 0.5};
 
         resultSet.init(&ret_index, &out_dist_sqr);
-        index.findNeighbors(resultSet, &query_pt[0]);
+        index.findNeighbors(resultSet, {query_pt});
 
         std::cout << "knnSearch(nn=" << num_results << "): \n";
         std::cout << "ret_index=" << ret_index

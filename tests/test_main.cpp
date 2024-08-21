@@ -48,7 +48,7 @@ int main(int argc, char** argv)
     return RUN_ALL_TESTS();
 }
 
-template <typename num_t>
+template <typename num_t, bool LOOSETREE>
 void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
 {
     PointCloud<num_t> cloud;
@@ -56,16 +56,18 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
     // Generate points:
     generateRandomPointCloud(cloud, N);
 
-    num_t query_pt[3] = {0.5, 0.5, 0.5};
+    const PointCloud<num_t>::Point query_pt{num_t(0.5), num_t(0.5), num_t(0.5)};
 
     // construct a kd-tree index:
     using my_kd_tree_simple_t = KDTreeSingleIndexAdaptor<
         L2_Simple_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>,
-        3 /* dim */
+        3 /* dim */,
+        uint32_t /* index type*/,
+        LOOSETREE
         >;
 
     using my_kd_tree_t = KDTreeSingleIndexAdaptor<
-        L2_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>, 3 /* dim */
+        L2_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>, 3 /* dim */, uint32_t /* index type */, LOOSETREE
         >;
 
     my_kd_tree_simple_t index1(
@@ -79,14 +81,14 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
     std::vector<num_t>             out_dist_sqr(num_results);
     nanoflann::KNNResultSet<num_t> resultSet(num_results);
     resultSet.init(&ret_index[0], &out_dist_sqr[0]);
-    index1.findNeighbors(resultSet, &query_pt[0]);
+    index1.findNeighbors(resultSet, query_pt);
 
     std::vector<size_t> ret_index1    = ret_index;
     std::vector<num_t>  out_dist_sqr1 = out_dist_sqr;
 
     resultSet.init(&ret_index[0], &out_dist_sqr[0]);
 
-    index2.findNeighbors(resultSet, &query_pt[0]);
+    index2.findNeighbors(resultSet, query_pt);
 
     for (size_t i = 0; i < num_results; i++)
     {
@@ -115,7 +117,7 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
     radiusResults.init();
     nanoflann::SearchParameters searchParams;
     searchParams.sorted = true;
-    index1.findNeighbors(radiusResults, &query_pt[0], searchParams);
+    index1.findNeighbors(radiusResults, query_pt, searchParams);
 
     // Ensure results are sorted:
     lastDist = -1;
@@ -176,7 +178,7 @@ void L2_vs_bruteforce_test(
     nanoflann::KNNResultSet<NUM> resultSet(num_results);
 
     resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-    mat_index.index->findNeighbors(resultSet, &query_pt[0]);
+    mat_index.index->findNeighbors(resultSet, my_kd_tree_t::PointType{query_pt});
 
     const auto nFound = resultSet.size();
 
@@ -248,7 +250,7 @@ void rknn_L2_vs_bruteforce_test(
     nanoflann::RKNNResultSet<NUM> resultSet(num_results, maxRadiusSqr);
 
     resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-    mat_index.index->findNeighbors(resultSet, &query_pt[0]);
+    mat_index.index->findNeighbors(resultSet, my_kd_tree_t::PointType{query_pt});
 
     const auto nFound = resultSet.size();
 
@@ -298,7 +300,7 @@ void SO3_vs_bruteforce_test(const size_t nSamples)
     // Generate points:
     generateRandomPointCloud_Quat(cloud, nSamples);
 
-    NUM query_pt[4] = {0.5, 0.5, 0.5, 0.5};
+    const PointCloud_Quat<NUM>::PointType query_pt{0.5, 0.5, 0.5, 0.5};
 
     // construct a kd-tree index:
     typedef KDTreeSingleIndexAdaptor<
@@ -317,7 +319,7 @@ void SO3_vs_bruteforce_test(const size_t nSamples)
     nanoflann::KNNResultSet<NUM> resultSet(num_results);
 
     resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-    index.findNeighbors(resultSet, &query_pt[0]);
+    index.findNeighbors(resultSet, query_pt);
 
     // Brute force:
     double min_dist_L2 = std::numeric_limits<double>::max();
@@ -327,8 +329,8 @@ void SO3_vs_bruteforce_test(const size_t nSamples)
         {
             double dist = 0.0;
             for (int d = 0; d < 4; d++)
-                dist += (query_pt[d] - cloud.kdtree_get_pt(i, d)) *
-                        (query_pt[d] - cloud.kdtree_get_pt(i, d));
+                dist += (query_pt.get_component(d) - cloud.kdtree_get_pt(i).get_component(d)) *
+                        (query_pt.get_component(d) - cloud.kdtree_get_pt(i).get_component(d));
             if (dist < min_dist_L2)
             {
                 min_dist_L2 = dist;
@@ -351,7 +353,7 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
     // Generate points:
     generateRandomPointCloud_Orient(cloud, nSamples);
 
-    NUM query_pt[1] = {0.5};
+    const PointCloud_Orient<NUM>::PointType query_pt{0.5};
 
     // construct a kd-tree index:
     typedef KDTreeSingleIndexAdaptor<
@@ -370,7 +372,7 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
     nanoflann::KNNResultSet<NUM> resultSet(num_results);
 
     resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-    index.findNeighbors(resultSet, &query_pt[0]);
+    index.findNeighbors(resultSet, query_pt);
 
     // Brute force:
     double min_dist_SO2 = std::numeric_limits<double>::max();
@@ -379,7 +381,7 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
         for (size_t i = 0; i < nSamples; i++)
         {
             double dist = 0.0;
-            dist        = cloud.kdtree_get_pt(i, 0) - query_pt[0];
+            dist        = cloud.kdtree_get_pt(i).get_component(0) - query_pt.get_component(0);
             if (dist > nanoflann::pi_const<double>())
                 dist -= 2 * nanoflann::pi_const<double>();
             else if (dist < -nanoflann::pi_const<double>())
@@ -419,7 +421,7 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
     // Generate points:
     generateRandomPointCloud(cloud, nSamples, max_range);
 
-    NUM query_pt[3] = {0.5, 0.5, 0.5};
+    const PointCloud<NUM>::PointType query_pt{0.5, 0.5, 0.5};
 
     // add points in chunks at a time
     size_t chunk_size = 100;
@@ -439,7 +441,7 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
         nanoflann::KNNResultSet<NUM> resultSet(num_results);
 
         resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-        index.findNeighbors(resultSet, &query_pt[0]);
+        index.findNeighbors(resultSet, query_pt);
 
         // Brute force:
         double min_dist_L2 = std::numeric_limits<double>::max();
@@ -449,8 +451,8 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
             {
                 double dist = 0.0;
                 for (int d = 0; d < 3; d++)
-                    dist += (query_pt[d] - cloud.kdtree_get_pt(i, d)) *
-                            (query_pt[d] - cloud.kdtree_get_pt(i, d));
+                    dist += (query_pt.get_component(d) - cloud.kdtree_get_pt(i).get_component(d)) *
+                            (query_pt.get_component(d) - cloud.kdtree_get_pt(i).get_component(d));
                 if (dist < min_dist_L2)
                 {
                     min_dist_L2 = dist;
@@ -478,7 +480,7 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
         nanoflann::KNNResultSet<NUM> resultSet(num_results);
 
         resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-        index.findNeighbors(resultSet, &query_pt[0]);
+        index.findNeighbors(resultSet, query_pt);
 
         // Brute force:
         double min_dist_L2 = std::numeric_limits<double>::max();
@@ -488,8 +490,8 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
             {
                 double dist = 0.0;
                 for (int d = 0; d < 3; d++)
-                    dist += (query_pt[d] - cloud.kdtree_get_pt(i, d)) *
-                            (query_pt[d] - cloud.kdtree_get_pt(i, d));
+                    dist += (query_pt.get_component(d) - cloud.kdtree_get_pt(i).get_component(d)) *
+                            (query_pt.get_component(d) - cloud.kdtree_get_pt(i).get_component(d));
                 if (dist < min_dist_L2)
                 {
                     min_dist_L2 = dist;
@@ -537,7 +539,7 @@ void L2_concurrent_build_vs_bruteforce_test(
     nanoflann::KNNResultSet<NUM> resultSet(num_results);
 
     resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-    mat_index.index->findNeighbors(resultSet, &query_pt[0]);
+    mat_index.index->findNeighbors(resultSet, my_kd_tree_t::PointType{query_pt});
 
     // Brute force:
     double min_dist_L2 = std::numeric_limits<double>::max();
@@ -592,12 +594,157 @@ void L2_concurrent_build_vs_L2_test(const size_t nSamples, const size_t DIM)
     EXPECT_EQ(mat_index.index->vAcc_, mat_index_concurrent_build.index->vAcc_);
 }
 
+template <typename num_t, bool LOOSETREE>
+void radius_search_test()
+{
+    PointCloud<num_t> cloud;
+    generateGridPointCloud(cloud, 3, 4, 5);
+
+    const PointCloud<num_t>::Point query_pt{num_t(1.22), num_t(2.12), num_t(3.47)};
+
+    // construct a kd-tree index:
+    typedef KDTreeSingleIndexAdaptor<
+        L2_Simple_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>,
+        3 /* dim */, uint32_t, LOOSETREE>
+        my_kd_tree_simple_t;
+
+    my_kd_tree_simple_t index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
+    index.buildIndex();
+
+    // do a radius search
+    const num_t radius = num_t(1.88);
+    std::vector<ResultItem<uint32_t, num_t>> matches;
+    matches.reserve(30);
+    const auto num_results = index.radiusSearch(query_pt, radius, matches);
+    ASSERT_EQ(num_results, matches.size());
+
+    // execute linear search through the points
+    std::vector<std::pair<uint32_t, num_t>> checkMatches;
+    checkMatches.reserve(30);
+    for (size_t i = 0; i < cloud.kdtree_get_point_count(); ++i)
+    {
+        const auto dist = cloud.kdtree_get_pt(i).get_distance_to(query_pt);
+        if (dist < radius)
+            checkMatches.emplace_back(i, dist);
+    }
+    ASSERT_EQ(num_results, checkMatches.size());
+    std::sort(checkMatches.begin(), checkMatches.end(), IndexDist_Sorter());
+
+    for (size_t i = 0; i < num_results; i++)
+    {
+        EXPECT_EQ(matches[i].first, checkMatches[i].first);
+        EXPECT_EQ(matches[i].second, checkMatches[i].second);
+    }
+}
+
+template <typename num_t, bool LOOSETREE>
+void radius_search_dynamic_test()
+{
+    PointCloud<num_t> cloud;
+    generateGridPointCloud(cloud, 3, 4, 5);
+
+    const PointCloud<num_t>::Point query_pt{
+        num_t(1.22), num_t(2.12), num_t(3.47)};
+
+    // construct a kd-tree index:
+    typedef KDTreeSingleIndexDynamicAdaptor<
+        L2_Simple_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>,
+        3 /* dim */, uint32_t, LOOSETREE>
+        my_kd_tree_simple_t;
+
+    // the constructor also adds the points currently stored in cloud
+    my_kd_tree_simple_t index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */), 1000 /* maximum points count */);
+
+    // add some more points
+    const size_t numPoints = cloud.pts.size();
+    generateGridPointCloud(cloud, 3, 4, 5);
+    for (size_t k = numPoints; k < cloud.pts.size(); ++k)
+        cloud.pts[k].x += num_t(0.5);
+    index.addPoints(numPoints, cloud.pts.size() - 1);
+
+    // do a radius search
+    const num_t radius = num_t(1.88);
+    std::vector<ResultItem<uint32_t, num_t>> matches;
+    matches.reserve(30);
+    const auto num_results = index.radiusSearch(query_pt, radius, matches);
+    ASSERT_EQ(num_results, matches.size());
+
+    // execute linear search through the points
+    std::vector<std::pair<uint32_t, num_t>> checkMatches;
+    checkMatches.reserve(30);
+    for (size_t i = 0; i < cloud.kdtree_get_point_count(); ++i)
+    {
+        const auto dist = cloud.kdtree_get_pt(i).get_distance_to(query_pt);
+        if (dist < radius) checkMatches.emplace_back(i, dist);
+    }
+    ASSERT_EQ(num_results, checkMatches.size());
+    std::sort(checkMatches.begin(), checkMatches.end(), IndexDist_Sorter());
+
+    for (size_t i = 0; i < num_results; i++)
+    {
+        EXPECT_EQ(matches[i].first, checkMatches[i].first);
+        EXPECT_EQ(matches[i].second, checkMatches[i].second);
+    }
+}
+
+template <typename num_t, bool LOOSETREE>
+void box_search_test()
+{
+    PointCloud<num_t> cloud;
+    generateGridPointCloud(cloud, 6, 7, 8);
+
+    // do a box search (using lineSeg and interpreting start/end points as
+    // min/max points of a box)
+    const PointCloud<num_t>::Point minPoint{num_t(1.22), num_t(2.12), num_t(3.47)};
+    const PointCloud<num_t>::Point maxPoint{num_t(2.42), num_t(3.82), num_t(5.17)};
+
+    // distance from the box (don't use 0.0)
+    constexpr num_t cRadius = num_t(1e-6);
+
+    // construct a kd-tree index:
+    typedef KDTreeSingleIndexAdaptor<
+        L2_Simple_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>,
+        3 /* dim */, uint32_t, LOOSETREE>
+        my_kd_tree_simple_t;
+
+    my_kd_tree_simple_t index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
+    index.buildIndex();
+
+    // do the search
+    std::vector<ResultItem<uint32_t, num_t>> matches;
+    matches.reserve(30);
+    const auto num_results = index.lineSegSearch(minPoint, maxPoint, cRadius, matches);
+    ASSERT_EQ(num_results, matches.size());
+    std::sort(matches.begin(), matches.end());
+
+    // execute linear search through the points
+    std::vector<ResultItem<uint32_t, num_t>> checkMatches;
+    checkMatches.reserve(30);
+    for (size_t i = 0; i < cloud.kdtree_get_point_count(); ++i)
+    {
+        const auto dist = cloud.kdtree_get_pt(i).get_distance_to(minPoint, maxPoint);
+        if (dist < cRadius)
+            checkMatches.emplace_back(i, dist);
+    }
+    ASSERT_EQ(num_results, checkMatches.size());
+    std::sort(checkMatches.begin(), checkMatches.end());
+
+    for (size_t i = 0; i < num_results; i++)
+    {
+        EXPECT_EQ(matches[i].first, checkMatches[i].first);
+        EXPECT_EQ(matches[i].second, checkMatches[i].second);
+    }
+}
+
 TEST(kdtree, L2_vs_L2_simple)
 {
     for (int nResults = 1; nResults < 10; nResults++)
     {
-        L2_vs_L2_simple_test<float>(100, nResults);
-        L2_vs_L2_simple_test<double>(100, nResults);
+        L2_vs_L2_simple_test<float, false>(100, nResults);
+        L2_vs_L2_simple_test<double, false>(100, nResults);
+
+        L2_vs_L2_simple_test<float, true>(100, nResults);
+        L2_vs_L2_simple_test<double, true>(100, nResults);
     }
 }
 
@@ -607,7 +754,7 @@ TEST(kdtree, robust_empty_tree)
     // robustness against this situation:
     PointCloud<double> cloud;
 
-    double query_pt[3] = {0.5, 0.5, 0.5};
+    const PointCloud<double>::Point query_pt{0.5, 0.5, 0.5};
 
     // construct a kd-tree index:
     typedef KDTreeSingleIndexAdaptor<
@@ -626,7 +773,7 @@ TEST(kdtree, robust_empty_tree)
     std::vector<double>             out_dist_sqr(num_results);
     nanoflann::KNNResultSet<double> resultSet(num_results);
     resultSet.init(&ret_index[0], &out_dist_sqr[0]);
-    bool result = index1.findNeighbors(resultSet, &query_pt[0]);
+    bool result = index1.findNeighbors(resultSet, query_pt);
     EXPECT_EQ(result, false);
 }
 
@@ -721,7 +868,7 @@ TEST(kdtree, robust_nonempty_tree)
     const size_t       max_point_count = 1000;
     generateRandomPointCloud(cloud, max_point_count);
 
-    const double query_pt[3] = {0.5, 0.5, 0.5};
+    const PointCloud<double>::Point query_pt{0.5, 0.5, 0.5};
 
     // construct a kd-tree index:
     typedef KDTreeSingleIndexDynamicAdaptor<
@@ -739,7 +886,7 @@ TEST(kdtree, robust_nonempty_tree)
     std::vector<double>             out_dist_sqr(num_results);
     nanoflann::KNNResultSet<double> resultSet(num_results);
     resultSet.init(&ret_index[0], &out_dist_sqr[0]);
-    bool result = index1.findNeighbors(resultSet, &query_pt[0]);
+    bool result = index1.findNeighbors(resultSet, query_pt);
     EXPECT_EQ(result, true);
 }
 
@@ -757,14 +904,14 @@ TEST(kdtree, add_and_remove_points)
 
     const auto query = [&index]() -> size_t
     {
-        const double                    query_pt[3] = {0.5, 0.5, 0.5};
+        const PointCloud<double>::Point query_pt{0.5, 0.5, 0.5};
         const size_t                    num_results = 1;
         std::vector<size_t>             ret_index(num_results);
         std::vector<double>             out_dist_sqr(num_results);
         nanoflann::KNNResultSet<double> resultSet(num_results);
 
         resultSet.init(&ret_index[0], &out_dist_sqr[0]);
-        index.findNeighbors(resultSet, &query_pt[0]);
+        index.findNeighbors(resultSet, query_pt);
 
         return ret_index[0];
     };
@@ -814,4 +961,28 @@ TEST(kdtree, L2_concurrent_build_vs_L2)
         L2_concurrent_build_vs_L2_test<double>(100, 3);
         L2_concurrent_build_vs_L2_test<double>(100, 7);
     }
+}
+
+TEST(kdtree, RadiusSearch)
+{
+    radius_search_test<float, false>();
+    radius_search_test<double, false>();
+
+    radius_search_test<float, true>();
+    radius_search_test<double, true>();
+
+    radius_search_dynamic_test<float, false>();
+    radius_search_dynamic_test<double, false>();
+
+    radius_search_dynamic_test<float, true>();
+    radius_search_dynamic_test<double, true>();
+}
+
+TEST(kdtree, BoxSearch)
+{
+    box_search_test<float, false>();
+    box_search_test<double, false>();
+
+    box_search_test<float, true>();
+    box_search_test<double, true>();
 }

@@ -58,7 +58,7 @@ void kdtree_demo(const size_t N)
 	index.buildIndex();
 #endif
 
-    const num_t query_pt[3] = {0.5, 0.5, 0.5};
+    const PointCloud<num_t>::Point query_pt{0.5, 0.5, 0.5};
 
     // ----------------------------------------------------------------
     // knnSearch():  Perform a search for the N closest points
@@ -69,7 +69,7 @@ void kdtree_demo(const size_t N)
         std::vector<num_t>    out_dist_sqr(num_results);
 
         num_results = index.knnSearch(
-            &query_pt[0], num_results, &ret_index[0], &out_dist_sqr[0]);
+            query_pt, num_results, &ret_index[0], &out_dist_sqr[0]);
 
         // In case of less points in the tree than requested:
         ret_index.resize(num_results);
@@ -93,7 +93,7 @@ void kdtree_demo(const size_t N)
         // params.sorted = false;
 
         const size_t nMatches =
-            index.radiusSearch(&query_pt[0], search_radius, ret_matches);
+            index.radiusSearch(query_pt, search_radius, ret_matches);
 
         cout << "radiusSearch(): radius=" << search_radius << " -> " << nMatches
              << " matches\n";
