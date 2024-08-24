@@ -61,7 +61,7 @@
 #include <vector>
 
 /** Library version: 0xMmP (M=Major,m=minor,P=patch) */
-#define NANOFLANN_VERSION 0x160
+#define NANOFLANN_VERSION 0x161
 
 // Avoid conflicting declaration of min/max macros in Windows headers
 #if !defined(NOMINMAX) && \
@@ -156,7 +156,6 @@ inline typename std::enable_if<!has_assign<Container>::value, void>::type
 {
     for (size_t i = 0; i < nElements; i++) c[i] = value;
 }
-
 
 /** operator "<" for std::sort() */
 struct IndexDist_Sorter
@@ -2620,8 +2619,7 @@ struct KDTreeEigenMatrixAdaptor
     explicit KDTreeEigenMatrixAdaptor(
         const Dimension                                 dimensionality,
         const std::reference_wrapper<const MatrixType>& mat,
-        const int                                       leaf_max_size = 10,
-        const unsigned int                              n_thread_build = 1)
+        const int leaf_max_size = 10, const unsigned int n_thread_build = 1)
         : m_data_matrix(mat)
     {
         const auto dims = row_major ? mat.get().cols() : mat.get().rows();
@@ -2635,9 +2633,9 @@ struct KDTreeEigenMatrixAdaptor
                 "argument");
         index_ = new index_t(
             dims, *this /* adaptor */,
-            nanoflann::KDTreeSingleIndexAdaptorParams(leaf_max_size,
-            nanoflann::KDTreeSingleIndexAdaptorFlags::None,
-            n_thread_build));
+            nanoflann::KDTreeSingleIndexAdaptorParams(
+                leaf_max_size, nanoflann::KDTreeSingleIndexAdaptorFlags::None,
+                n_thread_build));
     }
 
    public:

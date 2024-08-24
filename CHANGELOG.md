@@ -1,3 +1,7 @@
+# nanoflann 1.6.1: Released Aug 24, 2024
+ - Add conan install instructions.
+ - Add multiple thread kdtree build support for KDTreeEigenMatrixAdaptor ([PR #246](https://github.com/jlblancoc/nanoflann/pull/246))
+
 # nanoflann 1.6.0: Released Jul 11, 2024
  - BUG FIX: nanoflann::SearchParameters::sorted was ignored for RadiusResultSet.
  - ResultSet classes now must implement a sort() method.
