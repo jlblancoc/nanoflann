@@ -1740,7 +1740,7 @@ class KDTreeSingleIndexAdaptor
         this->freeIndex(*this);
         Base::size_at_index_build_ = Base::size_;
         if (Base::size_ == 0) return;
-        computeBoundingBox(*this, vAcc_.data(), vAcc_.size(), Base::root_bbox_);
+        Base::computeBoundingBox(*this, Base::vAcc_.data(), Base::vAcc_.size(), Base::root_bbox_);
 
         // construct the tree
         if (Base::n_thread_build_ == 1)
@@ -2051,11 +2051,11 @@ class KDTreeSingleIndexAdaptor
         // check all items stored in this node
         for (Offset i = node->lr.left; i < node->lr.right; ++i)
         {
-            const IndexType index = vAcc_[i];  // reorder... : i;
+            const IndexType index = Base::vAcc_[i];  // reorder... : i;
             DistanceType    dist  = distance_.evalMetric(lineSegStart, lineSegEnd, index, (DIM > 0 ? DIM : Base::dim_));
             if (dist < worst_dist)
             {
-                if (!result_set.addPoint(dist, vAcc_[i]))
+                if (!result_set.addPoint(dist, Base::vAcc_[i]))
                 {
                     // the resultset doesn't want to receive any more
                     // points, we're done searching!
@@ -2252,7 +2252,7 @@ class KDTreeSingleIndexDynamicAdaptor_
         this->freeIndex(*this);
         Base::size_at_index_build_ = Base::size_;
         if (Base::size_ == 0) return;
-        computeBoundingBox(*this, vAcc_.data(), vAcc_.size(), Base::root_bbox_);
+        computeBoundingBox(*this, Base::vAcc_.data(), Base::vAcc_.size(), Base::root_bbox_);
 
         // construct the tree
         if (Base::n_thread_build_ == 1)
