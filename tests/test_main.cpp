@@ -178,7 +178,7 @@ void L2_vs_bruteforce_test(
     nanoflann::KNNResultSet<NUM> resultSet(num_results);
 
     resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-    mat_index.index->findNeighbors(resultSet, my_kd_tree_t::PointType{query_pt});
+    mat_index.index->findNeighbors(resultSet, my_kd_tree_t::PointType(query_pt));
 
     const auto nFound = resultSet.size();
 
@@ -250,7 +250,7 @@ void rknn_L2_vs_bruteforce_test(
     nanoflann::RKNNResultSet<NUM> resultSet(num_results, maxRadiusSqr);
 
     resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-    mat_index.index->findNeighbors(resultSet, my_kd_tree_t::PointType{query_pt});
+    mat_index.index->findNeighbors(resultSet, my_kd_tree_t::PointType(query_pt));
 
     const auto nFound = resultSet.size();
 
@@ -539,7 +539,7 @@ void L2_concurrent_build_vs_bruteforce_test(
     nanoflann::KNNResultSet<NUM> resultSet(num_results);
 
     resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
-    mat_index.index->findNeighbors(resultSet, my_kd_tree_t::PointType{query_pt});
+    mat_index.index->findNeighbors(resultSet, my_kd_tree_t::PointType(query_pt));
 
     // Brute force:
     double min_dist_L2 = std::numeric_limits<double>::max();

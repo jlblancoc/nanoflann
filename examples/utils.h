@@ -105,7 +105,7 @@ struct PointCloud
 
 	// Intersection between node's bounding box and line segment (required only if nanoflann::KDTreeSingleIndexAdaptor<>::lineSegSearch is used)
 	template<class BBOX>
-	bool kdtree_intersects(const PointType& minPoint, const PointType& maxPoint, const BBOX& bbox, T max_dist, size_t /*dim*/) const
+	bool kdtree_intersects(const PointType& minPoint, const PointType& maxPoint, const BBOX& bbox, T max_dist, nanoflann::Int2Type<3>) const
 	{
 		const auto minmaxx = std::minmax(minPoint.x, maxPoint.x);
 		if (minmaxx.second + max_dist < bbox[0].low || bbox[0].high + max_dist < minmaxx.first)

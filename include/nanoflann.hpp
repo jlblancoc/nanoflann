@@ -1708,7 +1708,7 @@ class KDTreeSingleIndexAdaptor
         Base::size_                = dataset_.kdtree_get_point_count();
         Base::size_at_index_build_ = Base::size_;
         Base::dim_                 = dimensionality;
-        if (DIM > 0) Base::dim_ = DIM;
+        if constexpr (DIM > 0) Base::dim_ = DIM;
         Base::leaf_max_size_ = params.leaf_max_size;
         if (params.n_thread_build > 0)
         {
@@ -2037,7 +2037,7 @@ class KDTreeSingleIndexAdaptor
     {
         // Check intersection between node's bounding box and the line segment.
         DistanceType worst_dist = result_set.worstDist();
-        if (DIM > 0)
+        if constexpr (DIM > 0)
         {
             if (!dataset_.kdtree_intersects(lineSegStart, lineSegEnd, bbox, worst_dist, Int2Type<DIM>()))
                 return true;
@@ -2209,7 +2209,7 @@ class KDTreeSingleIndexDynamicAdaptor_
         Base::size_at_index_build_ = 0;
         for (auto& v : Base::root_bbox_) v = {};
         Base::dim_ = dimensionality;
-        if (DIM > 0) Base::dim_ = DIM;
+        if constexpr (DIM > 0) Base::dim_ = DIM;
         Base::leaf_max_size_ = params.leaf_max_size;
         if (params.n_thread_build > 0)
         {
@@ -2252,7 +2252,7 @@ class KDTreeSingleIndexDynamicAdaptor_
         this->freeIndex(*this);
         Base::size_at_index_build_ = Base::size_;
         if (Base::size_ == 0) return;
-        computeBoundingBox(*this, Base::vAcc_.data(), Base::vAcc_.size(), Base::root_bbox_);
+        Base::computeBoundingBox(*this, Base::vAcc_.data(), Base::vAcc_.size(), Base::root_bbox_);
 
         // construct the tree
         if (Base::n_thread_build_ == 1)
@@ -2595,7 +2595,7 @@ class KDTreeSingleIndexDynamicAdaptor
         pointCount_ = 0U;
         dim_        = dimensionality;
         treeIndex_.clear();
-        if (DIM > 0) dim_ = DIM;
+        if constexpr (DIM > 0) dim_ = DIM;
         leaf_max_size_ = params.leaf_max_size;
         init();
         const size_t num_initial_points = dataset_.kdtree_get_point_count();

@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------
 # Root CMake file for nanoflann
 # ----------------------------------------------------------------------------
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.12)
 
 # Extract library version into "NANOFLANN_VERSION"
 # -----------------------------------------------------
@@ -37,6 +37,8 @@ endif()
 if(MSVC)
 	 add_definitions( "/W3 /D_CRT_SECURE_NO_WARNINGS /nologo" )
 endif()
+
+set(CMAKE_CXX_STANDARD 20)
 
 # Solution Folder options:
 if (${CMAKE_SOURCE_DIR} STREQUAL ${PROJECT_SOURCE_DIR})
