@@ -1441,10 +1441,11 @@ class KDTreeBaseClass
                 while (left <= right &&
                        !dataset_is_overlap(obj, vAcc_[ind + left], cutfeat, cutval))
                     ++left;
-                while (left <= right &&
+                while (right && left <= right &&
                        dataset_is_overlap(obj, vAcc_[ind + right], cutfeat, cutval))
                     --right;
-                if (left > right) break;
+                if (left > right || !right)
+                    break;  // "!right" was added to support unsigned Index types
                 std::swap(vAcc_[ind + left], vAcc_[ind + right]);
                 ++left;
                 --right;
