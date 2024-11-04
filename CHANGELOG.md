@@ -1,5 +1,6 @@
 # nanoflann 1.6.2: Released Nov 4, 2024
  - BUG FIX: Fix middleSplit_ for same points by @yzabalotski in https://github.com/jlblancoc/nanoflann/pull/250
+ - Fix build warnings.
 
 # nanoflann 1.6.1: Released Aug 24, 2024
  - Add conan install instructions.
