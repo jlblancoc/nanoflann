@@ -815,3 +815,22 @@ TEST(kdtree, L2_concurrent_build_vs_L2)
         L2_concurrent_build_vs_L2_test<double>(100, 7);
     }
 }
+
+TEST(kdtree, same_points)
+{
+    using num_t         = double;
+    using point_cloud_t = PointCloud<num_t>;
+    using kdtree_t      = KDTreeSingleIndexAdaptor<
+             L2_Simple_Adaptor<num_t, point_cloud_t>, point_cloud_t, 3 /* dim */>;
+
+    point_cloud_t cloud;
+    cloud.pts.resize(16);
+    for (size_t i = 0; i < 16; ++i)
+    {
+        cloud.pts[i].x = -1.;
+        cloud.pts[i].y = 0.;
+        cloud.pts[i].z = 1.;
+    }
+
+    kdtree_t idx(3 /*dim*/, cloud);
+}

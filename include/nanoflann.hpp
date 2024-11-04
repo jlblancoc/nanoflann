@@ -1135,6 +1135,8 @@ class KDTreeBaseClass
     NodePtr divideTree(
         Derived& obj, const Offset left, const Offset right, BoundingBox& bbox)
     {
+        assert(left < obj.dataset_.kdtree_get_point_count());
+
         NodePtr node = obj.pool_.template allocate<Node>();  // allocate memory
         const auto dims = (DIM > 0 ? DIM : obj.dim_);
 
@@ -1306,7 +1308,7 @@ class KDTreeBaseClass
         for (Dimension i = 0; i < dims; ++i)
         {
             ElementType span = bbox[i].high - bbox[i].low;
-            if (span > (1 - EPS) * max_span)
+            if (span >= (1 - EPS) * max_span)
             {
                 ElementType min_elem_, max_elem_;
                 computeMinMax(obj, ind, count, i, min_elem_, max_elem_);
