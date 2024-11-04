@@ -1808,7 +1808,8 @@ class KDTreeSingleIndexAdaptor
         // Create a permutable array of indices to the input vectors.
         Base::size_ = dataset_.kdtree_get_point_count();
         if (Base::vAcc_.size() != Base::size_) Base::vAcc_.resize(Base::size_);
-        for (Size i = 0; i < Base::size_; i++) Base::vAcc_[i] = i;
+        for (IndexType i = 0; i < static_cast<IndexType>(Base::size_); i++)
+            Base::vAcc_[i] = i;
     }
 
     void computeBoundingBox(BoundingBox& bbox)

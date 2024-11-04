@@ -182,6 +182,7 @@ struct PointCloud_Orient
     //  "if/else's" are actually solved at compile time.
     inline T kdtree_get_pt(const size_t idx, const size_t dim = 0) const
     {
+        (void)dim;
         return pts[idx].theta;
     }
 

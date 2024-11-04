@@ -115,7 +115,7 @@ void kdtree_demo(const size_t nSamples, const size_t dim)
                   << " out_dist_sqr=" << out_dists_sqr[i] << std::endl;
 }
 
-int main(int argc, char** argv)
+int main(int /*argc*/, char** /*argv*/)
 {
     // Randomize Seed
     // srand(static_cast<unsigned int>(time(nullptr)));
