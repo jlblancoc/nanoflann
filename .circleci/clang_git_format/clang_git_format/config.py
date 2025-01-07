@@ -1,2 +1,2 @@
 
-PROGNAME = "clang-format-11"
+PROGNAME = "clang-format-14"

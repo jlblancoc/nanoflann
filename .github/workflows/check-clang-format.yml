@@ -31,7 +31,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          sudo apt install clang-format-11 -yq
+          sudo apt install clang-format-14 -yq
           pip3 install --user -r .circleci/python_reqs.txt
 
       - name: Check code style
