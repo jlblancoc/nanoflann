@@ -1,7 +1,7 @@
 /***********************************************************************
  * Software License Agreement (BSD License)
  *
- * Copyright 2011-2024 Jose Luis Blanco (joseluisblancoc@gmail.com).
+ * Copyright 2011-2025 Jose Luis Blanco (joseluisblancoc@gmail.com).
  *   All rights reserved.
  *
  * THE BSD LICENSE
@@ -821,7 +821,7 @@ TEST(kdtree, same_points)
     using num_t         = double;
     using point_cloud_t = PointCloud<num_t>;
     using kdtree_t      = KDTreeSingleIndexAdaptor<
-             L2_Simple_Adaptor<num_t, point_cloud_t>, point_cloud_t, 3 /* dim */>;
+        L2_Simple_Adaptor<num_t, point_cloud_t>, point_cloud_t, 3 /* dim */>;
 
     point_cloud_t cloud;
     cloud.pts.resize(16);
