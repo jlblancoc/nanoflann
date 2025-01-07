@@ -116,7 +116,7 @@ void kdtree_demo(const size_t N)
         const num_t                                       radiusSqr = 1;
         std::vector<nanoflann::ResultItem<size_t, num_t>> indices_dists;
         nanoflann::RadiusResultSet<num_t, size_t>         resultSet(
-            radiusSqr, indices_dists);
+                    radiusSqr, indices_dists);
 
         index.findNeighbors(resultSet, query_pt);
 

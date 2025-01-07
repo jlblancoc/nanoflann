@@ -101,7 +101,8 @@ void kdtree_demo(const size_t N)
 
     dump_mem_usage();
 
-    auto do_knn_search = [](const my_kd_tree_t& index) {
+    auto do_knn_search = [](const my_kd_tree_t& index)
+    {
         // do a knn search
         const size_t                   num_results = 1;
         size_t                         ret_index;
