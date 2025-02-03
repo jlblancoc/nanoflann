@@ -220,8 +220,6 @@ class KNNResultSet
         indices = indices_;
         dists   = dists_;
         count   = 0;
-        if (capacity)
-            dists[capacity - 1] = (std::numeric_limits<DistanceType>::max)();
     }
 
     CountType size() const { return count; }
@@ -268,7 +266,13 @@ class KNNResultSet
         return true;
     }
 
-    DistanceType worstDist() const { return dists[capacity - 1]; }
+    //! Returns the worst distance among found solutions if the search result is
+    //! full, or the maximum possible distance, if not full yet.
+    DistanceType worstDist() const
+    {
+        return count < capacity ? std::numeric_limits<DistanceType>::max()
+                                : dists[count - 1];
+    }
 
     void sort()
     {
@@ -357,7 +361,13 @@ class RKNNResultSet
         return true;
     }
 
-    DistanceType worstDist() const { return dists[capacity - 1]; }
+    //! Returns the worst distance among found solutions if the search result is
+    //! full, or the maximum possible distance, if not full yet.
+    DistanceType worstDist() const
+    {
+        return count < capacity ? maximumSearchDistanceSquared
+                                : dists[count - 1];
+    }
 
     void sort()
     {
@@ -1690,7 +1700,7 @@ class KDTreeSingleIndexAdaptor
         // fixed or variable-sized container (depending on DIM)
         distance_vector_t dists;
         // Fill it with zeros.
-        auto zero = static_cast<decltype(result.worstDist())>(0);
+        auto zero = static_cast<typename RESULTSET::DistanceType>(0);
         assign(dists, (DIM > 0 ? DIM : Base::dim_), zero);
         DistanceType dist = this->computeInitialDistances(*this, vec, dists);
         searchLevel(result, vec, Base::root_node_, dist, dists, epsError);

@@ -88,14 +88,17 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
 
     index2.findNeighbors(resultSet, &query_pt[0]);
 
-    for (size_t i = 0; i < num_results; i++)
+    if (N >= num_results) { EXPECT_EQ(resultSet.size(), num_results); }
+    else { EXPECT_EQ(resultSet.size(), N); }
+
+    for (size_t i = 0; i < resultSet.size(); i++)
     {
         EXPECT_EQ(ret_index1[i], ret_index[i]);
         EXPECT_DOUBLE_EQ(out_dist_sqr1[i], out_dist_sqr[i]);
     }
     // Ensure results are sorted:
     num_t lastDist = -1;
-    for (size_t i = 0; i < out_dist_sqr.size(); i++)
+    for (size_t i = 0; i < resultSet.size(); i++)
     {
         const num_t newDist = out_dist_sqr[i];
         EXPECT_GE(newDist, lastDist);
@@ -180,6 +183,12 @@ void L2_vs_bruteforce_test(
 
     const auto nFound = resultSet.size();
 
+    EXPECT_TRUE(nFound > 0);
+    if (resultSet.full())
+    {
+        EXPECT_EQ(resultSet.worstDist(), out_dists_sqr.at(nFound - 1));
+    }
+
     // Brute force neighbors:
     std::multimap<NUM /*dist*/, size_t /*idx*/> bf_nn;
     {
@@ -251,6 +260,11 @@ void rknn_L2_vs_bruteforce_test(
     mat_index.index->findNeighbors(resultSet, &query_pt[0]);
 
     const auto nFound = resultSet.size();
+
+    if (resultSet.full())
+    {
+        EXPECT_EQ(resultSet.worstDist(), out_dists_sqr.at(nFound - 1));
+    }
 
     // Brute force neighbors:
     std::multimap<NUM /*dist*/, size_t /*idx*/> bf_nn;
@@ -596,6 +610,8 @@ TEST(kdtree, L2_vs_L2_simple)
 {
     for (int nResults = 1; nResults < 10; nResults++)
     {
+        L2_vs_L2_simple_test<float>(5, nResults);
+
         L2_vs_L2_simple_test<float>(100, nResults);
         L2_vs_L2_simple_test<double>(100, nResults);
     }
@@ -637,6 +653,8 @@ TEST(kdtree, L2_vs_bruteforce)
     {
         for (int i = 0; i < 500; i++)
         {
+            L2_vs_bruteforce_test<float>(10, 2, knn);
+
             L2_vs_bruteforce_test<float>(100, 2, knn);
             L2_vs_bruteforce_test<float>(100, 3, knn);
             L2_vs_bruteforce_test<float>(100, 7, knn);
@@ -674,6 +692,8 @@ TEST(kdtree, SO3_vs_bruteforce)
     srand(static_cast<unsigned int>(time(nullptr)));
     for (int i = 0; i < 10; i++)
     {
+        SO3_vs_bruteforce_test<float>(5);
+
         SO3_vs_bruteforce_test<float>(100);
         SO3_vs_bruteforce_test<float>(100);
         SO3_vs_bruteforce_test<float>(100);
