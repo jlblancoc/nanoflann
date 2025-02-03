@@ -1,3 +1,6 @@
+# nanoflann 1.7.0: Released Feb 3, 2025
+ - ResultSets::worstDist(): clarify the meaning of its return value, and made to return the actual worst distance in the found set (only if set is full)
+
 # nanoflann 1.6.3: Released Jan 7, 2025
  - cmake_required_version bumped to 3.10
  - clang-format version bumped to 14
