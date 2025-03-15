@@ -270,8 +270,9 @@ class KNNResultSet
     //! full, or the maximum possible distance, if not full yet.
     DistanceType worstDist() const
     {
-        return count < capacity ? std::numeric_limits<DistanceType>::max()
-                                : dists[count - 1];
+        return (count < capacity || !count)
+                   ? std::numeric_limits<DistanceType>::max()
+                   : dists[count - 1];
     }
 
     void sort()
@@ -365,8 +366,8 @@ class RKNNResultSet
     //! full, or the maximum possible distance, if not full yet.
     DistanceType worstDist() const
     {
-        return count < capacity ? maximumSearchDistanceSquared
-                                : dists[count - 1];
+        return (count < capacity || !count) ? maximumSearchDistanceSquared
+                                            : dists[count - 1];
     }
 
     void sort()
