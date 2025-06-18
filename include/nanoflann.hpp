@@ -1278,9 +1278,13 @@ class KDTreeBaseClass
 
             if (right_future.valid())
             {
+                // While this thread is blocked and waiting for the
+                // concurrent right sub-tree, allow for an additional
+                // worker thread elsewhere.
+                --thread_count;
+
                 // Block and wait for concurrent right sub-tree
                 node->child2 = right_future.get();
-                --thread_count;
             }
             else
             {
