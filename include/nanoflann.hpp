@@ -864,7 +864,7 @@ class PooledAllocator
     /* We maintain memory alignment to word boundaries by requiring that all
         allocations be in multiples of the machine wordsize.  */
     /* Size of machine word in bytes.  Must be power of 2. */
-    /* Minimum number of bytes requested at a time from	the system.  Must be
+    /* Minimum number of bytes requested at a time from the system.  Must be
      * multiple of WORDSIZE. */
 
     using Size = size_t;
@@ -1102,7 +1102,7 @@ class KDTreeBaseClass
     Size size(const Derived& obj) const { return obj.size_; }
 
     /** Returns the length of each point in the dataset */
-    Size veclen(const Derived& obj) { return DIM > 0 ? DIM : obj.dim; }
+    Size veclen(const Derived& obj) const { return DIM > 0 ? DIM : obj.dim; }
 
     /// Helper accessor to the dataset points:
     ElementType dataset_get(
@@ -1112,19 +1112,22 @@ class KDTreeBaseClass
     }
 
     /**
-     * Computes the inde memory usage
+     * Computes the index memory usage
      * Returns: memory used by the index
      */
-    Size usedMemory(Derived& obj)
+    Size usedMemory(const Derived& obj) const
     {
         return obj.pool_.usedMemory + obj.pool_.wastedMemory +
                obj.dataset_.kdtree_get_point_count() *
                    sizeof(IndexType);  // pool memory and vind array memory
     }
 
+    /**
+     * Compute the minimum and maximum element values in the specified dimension
+     */
     void computeMinMax(
         const Derived& obj, Offset ind, Size count, Dimension element,
-        ElementType& min_elem, ElementType& max_elem)
+        ElementType& min_elem, ElementType& max_elem) const
     {
         min_elem = dataset_get(obj, vAcc_[ind], element);
         max_elem = min_elem;
@@ -1142,6 +1145,7 @@ class KDTreeBaseClass
      *
      * @param left index of the first vector
      * @param right index of the last vector
+     * @param bbox bounding box used as input for splitting and output for parent node
      */
     NodePtr divideTree(
         Derived& obj, const Offset left, const Offset right, BoundingBox& bbox)
@@ -1176,6 +1180,7 @@ class KDTreeBaseClass
         }
         else
         {
+            /* Determine the index, dimension and value for split plane */
             Offset       idx;
             Dimension    cutfeat;
             DistanceType cutval;
@@ -1183,10 +1188,12 @@ class KDTreeBaseClass
 
             node->node_type.sub.divfeat = cutfeat;
 
+            /* Recurse on left */
             BoundingBox left_bbox(bbox);
             left_bbox[cutfeat].high = cutval;
             node->child1 = this->divideTree(obj, left, left + idx, left_bbox);
 
+            /* Recurse on right */
             BoundingBox right_bbox(bbox);
             right_bbox[cutfeat].low = cutval;
             node->child2 = this->divideTree(obj, left + idx, right, right_bbox);
@@ -1211,6 +1218,7 @@ class KDTreeBaseClass
      *
      * @param left index of the first vector
      * @param right index of the last vector
+     * @param bbox bounding box used as input for splitting and output for parent node
      * @param thread_count count of std::async threads
      * @param mutex mutex for mempool allocation
      */
@@ -1249,6 +1257,7 @@ class KDTreeBaseClass
         }
         else
         {
+            /* Determine the index, dimension and value for split plane */
             Offset       idx;
             Dimension    cutfeat;
             DistanceType cutval;
@@ -1258,11 +1267,14 @@ class KDTreeBaseClass
 
             std::future<NodePtr> right_future;
 
+            /* Recurse on right concurrently, if possible */
+
             BoundingBox right_bbox(bbox);
             right_bbox[cutfeat].low = cutval;
             if (++thread_count < n_thread_build_)
             {
-                // Concurrent right sub-tree
+                /* Concurrent thread for right recursion */
+
                 right_future = std::async(
                     std::launch::async, &KDTreeBaseClass::divideTreeConcurrent,
                     this, std::ref(obj), left + idx, right,
@@ -1271,6 +1283,8 @@ class KDTreeBaseClass
             }
             else { --thread_count; }
 
+            /* Recurse on left in this thread */
+
             BoundingBox left_bbox(bbox);
             left_bbox[cutfeat].high = cutval;
             node->child1            = this->divideTreeConcurrent(
@@ -1278,12 +1292,15 @@ class KDTreeBaseClass
 
             if (right_future.valid())
             {
-                // Block and wait for concurrent right sub-tree
+                /* Block and wait for concurrent right from above */
+
                 node->child2 = right_future.get();
                 --thread_count;
             }
             else
             {
+                /* Otherwise, recurse on right in this thread */
+
                 node->child2 = this->divideTreeConcurrent(
                     obj, left + idx, right, right_bbox, thread_count, mutex);
             }
@@ -1359,16 +1376,18 @@ class KDTreeBaseClass
      * corresponding to the 'cutfeat' dimension at 'cutval' position.
      *
      *  On return:
-     *  dataset[ind[0..lim1-1]][cutfeat]<cutval
-     *  dataset[ind[lim1..lim2-1]][cutfeat]==cutval
-     *  dataset[ind[lim2..count]][cutfeat]>cutval
+     *  dataset[ind[0..lim1-1]][cutfeat] < cutval
+     *  dataset[ind[lim1..lim2-1]][cutfeat] == cutval
+     *  dataset[ind[lim2..count]][cutfeat] > cutval
      */
     void planeSplit(
         const Derived& obj, const Offset ind, const Size count,
         const Dimension cutfeat, const DistanceType& cutval, Offset& lim1,
         Offset& lim2)
     {
-        /* Move vector indices for left subtree to front of list. */
+        /* First pass.
+         * Determine lim1 with all values less than cutval to the left.
+         */
         Offset left  = 0;
         Offset right = count - 1;
         for (;;)
@@ -1385,8 +1404,9 @@ class KDTreeBaseClass
             ++left;
             --right;
         }
-        /* If either list is empty, it means that all remaining features
-         * are identical. Split in the middle to maintain a balanced tree.
+        /* Second pass
+         * Determine lim2 with all values greater than cutval to the right
+         * The middle is used for balancing the tree
          */
         lim1  = left;
         right = count - 1;
