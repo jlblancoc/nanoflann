@@ -20,22 +20,14 @@ jobs:
         # Github Actions requires a single row to be added to the build matrix.
         # See https://help.github.com/en/articles/workflow-syntax-for-github-actions.
         name: [
-          ubuntu-20.04-gcc,
-          ubuntu-20.04-clang,
           ubuntu-22.04-gcc,
           ubuntu-22.04-clang,
+          ubuntu-24.04-gcc,
+          ubuntu-24.04-clang,
         ]
 
         build_type: [ Release ]
         include:
-          - name: ubuntu-20.04-clang
-            os: ubuntu-20.04
-            compiler: clang
-
-          - name: ubuntu-20.04-gcc
-            os: ubuntu-20.04
-            compiler: gcc
-
           - name: ubuntu-22.04-gcc
             os: ubuntu-22.04
             compiler: gcc
@@ -43,6 +35,14 @@ jobs:
           - name: ubuntu-22.04-clang
             os: ubuntu-22.04
             compiler: clang
+
+          - name: ubuntu-24.04-clang
+            os: ubuntu-24.04
+            compiler: clang
+
+          - name: ubuntu-24.04-gcc
+            os: ubuntu-24.04
+            compiler: gcc
 
     steps:
       - name: Checkout
