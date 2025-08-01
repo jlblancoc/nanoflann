@@ -495,7 +495,7 @@ struct Metric
  */
 template <
     class T, class DataSource, typename _DistanceType = T,
-    typename IndexType = uint32_t>
+    typename IndexType = size_t>
 struct L1_Adaptor
 {
     using ElementType  = T;
@@ -557,7 +557,7 @@ struct L1_Adaptor
  */
 template <
     class T, class DataSource, typename _DistanceType = T,
-    typename IndexType = uint32_t>
+    typename IndexType = size_t>
 struct L2_Adaptor
 {
     using ElementType  = T;
@@ -622,7 +622,7 @@ struct L2_Adaptor
  */
 template <
     class T, class DataSource, typename _DistanceType = T,
-    typename IndexType = uint32_t>
+    typename IndexType = size_t>
 struct L2_Simple_Adaptor
 {
     using ElementType  = T;
@@ -667,7 +667,7 @@ struct L2_Simple_Adaptor
  */
 template <
     class T, class DataSource, typename _DistanceType = T,
-    typename IndexType = uint32_t>
+    typename IndexType = size_t>
 struct SO2_Adaptor
 {
     using ElementType  = T;
@@ -712,7 +712,7 @@ struct SO2_Adaptor
  */
 template <
     class T, class DataSource, typename _DistanceType = T,
-    typename IndexType = uint32_t>
+    typename IndexType = size_t>
 struct SO3_Adaptor
 {
     using ElementType  = T;
@@ -742,7 +742,7 @@ struct SO3_Adaptor
 /** Metaprogramming helper traits class for the L1 (Manhattan) metric */
 struct metric_L1 : public Metric
 {
-    template <class T, class DataSource, typename IndexType = uint32_t>
+    template <class T, class DataSource, typename IndexType = size_t>
     struct traits
     {
         using distance_t = L1_Adaptor<T, DataSource, T, IndexType>;
@@ -752,7 +752,7 @@ struct metric_L1 : public Metric
  * distance metric */
 struct metric_L2 : public Metric
 {
-    template <class T, class DataSource, typename IndexType = uint32_t>
+    template <class T, class DataSource, typename IndexType = size_t>
     struct traits
     {
         using distance_t = L2_Adaptor<T, DataSource, T, IndexType>;
@@ -762,7 +762,7 @@ struct metric_L2 : public Metric
  * **squared** distance metric */
 struct metric_L2_Simple : public Metric
 {
-    template <class T, class DataSource, typename IndexType = uint32_t>
+    template <class T, class DataSource, typename IndexType = size_t>
     struct traits
     {
         using distance_t = L2_Simple_Adaptor<T, DataSource, T, IndexType>;
@@ -771,7 +771,7 @@ struct metric_L2_Simple : public Metric
 /** Metaprogramming helper traits class for the SO3_InnerProdQuat metric */
 struct metric_SO2 : public Metric
 {
-    template <class T, class DataSource, typename IndexType = uint32_t>
+    template <class T, class DataSource, typename IndexType = size_t>
     struct traits
     {
         using distance_t = SO2_Adaptor<T, DataSource, T, IndexType>;
@@ -780,7 +780,7 @@ struct metric_SO2 : public Metric
 /** Metaprogramming helper traits class for the SO3_InnerProdQuat metric */
 struct metric_SO3 : public Metric
 {
-    template <class T, class DataSource, typename IndexType = uint32_t>
+    template <class T, class DataSource, typename IndexType = size_t>
     struct traits
     {
         using distance_t = SO3_Adaptor<T, DataSource, T, IndexType>;
