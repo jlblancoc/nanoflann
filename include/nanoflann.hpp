@@ -1101,7 +1101,7 @@ class KDTreeBaseClass
     Size size(const Derived& obj) const { return obj.size_; }
 
     /** Returns the length of each point in the dataset */
-    Size veclen(const Derived& obj) const { return DIM > 0 ? DIM : obj.dim; }
+    Size veclen(const Derived& obj) const { return DIM > 0 ? DIM : obj.dim_; }
 
     /// Helper accessor to the dataset points:
     ElementType dataset_get(
