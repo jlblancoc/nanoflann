@@ -1887,8 +1887,9 @@ class KDTreeSingleIndexAdaptor
         DistanceType mindist, distance_vector_t& dists,
         const float epsError) const
     {
-        /* If this is a leaf node, then do check and return. */
-        if ((node->child1 == nullptr) && (node->child2 == nullptr))
+        // If this is a leaf node, then do check and return.
+        // If they are equal, both pointers are nullptr.
+        if (node->child1 == node->child2)
         {
             DistanceType worst_dist = result_set.worstDist();
             for (Offset i = node->node_type.lr.left;
@@ -2314,8 +2315,9 @@ class KDTreeSingleIndexDynamicAdaptor_
         DistanceType mindist, distance_vector_t& dists,
         const float epsError) const
     {
-        /* If this is a leaf node, then do check and return. */
-        if ((node->child1 == nullptr) && (node->child2 == nullptr))
+        // If this is a leaf node, then do check and return.
+        // If they are equal, both pointers are nullptr.
+        if (node->child1 == node->child2)
         {
             DistanceType worst_dist = result_set.worstDist();
             for (Offset i = node->node_type.lr.left;
