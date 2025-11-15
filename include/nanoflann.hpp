@@ -1748,7 +1748,7 @@ class KDTreeSingleIndexAdaptor
     template <typename RESULTSET>
     Size findWithinBox(RESULTSET& result, const BoundingBox& bbox) const
     {
-        if (this->size(*this) == 0) return false;
+        if (this->size(*this) == 0) return 0;
         if (!Base::root_node_)
             throw std::runtime_error(
                 "[nanoflann] findWithinBox() called before building the "
