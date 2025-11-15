@@ -1775,7 +1775,7 @@ class KDTreeSingleIndexAdaptor
                         {
                             // the resultset doesn't want to receive any more
                             // points, we're done searching!
-                            break;
+                            return result.size();
                         }
                     }
                 }
