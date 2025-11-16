@@ -12,21 +12,22 @@ jobs:
       CTEST_OUTPUT_ON_FAILURE: ON
       CTEST_PARALLEL_LEVEL: 1
       CMAKE_BUILD_TYPE: ${{ matrix.build_type }}
-      VERBOSE: 1  # to show all cmake scripts debug info
+      VERBOSE: 1 # to show all cmake scripts debug info
 
     strategy:
       fail-fast: false
       matrix:
         # Github Actions requires a single row to be added to the build matrix.
         # See https://help.github.com/en/articles/workflow-syntax-for-github-actions.
-        name: [
-          ubuntu-22.04-gcc,
-          ubuntu-22.04-clang,
-          ubuntu-24.04-gcc,
-          ubuntu-24.04-clang,
-        ]
+        name:
+          [
+            ubuntu-22.04-gcc,
+            ubuntu-22.04-clang,
+            ubuntu-24.04-gcc,
+            ubuntu-24.04-clang,
+          ]
 
-        build_type: [ Release ]
+        build_type: [Release]
         include:
           - name: ubuntu-22.04-gcc
             os: ubuntu-22.04
@@ -43,6 +44,11 @@ jobs:
           - name: ubuntu-24.04-gcc
             os: ubuntu-24.04
             compiler: gcc
+
+          - name: ubuntu-24.04-coverage
+            os: ubuntu-24.04
+            compiler: gcc
+            build_type: Coverage
 
     steps:
       - name: Checkout
@@ -79,7 +85,38 @@ jobs:
       - name: Build
         run: |
           make -C build
-          
+
       - name: Run tests
         run: |
           ctest --verbose --test-dir build
+
+      - name: Install lcov
+        if: matrix.build_type == 'Coverage'
+        run: sudo apt-get -y install lcov
+
+      - name: Generate coverage report
+        if: matrix.build_type == 'Coverage'
+        run: |
+          # 1. Capture coverage data from the build directory
+          #    lcov finds all the .gcno and .gcda files
+          lcov --capture --directory build/ --output-file coverage.info --ignore-errors mismatch
+
+          # 2. Filter to *only* include the main header file
+          #    This fulfills your request to not include examples/tests
+          lcov --extract coverage.info "*/include/nanoflann.hpp" --output-file coverage_filtered.info
+
+          # 3. Print a summary to the console log for easy debugging
+          echo "--- Coverage Summary for nanoflann.hpp ---"
+          lcov --list coverage_filtered.info
+          echo "------------------------------------------"
+
+      - name: Upload coverage to Codecov
+        if: matrix.build_type == 'Coverage'
+        uses: codecov/codecov-action@v4
+        with:
+          # The token is required for private repos, but recommended for all
+          token: ${{ secrets.CODECOV_TOKEN }}
+          # Path to the filtered report
+          files: ./coverage_filtered.info
+          # Optional name for this upload in the Codecov UI
+          name: codecov-ubuntu-24.04

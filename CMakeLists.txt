@@ -3,6 +3,11 @@
 # ----------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.10)
 
+set(CMAKE_CXX_FLAGS_COVERAGE "-g -O0 --coverage" CACHE STRING "Flags for C++ coverage build")
+set(CMAKE_C_FLAGS_COVERAGE "-g -O0 --coverage" CACHE STRING "Flags for C coverage build")
+set(CMAKE_EXE_LINKER_FLAGS_COVERAGE "--coverage" CACHE STRING "Linker flags for coverage build")
+set(CMAKE_SHARED_LINKER_FLAGS_COVERAGE "--coverage" CACHE STRING "Linker flags for coverage build")
+
 # Extract library version into "NANOFLANN_VERSION"
 # -----------------------------------------------------
 # Look for: "#define NANOFLANN_VERSION 0xABC"
@@ -22,37 +27,40 @@ file(WRITE "${nanoflann_BINARY_DIR}/version" "${NANOFLANN_VERSION_MAJOR}.${NANOF
 
 # Enable a high level of warnings.
 if (CMAKE_COMPILER_IS_GNUCXX)
-	# The -Wno-long-long is required in 64bit systems when including sytem headers.
-	# The -Wno-variadic-macros was needed for Eigen3, StdVector.h
-	add_compile_options(-Wall -Wshadow -Wno-long-long -Wno-variadic-macros)
-	if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-		add_compile_options(-O2 -mtune=native)
-	endif()
-	# Workaround: Eigen <3.4 produces *tons* of warnings in GCC >=6. See http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1221
-	if (NOT ${CMAKE_CXX_COMPILER_VERSION} LESS "6.0")
-		add_compile_options(-Wno-ignored-attributes -Wno-int-in-bool-context)
-	endif()
+  # The -Wno-long-long is required in 64bit systems when including sytem headers.
+  # The -Wno-variadic-macros was needed for Eigen3, StdVector.h
+  add_compile_options(-Wall -Wshadow -Wno-long-long -Wno-variadic-macros)
+
+  # Apply Release optimizations ONLY if it's not Debug and not Coverage
+  if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug" AND NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Coverage")
+    add_compile_options(-O2 -mtune=native)
+  endif()
+
+  # Workaround: Eigen <3.4 produces *tons* of warnings in GCC >=6. See http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1221
+  if (NOT ${CMAKE_CXX_COMPILER_VERSION} LESS "6.0")
+    add_compile_options(-Wno-ignored-attributes -Wno-int-in-bool-context)
+  endif()
 endif()
 
 if(MSVC)
-	 add_definitions( "/W3 /D_CRT_SECURE_NO_WARNINGS /nologo" )
+   add_definitions( "/W3 /D_CRT_SECURE_NO_WARNINGS /nologo" )
 endif()
 
 # Solution Folder options:
 if (${CMAKE_SOURCE_DIR} STREQUAL ${PROJECT_SOURCE_DIR})
-	set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-	set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
+  set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+  set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
 endif()
 
 add_definitions ( -DNANOFLANN_PATH="${CMAKE_SOURCE_DIR}" )
 
 include(GNUInstallDirs)
 if ($ENV{VERBOSE})
-	message(STATUS "CMAKE_INSTALL_INCLUDEDIR: ${CMAKE_INSTALL_INCLUDEDIR}")
-	message(STATUS "CMAKE_INSTALL_DATADIR   : ${CMAKE_INSTALL_DATADIR}")
-	message(STATUS "CMAKE_INSTALL_LIBDIR    : ${CMAKE_INSTALL_LIBDIR}")
-	message(STATUS "CMAKE_INSTALL_DOCDIR    : ${CMAKE_INSTALL_DOCDIR}")
-	message(STATUS "CMAKE_INSTALL_PREFIX    : ${CMAKE_INSTALL_PREFIX}")
+  message(STATUS "CMAKE_INSTALL_INCLUDEDIR: ${CMAKE_INSTALL_INCLUDEDIR}")
+  message(STATUS "CMAKE_INSTALL_DATADIR   : ${CMAKE_INSTALL_DATADIR}")
+  message(STATUS "CMAKE_INSTALL_LIBDIR    : ${CMAKE_INSTALL_LIBDIR}")
+  message(STATUS "CMAKE_INSTALL_DOCDIR    : ${CMAKE_INSTALL_DOCDIR}")
+  message(STATUS "CMAKE_INSTALL_PREFIX    : ${CMAKE_INSTALL_PREFIX}")
 endif()
 
 # Set relative install directories
@@ -64,14 +72,14 @@ if(NOT DEFINED PKGCONFIG_INSTALL_DIR)
 endif()
 
 if (${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
-	# This is the root project
-	set(MASTER_PROJECT ON)
+  # This is the root project
+  set(MASTER_PROJECT ON)
 else()
-	set(MASTER_PROJECT OFF)
+  set(MASTER_PROJECT OFF)
 endif()
 if (MASTER_PROJECT)
-	# Save all executables (unit tests & examples) in the same place:
-	set(EXECUTABLE_OUTPUT_PATH ${${PROJECT_NAME}_BINARY_DIR}/bin CACHE PATH "Output directory for executables")
+  # Save all executables (unit tests & examples) in the same place:
+  set(EXECUTABLE_OUTPUT_PATH ${${PROJECT_NAME}_BINARY_DIR}/bin CACHE PATH "Output directory for executables")
 endif()
 
 # Define nanoflann lib (header-only)
@@ -79,15 +87,15 @@ add_library(nanoflann INTERFACE)
 
 # Tell CMake which C++ features we need
 target_compile_features(nanoflann
-	INTERFACE
-		cxx_auto_type
-		cxx_decltype
-		cxx_deleted_functions
+  INTERFACE
+    cxx_auto_type
+    cxx_decltype
+    cxx_deleted_functions
 )
 target_include_directories(nanoflann
-	INTERFACE
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-		$<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>)
+  INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>)
 
 install(TARGETS nanoflann
         EXPORT nanoflannTargets)
@@ -103,15 +111,15 @@ add_library(nanoflann::nanoflann ALIAS nanoflann)
 # Examples
 option(NANOFLANN_BUILD_EXAMPLES "Build examples" ON)
 if(NANOFLANN_BUILD_EXAMPLES)
-	add_subdirectory(examples)
+  add_subdirectory(examples)
 endif()
 
 # Tests
 option(NANOFLANN_BUILD_TESTS "Build unit tests" ON)
 option(NANOFLANN_USE_SYSTEM_GTEST "Use system GTest dependency" OFF)
 if(NANOFLANN_BUILD_TESTS)
-	enable_testing()
-	add_subdirectory(tests)
+  enable_testing()
+  add_subdirectory(tests)
 endif()
 
 # --------------------------------------------------------------------
@@ -123,8 +131,8 @@ set(nanoflann_pkgconfig_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
 # Generate the pkg-config file:
 configure_file(
-	"${nanoflann_SOURCE_DIR}/scripts/nanoflann.pc.in"
-	"${nanoflann_BINARY_DIR}/nanoflann.pc" @ONLY IMMEDIATE )
+  "${nanoflann_SOURCE_DIR}/scripts/nanoflann.pc.in"
+  "${nanoflann_BINARY_DIR}/nanoflann.pc" @ONLY IMMEDIATE )
 
 # Generate the cmake config and cmake config-version file:
 include(CMakePackageConfigHelpers)
@@ -177,8 +185,8 @@ install(EXPORT nanoflannTargets
         DESTINATION "${INSTALL_CMAKE_DIR}")
 
 install(
-	FILES "${nanoflann_BINARY_DIR}/nanoflann.pc"
-	DESTINATION "${PKGCONFIG_INSTALL_DIR}" )
+  FILES "${nanoflann_BINARY_DIR}/nanoflann.pc"
+  DESTINATION "${PKGCONFIG_INSTALL_DIR}" )
 
 install(
     FILES "${nanoflann_BINARY_DIR}/nanoflannConfig.cmake"
@@ -186,5 +194,5 @@ install(
     DESTINATION "${INSTALL_CMAKE_DIR}" )
 
 install(
-	FILES "${nanoflann_SOURCE_DIR}/include/nanoflann.hpp"
-	DESTINATION "${INSTALL_INCLUDE_DIR}" )
+  FILES "${nanoflann_SOURCE_DIR}/include/nanoflann.hpp"
+  DESTINATION "${INSTALL_INCLUDE_DIR}" )
