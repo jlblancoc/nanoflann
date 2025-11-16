@@ -1763,8 +1763,7 @@ class KDTreeSingleIndexAdaptor
             stack.pop();
 
             // If this is a leaf node, then do check and return.
-            // If they are equal, both pointers are nullptr.
-            if (node->child1 == node->child2)
+            if (!node->child1)  // (if one node is nullptr, both are)
             {
                 for (Offset i = node->node_type.lr.left;
                      i < node->node_type.lr.right; ++i)
@@ -1963,17 +1962,15 @@ class KDTreeSingleIndexAdaptor
         const float epsError) const
     {
         // If this is a leaf node, then do check and return.
-        // If they are equal, both pointers are nullptr.
-        if (node->child1 == node->child2)
+        if (!node->child1)  // (if one node is nullptr, both are)
         {
-            DistanceType worst_dist = result_set.worstDist();
             for (Offset i = node->node_type.lr.left;
                  i < node->node_type.lr.right; ++i)
             {
                 const IndexType accessor = Base::vAcc_[i];  // reorder... : i;
                 DistanceType    dist     = distance_.evalMetric(
                            vec, accessor, (DIM > 0 ? DIM : Base::dim_));
-                if (dist < worst_dist)
+                if (dist < result_set.worstDist())
                 {
                     if (!result_set.addPoint(dist, Base::vAcc_[i]))
                     {
@@ -2391,10 +2388,8 @@ class KDTreeSingleIndexDynamicAdaptor_
         const float epsError) const
     {
         // If this is a leaf node, then do check and return.
-        // If they are equal, both pointers are nullptr.
-        if (node->child1 == node->child2)
+        if (!node->child1)  // (if one node is nullptr, both are)
         {
-            DistanceType worst_dist = result_set.worstDist();
             for (Offset i = node->node_type.lr.left;
                  i < node->node_type.lr.right; ++i)
             {
@@ -2402,7 +2397,7 @@ class KDTreeSingleIndexDynamicAdaptor_
                 if (treeIndex_[index] == -1) continue;
                 DistanceType dist = distance_.evalMetric(
                     vec, index, (DIM > 0 ? DIM : Base::dim_));
-                if (dist < worst_dist)
+                if (dist < result_set.worstDist())
                 {
                     if (!result_set.addPoint(
                             static_cast<typename RESULTSET::DistanceType>(dist),
