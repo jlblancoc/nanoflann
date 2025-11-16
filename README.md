@@ -5,6 +5,7 @@
 [![CI Check clang-format](https://github.com/jlblancoc/nanoflann/actions/workflows/check-clang-format.yml/badge.svg)](https://github.com/jlblancoc/nanoflann/actions/workflows/check-clang-format.yml)
 [![CircleCI](https://circleci.com/gh/jlblancoc/nanoflann/tree/master.svg?style=svg)](https://circleci.com/gh/jlblancoc/nanoflann/tree/master)
 [![Windows build status](https://ci.appveyor.com/api/projects/status/h8k1apfogxyqhskd/branch/master?svg=true)](https://ci.appveyor.com/project/jlblancoc/nanoflann/branch/master)
+[![codecov](https://codecov.io/gh/jlblancoc/nanoflann/graph/badge.svg?token=yOKq5lpizE)](https://codecov.io/gh/jlblancoc/nanoflann)
 
 
 ## 1. About

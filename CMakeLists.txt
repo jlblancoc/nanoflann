@@ -25,9 +25,17 @@ if (CMAKE_COMPILER_IS_GNUCXX)
   # The -Wno-long-long is required in 64bit systems when including sytem headers.
   # The -Wno-variadic-macros was needed for Eigen3, StdVector.h
   add_compile_options(-Wall -Wshadow -Wno-long-long -Wno-variadic-macros)
-  if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+
+  if ("${CMAKE_BUILD_TYPE}" STREQUAL "Coverage")
+    message(STATUS "Coverage build enabled. Adding gcov flags.")
+    # Add gcov flags, ensure no optimization (-O0), and include debug symbols (-g)
+    add_compile_options(-g -O0 --coverage)
+    add_link_options(--coverage)
+  elseif (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    # Keep original logic for Release builds
     add_compile_options(-O2 -mtune=native)
   endif()
+
   # Workaround: Eigen <3.4 produces *tons* of warnings in GCC >=6. See http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1221
   if (NOT ${CMAKE_CXX_COMPILER_VERSION} LESS "6.0")
     add_compile_options(-Wno-ignored-attributes -Wno-int-in-bool-context)
