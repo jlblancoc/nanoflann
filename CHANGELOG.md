@@ -1,3 +1,7 @@
+# nanoflann 1.8.0: Released Nov 16, 2025
+ - Some minor performance optimization changes. See [#271](https://github.com/jlblancoc/nanoflann/issues/271).
+ - New API: findWithinBox(). See [#272](https://github.com/jlblancoc/nanoflann/pull/272).
+
 # nanoflann 1.7.1: Released Mar 15, 2025
  - ResultSets::worstDist(): Fix a potential access to negative index in array (did not happen in practice, but static analysis tools correctly detected this possibility).
 
