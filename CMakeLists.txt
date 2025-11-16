@@ -3,6 +3,11 @@
 # ----------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.10)
 
+set(CMAKE_CXX_FLAGS_COVERAGE "-g -O0 --coverage" CACHE STRING "Flags for C++ coverage build")
+set(CMAKE_C_FLAGS_COVERAGE "-g -O0 --coverage" CACHE STRING "Flags for C coverage build")
+set(CMAKE_EXE_LINKER_FLAGS_COVERAGE "--coverage" CACHE STRING "Linker flags for coverage build")
+set(CMAKE_SHARED_LINKER_FLAGS_COVERAGE "--coverage" CACHE STRING "Linker flags for coverage build")
+
 # Extract library version into "NANOFLANN_VERSION"
 # -----------------------------------------------------
 # Look for: "#define NANOFLANN_VERSION 0xABC"
@@ -26,13 +31,8 @@ if (CMAKE_COMPILER_IS_GNUCXX)
   # The -Wno-variadic-macros was needed for Eigen3, StdVector.h
   add_compile_options(-Wall -Wshadow -Wno-long-long -Wno-variadic-macros)
 
-  if ("${CMAKE_BUILD_TYPE}" STREQUAL "Coverage")
-    message(STATUS "Coverage build enabled. Adding gcov flags.")
-    # Add gcov flags, ensure no optimization (-O0), and include debug symbols (-g)
-    add_compile_options(-g -O0 --coverage)
-    add_link_options(--coverage)
-  elseif (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    # Keep original logic for Release builds
+  # Apply Release optimizations ONLY if it's not Debug and not Coverage
+  if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Debug" AND NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Coverage")
     add_compile_options(-O2 -mtune=native)
   endif()
 

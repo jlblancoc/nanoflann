@@ -99,7 +99,7 @@ jobs:
         run: |
           # 1. Capture coverage data from the build directory
           #    lcov finds all the .gcno and .gcda files
-          lcov --capture --directory build/ --output-file coverage.info
+          lcov --capture --directory build/ --output-file coverage.info --ignore-errors mismatch
 
           # 2. Filter to *only* include the main header file
           #    This fulfills your request to not include examples/tests
