@@ -1287,7 +1287,7 @@ class KDTreeBaseClass
             BoundingBox left_bbox(bbox);
             left_bbox[cutfeat].high = cutval;
             node->child1            = this->divideTreeConcurrent(
-                obj, left, left + idx, left_bbox, thread_count, mutex);
+                           obj, left, left + idx, left_bbox, thread_count, mutex);
 
             if (right_future.valid())
             {
@@ -1972,7 +1972,7 @@ class KDTreeSingleIndexAdaptor
             {
                 const IndexType accessor = Base::vAcc_[i];  // reorder... : i;
                 DistanceType    dist     = distance_.evalMetric(
-                    vec, accessor, (DIM > 0 ? DIM : Base::dim_));
+                           vec, accessor, (DIM > 0 ? DIM : Base::dim_));
                 if (dist < worst_dist)
                 {
                     if (!result_set.addPoint(dist, Base::vAcc_[i]))
