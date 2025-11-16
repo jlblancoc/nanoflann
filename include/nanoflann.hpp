@@ -56,6 +56,7 @@
 #include <istream>
 #include <limits>  // std::numeric_limits
 #include <ostream>
+#include <stack>
 #include <stdexcept>
 #include <unordered_set>
 #include <vector>
@@ -933,10 +934,7 @@ class PooledAllocator
 
             // use the standard C malloc to allocate memory
             void* m = ::malloc(blocksize);
-            if (!m)
-            {
-                throw std::bad_alloc();
-            }
+            if (!m) { throw std::bad_alloc(); }
 
             /* Fill first word of new block with pointer to previous block. */
             static_cast<void**>(m)[0] = base_;
@@ -1144,7 +1142,8 @@ class KDTreeBaseClass
      *
      * @param left index of the first vector
      * @param right index of the last vector
-     * @param bbox bounding box used as input for splitting and output for parent node
+     * @param bbox bounding box used as input for splitting and output for
+     * parent node
      */
     NodePtr divideTree(
         Derived& obj, const Offset left, const Offset right, BoundingBox& bbox)
@@ -1217,7 +1216,8 @@ class KDTreeBaseClass
      *
      * @param left index of the first vector
      * @param right index of the last vector
-     * @param bbox bounding box used as input for splitting and output for parent node
+     * @param bbox bounding box used as input for splitting and output for
+     * parent node
      * @param thread_count count of std::async threads
      * @param mutex mutex for mempool allocation
      */
@@ -1287,7 +1287,7 @@ class KDTreeBaseClass
             BoundingBox left_bbox(bbox);
             left_bbox[cutfeat].high = cutval;
             node->child1            = this->divideTreeConcurrent(
-                           obj, left, left + idx, left_bbox, thread_count, mutex);
+                obj, left, left + idx, left_bbox, thread_count, mutex);
 
             if (right_future.valid())
             {
@@ -1731,6 +1731,70 @@ class KDTreeSingleIndexAdaptor
     }
 
     /**
+     * Find all points contained within the specified bounding box. Their
+     * indices are stored inside the result object.
+     *
+     * Params:
+     *     result = the result object in which the indices of the points
+     *              within the bounding box are stored
+     *     bbox = the bounding box defining the search region
+     *
+     * \tparam RESULTSET Should be any ResultSet<DistanceType>
+     * \return  Number of points found within the bounding box.
+     * \sa findNeighbors, knnSearch, radiusSearch
+     *
+     * \note The search is inclusive - points on the boundary are included.
+     */
+    template <typename RESULTSET>
+    Size findWithinBox(RESULTSET& result, const BoundingBox& bbox) const
+    {
+        if (this->size(*this) == 0) return 0;
+        if (!Base::root_node_)
+            throw std::runtime_error(
+                "[nanoflann] findWithinBox() called before building the "
+                "index.");
+
+        std::stack<NodePtr> stack;
+        stack.push(Base::root_node_);
+
+        while (!stack.empty())
+        {
+            const NodePtr node = stack.top();
+            stack.pop();
+
+            // If this is a leaf node, then do check and return.
+            // If they are equal, both pointers are nullptr.
+            if (node->child1 == node->child2)
+            {
+                for (Offset i = node->node_type.lr.left;
+                     i < node->node_type.lr.right; ++i)
+                {
+                    if (contains(bbox, Base::vAcc_[i]))
+                    {
+                        if (!result.addPoint(0, Base::vAcc_[i]))
+                        {
+                            // the resultset doesn't want to receive any more
+                            // points, we're done searching!
+                            return result.size();
+                        }
+                    }
+                }
+            }
+            else
+            {
+                const int  idx        = node->node_type.sub.divfeat;
+                const auto low_bound  = node->node_type.sub.divlow;
+                const auto high_bound = node->node_type.sub.divhigh;
+
+                if (bbox[idx].low <= low_bound) stack.push(node->child1);
+                if (bbox[idx].high >= high_bound) stack.push(node->child2);
+            }
+        }
+
+        return result.size();
+    }
+
+    /**
      * Find the "num_closest" nearest neighbors to the \a query_point[0:dim-1].
      * Their indices and distances are stored in the provided pointers to
      * array/vector.
@@ -1831,8 +1895,8 @@ class KDTreeSingleIndexAdaptor
     /** @} */
 
    public:
-    /** Make sure the auxiliary list \a vind has the same size than the current
-     * dataset, and re-generate if size has changed. */
+    /** Make sure the auxiliary list \a vind has the same size than the
+     * current dataset, and re-generate if size has changed. */
     void init_vind()
     {
         // Create a permutable array of indices to the input vectors.
@@ -1875,6 +1939,17 @@ class KDTreeSingleIndexAdaptor
         }
     }
 
+    bool contains(const BoundingBox& bbox, IndexType idx) const
+    {
+        const auto dims = (DIM > 0 ? DIM : Base::dim_);
+        for (Dimension i = 0; i < dims; ++i)
+        {
+            const auto point = this->dataset_.kdtree_get_pt(idx, i);
+            if (point < bbox[i].low || point > bbox[i].high) return false;
+        }
+        return true;
+    }
+
     /**
      * Performs an exact search in the tree starting from a node.
      * \tparam RESULTSET Should be any ResultSet<DistanceType>
@@ -1897,7 +1972,7 @@ class KDTreeSingleIndexAdaptor
             {
                 const IndexType accessor = Base::vAcc_[i];  // reorder... : i;
                 DistanceType    dist     = distance_.evalMetric(
-                           vec, accessor, (DIM > 0 ? DIM : Base::dim_));
+                    vec, accessor, (DIM > 0 ? DIM : Base::dim_));
                 if (dist < worst_dist)
                 {
                     if (!result_set.addPoint(dist, Base::vAcc_[i]))

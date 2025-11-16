@@ -225,6 +225,61 @@ void L2_vs_bruteforce_test(
 }
 
 template <typename NUM>
+void box_L2_vs_bruteforce_test(const size_t nSamples, const size_t DIM)
+{
+    std::vector<std::vector<NUM>> samples;
+
+    const NUM max_range = NUM(20.0);
+
+    // Generate points:
+    generateRandomPointCloud(samples, nSamples, DIM, max_range);
+
+    typedef KDTreeVectorOfVectorsAdaptor<std::vector<std::vector<NUM>>, NUM>
+        my_kd_tree_t;
+
+    // Query box:
+    typename my_kd_tree_t::index_t::BoundingBox query_box(DIM);
+    for (size_t d = 0; d < DIM; d++)
+    {
+        query_box[d].low =
+            static_cast<NUM>(max_range * (rand() % 1000) / (1000.0));
+        query_box[d].high =
+            static_cast<NUM>(max_range * (rand() % 1000) / (1000.0));
+        if (query_box[d].low > query_box[d].high)
+            std::swap(query_box[d].low, query_box[d].high);
+    }
+
+    // construct a kd-tree index:
+    // Dimensionality set at run-time (default: L2)
+    // ------------------------------------------------------------
+    my_kd_tree_t mat_index(DIM /*dim*/, samples, 10 /* max leaf */);
+
+    // do a knn search
+    std::vector<size_t> ret_indexes(nSamples);
+    std::vector<NUM>    out_dists_sqr(nSamples);
+
+    nanoflann::KNNResultSet<NUM> resultSet(nSamples);
+
+    resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
+    const auto nFound = mat_index.index->findWithinBox(resultSet, query_box);
+
+    // Brute force:
+    std::set<size_t /*idx*/> bf_nn;
+    for (size_t i = 0; i < nSamples; i++)
+    {
+        if (mat_index.index->contains(query_box, i)) bf_nn.insert(i);
+    }
+
+    // Compare:
+    EXPECT_EQ(bf_nn.size(), nFound);
+
+    for (size_t i = 0; i < nFound; ++i)
+    {
+        EXPECT_TRUE(bf_nn.find(ret_indexes[i]) != bf_nn.end());
+    }
+}
+
+template <typename NUM>
 void rknn_L2_vs_bruteforce_test(
     const size_t nSamples, const size_t DIM, const size_t numToSearch,
     const NUM maxRadiusSqr)
@@ -663,6 +718,23 @@ TEST(kdtree, L2_vs_bruteforce)
             L2_vs_bruteforce_test<double>(100, 3, knn);
             L2_vs_bruteforce_test<double>(100, 7, knn);
         }
+    }
+}
+
+TEST(kdtree, box_L2_vs_bruteforce)
+{
+    srand(static_cast<unsigned int>(time(nullptr)));
+    for (int i = 0; i < 500; i++)
+    {
+        box_L2_vs_bruteforce_test<float>(10, 2);
+
+        box_L2_vs_bruteforce_test<float>(100, 2);
+        box_L2_vs_bruteforce_test<float>(100, 3);
+        box_L2_vs_bruteforce_test<float>(100, 7);
+
+        box_L2_vs_bruteforce_test<double>(100, 2);
+        box_L2_vs_bruteforce_test<double>(100, 3);
+        box_L2_vs_bruteforce_test<double>(100, 7);
     }
 }
 
