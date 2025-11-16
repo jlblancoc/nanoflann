@@ -840,134 +840,6 @@ struct SearchParameters
 };
 /** @} */
 
-/** @addtogroup memalloc_grp Memory allocation
- * @{ */
-
-/**
- * Pooled storage allocator
- *
- * The following routines allow for the efficient allocation of storage in
- * small chunks from a specified pool.  Rather than allowing each structure
- * to be freed individually, an entire pool of storage is freed at once.
- * This method has two advantages over just using malloc() and free().  First,
- * it is far more efficient for allocating small objects, as there is
- * no overhead for remembering all the information needed to free each
- * object or consolidating fragmented memory.  Second, the decision about
- * how long to keep an object is made at the time of allocation, and there
- * is no need to track down all the objects to free them.
- *
- */
-class PooledAllocator
-{
-    static constexpr size_t WORDSIZE  = 16;  // WORDSIZE must >= 8
-    static constexpr size_t BLOCKSIZE = 8192;
-
-    /* We maintain memory alignment to word boundaries by requiring that all
-        allocations be in multiples of the machine wordsize.  */
-    /* Size of machine word in bytes.  Must be power of 2. */
-    /* Minimum number of bytes requested at a time from the system.  Must be
-     * multiple of WORDSIZE. */
-
-    using Size = size_t;
-
-    Size  remaining_ = 0;  //!< Number of bytes left in current block of storage
-    void* base_ = nullptr;  //!< Pointer to base of current block of storage
-    void* loc_  = nullptr;  //!< Current location in block to next allocate
-
-    void internal_init()
-    {
-        remaining_   = 0;
-        base_        = nullptr;
-        usedMemory   = 0;
-        wastedMemory = 0;
-    }
-
-   public:
-    Size usedMemory   = 0;
-    Size wastedMemory = 0;
-
-    /**
-        Default constructor. Initializes a new pool.
-     */
-    PooledAllocator() { internal_init(); }
-
-    /**
-     * Destructor. Frees all the memory allocated in this pool.
-     */
-    ~PooledAllocator() { free_all(); }
-
-    /** Frees all allocated memory chunks */
-    void free_all()
-    {
-        while (base_ != nullptr)
-        {
-            // Get pointer to prev block
-            void* prev = *(static_cast<void**>(base_));
-            ::free(base_);
-            base_ = prev;
-        }
-        internal_init();
-    }
-
-    /**
-     * Returns a pointer to a piece of new memory of the given size in bytes
-     * allocated from the pool.
-     */
-    void* malloc(const size_t req_size)
-    {
-        /* Round size up to a multiple of wordsize.  The following expression
-            only works for WORDSIZE that is a power of 2, by masking last bits
-           of incremented size to zero.
-         */
-        const Size size = (req_size + (WORDSIZE - 1)) & ~(WORDSIZE - 1);
-
-        /* Check whether a new block must be allocated.  Note that the first
-           word of a block is reserved for a pointer to the previous block.
-         */
-        if (size > remaining_)
-        {
-            wastedMemory += remaining_;
-
-            /* Allocate new storage. */
-            const Size blocksize =
-                size > BLOCKSIZE ? size + WORDSIZE : BLOCKSIZE + WORDSIZE;
-
-            // use the standard C malloc to allocate memory
-            void* m = ::malloc(blocksize);
-            if (!m) { throw std::bad_alloc(); }
-
-            /* Fill first word of new block with pointer to previous block. */
-            static_cast<void**>(m)[0] = base_;
-            base_                     = m;
-
-            remaining_ = blocksize - WORDSIZE;
-            loc_       = static_cast<char*>(m) + WORDSIZE;
-        }
-        void* rloc = loc_;
-        loc_       = static_cast<char*>(loc_) + size;
-        remaining_ -= size;
-
-        usedMemory += size;
-
-        return rloc;
-    }
-
-    /**
-     * Allocates (using this pool) a generic type T.
-     *
-     * Params:
-     *     count = number of instances to allocate.
-     * Returns: pointer (of type T*) to memory buffer
-     */
-    template <typename T>
-    T* allocate(const size_t count = 1)
-    {
-        T* mem = static_cast<T*>(this->malloc(sizeof(T) * count));
-        return mem;
-    }
-};
-/** @} */
-
 /** @addtogroup nanoflann_metaprog_grp Auxiliary metaprogramming stuff
  * @{ */
 
@@ -1012,7 +884,7 @@ class KDTreeBaseClass
      * buildIndex(). */
     void freeIndex(Derived& obj)
     {
-        obj.pool_.free_all();
+        obj.nodes_size           = 0;
         obj.root_node_           = nullptr;
         obj.size_at_index_build_ = 0;
     }
@@ -1086,14 +958,8 @@ class KDTreeBaseClass
     /** The KD-tree used to find neighbours */
     BoundingBox root_bbox_;
 
-    /**
-     * Pooled memory allocator.
-     *
-     * Using a pooled memory allocator is more efficient
-     * than allocating memory directly when there is a large
-     * number small of memory allocations.
-     */
-    PooledAllocator pool_;
+    size_t nodes_size = 0;
+    std::vector<Node> pool_;
 
     /** Returns number of points in dataset  */
     Size size(const Derived& obj) const { return obj.size_; }
@@ -1114,9 +980,7 @@ class KDTreeBaseClass
      */
     Size usedMemory(const Derived& obj) const
     {
-        return obj.pool_.usedMemory + obj.pool_.wastedMemory +
-               obj.dataset_.kdtree_get_point_count() *
-                   sizeof(IndexType);  // pool memory and vind array memory
+        return obj.pool_.size() * sizeof(Node);
     }
 
     /**
@@ -1150,7 +1014,8 @@ class KDTreeBaseClass
     {
         assert(left < obj.dataset_.kdtree_get_point_count());
 
-        NodePtr node = obj.pool_.template allocate<Node>();  // allocate memory
+        NodePtr node = &pool_[nodes_size];
+        nodes_size++;
         const auto dims = (DIM > 0 ? DIM : obj.dim_);
 
         /* If too few exemplars remain, then make this a leaf node. */
@@ -1226,7 +1091,8 @@ class KDTreeBaseClass
         std::atomic<unsigned int>& thread_count, std::mutex& mutex)
     {
         std::unique_lock<std::mutex> lock(mutex);
-        NodePtr node = obj.pool_.template allocate<Node>();  // allocate memory
+        NodePtr node = &pool_[nodes_size];
+        nodes_size++;
         lock.unlock();
 
         const auto dims = (DIM > 0 ? DIM : obj.dim_);
@@ -1461,7 +1327,8 @@ class KDTreeBaseClass
 
     static void load_tree(Derived& obj, std::istream& stream, NodePtr& tree)
     {
-        tree = obj.pool_.template allocate<Node>();
+        tree = &obj.pool_[obj.nodes_size];
+        obj.nodes_size++;
         load_value(stream, *tree);
         if (tree->child1 != nullptr) { load_tree(obj, stream, tree->child1); }
         if (tree->child2 != nullptr) { load_tree(obj, stream, tree->child2); }
@@ -1660,6 +1527,9 @@ class KDTreeSingleIndexAdaptor
     void buildIndex()
     {
         Base::size_                = dataset_.kdtree_get_point_count();
+        size_t nodes = 4 * (Base::size_ / Base::leaf_max_size_);
+        nodes = std::max(nodes, Base::size_);
+        Base::pool_.resize(nodes);
         Base::size_at_index_build_ = Base::size_;
         init_vind();
         this->freeIndex(*this);
@@ -2194,6 +2064,7 @@ class KDTreeSingleIndexDynamicAdaptor_
         std::swap(Base::root_node_, tmp.Base::root_node_);
         std::swap(Base::root_bbox_, tmp.Base::root_bbox_);
         std::swap(Base::pool_, tmp.Base::pool_);
+        std::swap(Base::nodes_size, tmp.Base::nodes_size);
         return *this;
     }
 
@@ -2203,6 +2074,9 @@ class KDTreeSingleIndexDynamicAdaptor_
     void buildIndex()
     {
         Base::size_ = Base::vAcc_.size();
+        size_t nodes = 4 * (Base::size_ / Base::leaf_max_size_);
+        nodes = std::max(nodes, Base::size_);
+        Base::pool_.resize(nodes);
         this->freeIndex(*this);
         Base::size_at_index_build_ = Base::size_;
         if (Base::size_ == 0) return;
