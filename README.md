@@ -29,7 +29,7 @@ See the release [CHANGELOG](CHANGELOG.md) for a list of project changes.
 ### 1.1. Obtaining the code
 
 * Easiest way: clone this GIT repository and take the `include/nanoflann.hpp` file for use where you need it.
-* Debian or Ubuntu ([21.04 or newer](https://packages.ubuntu.com/source/hirsute/nanoflann)) users can install it simply with:
+* Debian or Ubuntu ([21.04 or newer](https://launchpad.net/ubuntu/+source/nanoflann)) users can install it simply with:
   ```bash 
   $ sudo apt install libnanoflann-dev
   ```
