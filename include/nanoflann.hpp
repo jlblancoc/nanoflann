@@ -506,35 +506,57 @@ struct L1_Adaptor
 
     L1_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
-    DistanceType evalMetric(
-        const T* a, const IndexType b_idx, size_t size,
+    inline DistanceType evalMetric(
+        const T* __restrict a, const IndexType b_idx, size_t size,
         DistanceType worst_dist = -1) const
     {
-        DistanceType result    = DistanceType();
-        const T*     last      = a + size;
-        const T*     lastgroup = last - 3;
-        size_t       d         = 0;
+        DistanceType result  = DistanceType();
+        const size_t multof4 = (size >> 2) << 2; // smallest multiple of 4, i.e. 1 << 2
+        size_t       d;
 
         /* Process 4 items with each loop for efficiency. */
-        while (a < lastgroup)
+        if (worst_dist <= 0)
         {
-            const DistanceType diff0 =
-                std::abs(a[0] - data_source.kdtree_get_pt(b_idx, d++));
-            const DistanceType diff1 =
-                std::abs(a[1] - data_source.kdtree_get_pt(b_idx, d++));
-            const DistanceType diff2 =
-                std::abs(a[2] - data_source.kdtree_get_pt(b_idx, d++));
-            const DistanceType diff3 =
-                std::abs(a[3] - data_source.kdtree_get_pt(b_idx, d++));
-            result += diff0 + diff1 + diff2 + diff3;
-            a += 4;
-            if ((worst_dist > 0) && (result > worst_dist)) { return result; }
+            /* No checks with worst_dist */
+            for (d = 0; d < multof4; d += 4)
+            {
+                const DistanceType diff0 =
+                    std::abs(a[d+0] - data_source.kdtree_get_pt(b_idx, d+0));
+                const DistanceType diff1 =
+                    std::abs(a[d+1] - data_source.kdtree_get_pt(b_idx, d+1));
+                const DistanceType diff2 =
+                    std::abs(a[d+2] - data_source.kdtree_get_pt(b_idx, d+2));
+                const DistanceType diff3 =
+                    std::abs(a[d+3] - data_source.kdtree_get_pt(b_idx, d+3));
+                /* Parentheses break dependency chain: */
+                result += (diff0 + diff1) + (diff2 + diff3);
+            }
         }
-        /* Process last 0-3 components.  Not needed for standard vector lengths.
-         */
-        while (a < last)
+        else
         {
-            result += std::abs(*a++ - data_source.kdtree_get_pt(b_idx, d++));
+            /* Check with worst_dist */
+            for (d = 0; d < multof4; d += 4)
+            {
+                const DistanceType diff0 =
+                    std::abs(a[d+0] - data_source.kdtree_get_pt(b_idx, d+0));
+                const DistanceType diff1 =
+                    std::abs(a[d+1] - data_source.kdtree_get_pt(b_idx, d+1));
+                const DistanceType diff2 =
+                    std::abs(a[d+2] - data_source.kdtree_get_pt(b_idx, d+2));
+                const DistanceType diff3 =
+                    std::abs(a[d+3] - data_source.kdtree_get_pt(b_idx, d+3));
+                /* Parentheses break dependency chain: */
+                result += (diff0 + diff1) + (diff2 + diff3);
+                if (result > worst_dist) { return result; }
+            }
+        }
+        /* Process last 0-3 components. Unrolled loop with fall-through switch
+         */
+        switch(size - multof4){
+            case 3 : result += std::abs(a[d+2] - data_source.kdtree_get_pt(b_idx, d+2));
+            case 2 : result += std::abs(a[d+1] - data_source.kdtree_get_pt(b_idx, d+1));
+            case 1 : result += std::abs(a[d+0] - data_source.kdtree_get_pt(b_idx, d+0));
+            case 0 : break;
         }
         return result;
     }
@@ -568,38 +590,60 @@ struct L2_Adaptor
 
     L2_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
-    DistanceType evalMetric(
-        const T* a, const IndexType b_idx, size_t size,
+    inline DistanceType evalMetric(
+        const T* __restrict a, const IndexType b_idx, size_t size,
         DistanceType worst_dist = -1) const
     {
-        DistanceType result    = DistanceType();
-        const T*     last      = a + size;
-        const T*     lastgroup = last - 3;
-        size_t       d         = 0;
+        DistanceType result  = DistanceType();
+        const size_t multof4 = (size >> 2) << 2; // smallest multiple of 4, i.e. 1 << 2
+        size_t       d;
 
         /* Process 4 items with each loop for efficiency. */
-        while (a < lastgroup)
+        if (worst_dist <= 0)
         {
-            const DistanceType diff0 =
-                a[0] - data_source.kdtree_get_pt(b_idx, d++);
-            const DistanceType diff1 =
-                a[1] - data_source.kdtree_get_pt(b_idx, d++);
-            const DistanceType diff2 =
-                a[2] - data_source.kdtree_get_pt(b_idx, d++);
-            const DistanceType diff3 =
-                a[3] - data_source.kdtree_get_pt(b_idx, d++);
-            result +=
-                diff0 * diff0 + diff1 * diff1 + diff2 * diff2 + diff3 * diff3;
-            a += 4;
-            if ((worst_dist > 0) && (result > worst_dist)) { return result; }
+            /* No checks with worst_dist */
+            for (d = 0; d < multof4; d += 4)
+            {
+                const DistanceType diff0 =
+                    a[d+0] - data_source.kdtree_get_pt(b_idx, d+0);
+                const DistanceType diff1 =
+                    a[d+1] - data_source.kdtree_get_pt(b_idx, d+1);
+                const DistanceType diff2 =
+                    a[d+2] - data_source.kdtree_get_pt(b_idx, d+2);
+                const DistanceType diff3 =
+                    a[d+3] - data_source.kdtree_get_pt(b_idx, d+3);
+                /* Parentheses break dependency chain: */
+                result +=
+                    (diff0 * diff0 + diff1 * diff1) + (diff2 * diff2 + diff3 * diff3);
+            }
         }
-        /* Process last 0-3 components.  Not needed for standard vector lengths.
-         */
-        while (a < last)
+        else
         {
-            const DistanceType diff0 =
-                *a++ - data_source.kdtree_get_pt(b_idx, d++);
-            result += diff0 * diff0;
+            /* Check with worst_dist */
+            for (d = 0; d < multof4; d += 4)
+            {
+                const DistanceType diff0 =
+                    a[d+0] - data_source.kdtree_get_pt(b_idx, d+0);
+                const DistanceType diff1 =
+                    a[d+1] - data_source.kdtree_get_pt(b_idx, d+1);
+                const DistanceType diff2 =
+                    a[d+2] - data_source.kdtree_get_pt(b_idx, d+2);
+                const DistanceType diff3 =
+                    a[d+3] - data_source.kdtree_get_pt(b_idx, d+3);
+                /* Parentheses break dependency chain: */
+                result +=
+                    (diff0 * diff0 + diff1 * diff1) + (diff2 * diff2 + diff3 * diff3);
+                if (result > worst_dist) { return result; }
+            }
+        }
+        /* Process last 0-3 components. Unrolled loop with fall-through switch
+         */
+        DistanceType diff;
+        switch(size - multof4){
+            case 3 : diff = a[d+2] - data_source.kdtree_get_pt(b_idx, d+2);  result += diff * diff;
+            case 2 : diff = a[d+1] - data_source.kdtree_get_pt(b_idx, d+1);  result += diff * diff;
+            case 1 : diff = a[d+0] - data_source.kdtree_get_pt(b_idx, d+0);  result += diff * diff;
+            case 0 : break;
         }
         return result;
     }
