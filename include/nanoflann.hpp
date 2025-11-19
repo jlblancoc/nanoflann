@@ -85,7 +85,7 @@ namespace nanoflann
 
 /** the PI constant (required to avoid MSVC missing symbols) */
 template <typename T>
-T pi_const()
+constexpr T pi_const()
 {
     return static_cast<T>(3.14159265358979323846);
 }
@@ -135,7 +135,7 @@ inline typename std::enable_if<!has_resize<Container>::value, void>::type
     resize(Container& c, const size_t nElements)
 {
     if (nElements != c.size())
-        throw std::logic_error("Try to change the size of a std::array.");
+        throw std::logic_error("Attempt to resize a fixed size container.");
 }
 
 /**
@@ -223,9 +223,9 @@ class KNNResultSet
         count   = 0;
     }
 
-    CountType size() const { return count; }
-    bool      empty() const { return count == 0; }
-    bool      full() const { return count == capacity; }
+    CountType size() const noexcept { return count; }
+    bool      empty() const noexcept { return count == 0; }
+    bool      full() const noexcept { return count == capacity; }
 
     /**
      * Called during search to add an element matching the criteria.
@@ -269,7 +269,7 @@ class KNNResultSet
 
     //! Returns the worst distance among found solutions if the search result is
     //! full, or the maximum possible distance, if not full yet.
-    DistanceType worstDist() const
+    DistanceType worstDist() const noexcept
     {
         return (count < capacity || !count)
                    ? std::numeric_limits<DistanceType>::max()
@@ -319,9 +319,9 @@ class RKNNResultSet
         if (capacity) dists[capacity - 1] = maximumSearchDistanceSquared;
     }
 
-    CountType size() const { return count; }
-    bool      empty() const { return count == 0; }
-    bool      full() const { return count == capacity; }
+    CountType size() const noexcept { return count; }
+    bool      empty() const noexcept { return count == 0; }
+    bool      full() const noexcept { return count == capacity; }
 
     /**
      * Called during search to add an element matching the criteria.
@@ -365,7 +365,7 @@ class RKNNResultSet
 
     //! Returns the worst distance among found solutions if the search result is
     //! full, or the maximum possible distance, if not full yet.
-    DistanceType worstDist() const
+    DistanceType worstDist() const noexcept
     {
         return (count < capacity || !count) ? maximumSearchDistanceSquared
                                             : dists[count - 1];
@@ -403,10 +403,9 @@ class RadiusResultSet
     void init() { clear(); }
     void clear() { m_indices_dists.clear(); }
 
-    size_t size() const { return m_indices_dists.size(); }
-    size_t empty() const { return m_indices_dists.empty(); }
-
-    bool full() const { return true; }
+    size_t size() const noexcept { return m_indices_dists.size(); }
+    bool empty() const noexcept { return m_indices_dists.empty(); }
+    bool full() const noexcept { return true; }
 
     /**
      * Called during search to add an element matching the criteria.
@@ -419,7 +418,7 @@ class RadiusResultSet
         return true;
     }
 
-    DistanceType worstDist() const { return radius; }
+    DistanceType worstDist() const noexcept { return radius; }
 
     /**
      * Find the worst result (farthest neighbor) without copying or sorting
@@ -562,7 +561,7 @@ struct L1_Adaptor
     }
 
     template <typename U, typename V>
-    DistanceType accum_dist(const U a, const V b, const size_t) const
+    inline DistanceType accum_dist(const U a, const V b, const size_t) const
     {
         return std::abs(a - b);
     }
@@ -649,9 +648,10 @@ struct L2_Adaptor
     }
 
     template <typename U, typename V>
-    DistanceType accum_dist(const U a, const V b, const size_t) const
+    inline DistanceType accum_dist(const U a, const V b, const size_t) const
     {
-        return (a - b) * (a - b);
+        auto diff = a - b;
+        return diff * diff;
     }
 };
 
@@ -680,7 +680,7 @@ struct L2_Simple_Adaptor
     {
     }
 
-    DistanceType evalMetric(
+    inline DistanceType evalMetric(
         const T* a, const IndexType b_idx, size_t size) const
     {
         DistanceType result = DistanceType();
@@ -694,9 +694,10 @@ struct L2_Simple_Adaptor
     }
 
     template <typename U, typename V>
-    DistanceType accum_dist(const U a, const V b, const size_t) const
+    inline DistanceType accum_dist(const U a, const V b, const size_t) const
     {
-        return (a - b) * (a - b);
+        auto diff = a - b;
+        return diff * diff;
     }
 };
 
@@ -722,7 +723,7 @@ struct SO2_Adaptor
 
     SO2_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
-    DistanceType evalMetric(
+    inline DistanceType evalMetric(
         const T* a, const IndexType b_idx, size_t size) const
     {
         return accum_dist(
@@ -732,7 +733,7 @@ struct SO2_Adaptor
     /** Note: this assumes that input angles are already in the range [-pi,pi]
      */
     template <typename U, typename V>
-    DistanceType accum_dist(const U a, const V b, const size_t) const
+    inline DistanceType accum_dist(const U a, const V b, const size_t) const
     {
         DistanceType result = DistanceType();
         DistanceType PI     = pi_const<DistanceType>();
@@ -771,14 +772,14 @@ struct SO3_Adaptor
     {
     }
 
-    DistanceType evalMetric(
+    inline DistanceType evalMetric(
         const T* a, const IndexType b_idx, size_t size) const
     {
         return distance_L2_Simple.evalMetric(a, b_idx, size);
     }
 
     template <typename U, typename V>
-    DistanceType accum_dist(const U a, const V b, const size_t idx) const
+    inline DistanceType accum_dist(const U a, const V b, const size_t idx) const
     {
         return distance_L2_Simple.accum_dist(a, b, idx);
     }
@@ -1077,7 +1078,7 @@ class KDTreeBaseClass
     /*---------------------------
      * Internal Data Structures
      * --------------------------*/
-    struct Node
+    struct /*alignas(64)*/ Node
     {
         /** Union used because a node can be either a LEAF node or a non-leaf
          * node, so both data fields are never used simultaneously */
@@ -2818,11 +2819,11 @@ struct KDTreeEigenMatrixAdaptor
     /** @name Interface expected by KDTreeSingleIndexAdaptor
      * @{ */
 
-    const self_t& derived() const { return *this; }
-    self_t&       derived() { return *this; }
+    inline const self_t& derived() const noexcept { return *this; }
+    inline self_t&       derived() noexcept { return *this; }
 
     // Must return the number of data points
-    Size kdtree_get_point_count() const
+    inline Size kdtree_get_point_count() const
     {
         if (row_major)
             return m_data_matrix.get().rows();
@@ -2831,7 +2832,7 @@ struct KDTreeEigenMatrixAdaptor
     }
 
     // Returns the dim'th component of the idx'th point in the class:
-    num_t kdtree_get_pt(const IndexType idx, size_t dim) const
+    inline num_t kdtree_get_pt(const IndexType idx, size_t dim) const
     {
         if (row_major)
             return m_data_matrix.get().coeff(idx, IndexType(dim));
@@ -2845,7 +2846,7 @@ struct KDTreeEigenMatrixAdaptor
     //   in "bb" so it can be avoided to redo it again. Look at bb.size() to
     //   find out the expected dimensionality (e.g. 2 or 3 for point clouds)
     template <class BBOX>
-    bool kdtree_get_bbox(BBOX& /*bb*/) const
+    inline bool kdtree_get_bbox(BBOX& /*bb*/) const
     {
         return false;
     }
