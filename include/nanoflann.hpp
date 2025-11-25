@@ -2267,6 +2267,9 @@ class KDTreeSingleIndexDynamicAdaptor_
             static_cast<typename distance_vector_t::value_type>(0));
         DistanceType dist = this->computeInitialDistances(*this, vec, dists);
         searchLevel(result, vec, Base::root_node_, dist, dists, epsError);
+
+        if (searchParams.sorted) result.sort();
+        
         return result.full();
     }
 
