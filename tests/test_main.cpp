@@ -661,6 +661,60 @@ void L2_concurrent_build_vs_L2_test(const size_t nSamples, const size_t DIM)
     EXPECT_EQ(mat_index.index->vAcc_, mat_index_concurrent_build.index->vAcc_);
 }
 
+
+template <typename num_t>
+void L2_dynamic_sorted_test(const size_t N, const size_t num_results)
+{
+    PointCloud<num_t> cloud;
+    generateRandomPointCloud(cloud, N);
+
+    num_t query_pt[3] = {0.5, 0.5, 0.5};
+
+    using DynamicKDTree = KDTreeSingleIndexDynamicAdaptor<
+        L2_Adaptor<num_t, PointCloud<num_t>>,
+        PointCloud<num_t>,
+        3 /* dim */
+    >;
+
+    DynamicKDTree dynamic_index(3, cloud);
+
+    // Prepare result containers
+    std::vector<size_t> dynamic_idx(num_results);
+    std::vector<num_t> dynamic_dist(num_results);
+    KNNResultSet<num_t> dynamic_knn_result(num_results);
+    std::vector<ResultItem<size_t, num_t>> radius_results_vec;
+    RadiusResultSet<num_t, size_t> dynamic_radius_result(10.0 * 10.0, radius_results_vec);
+
+    // Prepare search params to sort result
+    const auto search_params = SearchParameters(0, true);
+
+    dynamic_knn_result.init(&dynamic_idx[0], &dynamic_dist[0]);
+    dynamic_radius_result.init();
+
+    dynamic_index.findNeighbors(dynamic_knn_result, &query_pt[0], search_params);
+    dynamic_index.findNeighbors(dynamic_radius_result, &query_pt[0], search_params);
+
+    // Check size
+    const size_t expected_size = std::min(N, num_results);
+    ASSERT_EQ(dynamic_knn_result.size(), expected_size);
+
+    // Ensure knn results are sorted
+    num_t last_dist = -1;
+    for (size_t i = 0; i < expected_size; i++)
+    {
+        EXPECT_GE(dynamic_dist[i], last_dist);
+        last_dist = dynamic_dist[i];
+    }
+
+    // Ensure radius results are sorted
+    num_t last = -1;
+    for (const auto& r : radius_results_vec)
+    {
+        EXPECT_GE(r.second, last);
+        last = r.second;
+    }
+}
+
 TEST(kdtree, L2_vs_L2_simple)
 {
     for (int nResults = 1; nResults < 10; nResults++)
@@ -905,6 +959,15 @@ TEST(kdtree, L2_concurrent_build_vs_L2)
         L2_concurrent_build_vs_L2_test<double>(100, 2);
         L2_concurrent_build_vs_L2_test<double>(100, 3);
         L2_concurrent_build_vs_L2_test<double>(100, 7);
+    }
+}
+
+TEST(kdtree, L2_static_vs_dynamic)
+{
+    for (int nResults = 0; nResults < 10; nResults++)
+    {
+        L2_dynamic_sorted_test<float>(100, nResults);
+        L2_dynamic_sorted_test<double>(100, nResults);
     }
 }
 
