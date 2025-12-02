@@ -510,13 +510,13 @@ struct L1_Adaptor
         DistanceType worst_dist = -1) const
     {
         DistanceType result  = DistanceType();
-        const size_t multof4 = (size >> 2) << 2; // smallest multiple of 4, i.e. 1 << 2
+        const size_t multof4 = (size >> 2) << 2; // largest multiple of 4, i.e. 1 << 2
         size_t       d;
 
         /* Process 4 items with each loop for efficiency. */
         if (worst_dist <= 0)
         {
-            /* No checks with worst_dist */
+            /* No checks with worst_dist. */
             for (d = 0; d < multof4; d += 4)
             {
                 const DistanceType diff0 =
@@ -533,7 +533,7 @@ struct L1_Adaptor
         }
         else
         {
-            /* Check with worst_dist */
+            /* Check with worst_dist. */
             for (d = 0; d < multof4; d += 4)
             {
                 const DistanceType diff0 =
@@ -549,7 +549,7 @@ struct L1_Adaptor
                 if (result > worst_dist) { return result; }
             }
         }
-        /* Process last 0-3 components. Unrolled loop with fall-through switch
+        /* Process last 0-3 components. Unrolled loop with fall-through switch.
          */
         switch(size - multof4){
             case 3 : result += std::abs(a[d+2] - data_source.kdtree_get_pt(b_idx, d+2));
@@ -594,13 +594,13 @@ struct L2_Adaptor
         DistanceType worst_dist = -1) const
     {
         DistanceType result  = DistanceType();
-        const size_t multof4 = (size >> 2) << 2; // smallest multiple of 4, i.e. 1 << 2
+        const size_t multof4 = (size >> 2) << 2; // largest multiple of 4, i.e. 1 << 2
         size_t       d;
 
         /* Process 4 items with each loop for efficiency. */
         if (worst_dist <= 0)
         {
-            /* No checks with worst_dist */
+            /* No checks with worst_dist. */
             for (d = 0; d < multof4; d += 4)
             {
                 const DistanceType diff0 =
@@ -618,7 +618,7 @@ struct L2_Adaptor
         }
         else
         {
-            /* Check with worst_dist */
+            /* Check with worst_dist. */
             for (d = 0; d < multof4; d += 4)
             {
                 const DistanceType diff0 =
@@ -635,7 +635,7 @@ struct L2_Adaptor
                 if (result > worst_dist) { return result; }
             }
         }
-        /* Process last 0-3 components. Unrolled loop with fall-through switch
+        /* Process last 0-3 components. Unrolled loop with fall-through switch.
          */
         DistanceType diff;
         switch(size - multof4){
@@ -1939,7 +1939,7 @@ class KDTreeSingleIndexAdaptor
     /** @} */
 
    public:
-    /** Make sure the auxiliary list \a vind has the same size than the
+    /** Make sure the auxiliary list \a vind has the same size as the
      * current dataset, and re-generate if size has changed. */
     void init_vind()
     {
