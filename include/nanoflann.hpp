@@ -78,6 +78,15 @@
 #undef None
 #endif
 
+// Handle restricted pointers
+#if defined(__GNUC__) || defined(__clang__)
+#  define NANOFLANN_RESTRICT __restrict__
+#elif defined(_MSC_VER)
+#  define NANOFLANN_RESTRICT __restrict
+#else
+#  define NANOFLANN_RESTRICT
+#endif
+
 namespace nanoflann
 {
 /** @addtogroup nanoflann_grp nanoflann C++ library for KD-trees
@@ -85,7 +94,7 @@ namespace nanoflann
 
 /** the PI constant (required to avoid MSVC missing symbols) */
 template <typename T>
-T pi_const()
+constexpr T pi_const()
 {
     return static_cast<T>(3.14159265358979323846);
 }
@@ -135,7 +144,7 @@ inline typename std::enable_if<!has_resize<Container>::value, void>::type
     resize(Container& c, const size_t nElements)
 {
     if (nElements != c.size())
-        throw std::logic_error("Try to change the size of a std::array.");
+        throw std::logic_error("Attempt to resize a fixed size container.");
 }
 
 /**
@@ -223,9 +232,9 @@ class KNNResultSet
         count   = 0;
     }
 
-    CountType size() const { return count; }
-    bool      empty() const { return count == 0; }
-    bool      full() const { return count == capacity; }
+    CountType size() const noexcept { return count; }
+    bool      empty() const noexcept { return count == 0; }
+    bool      full() const noexcept { return count == capacity; }
 
     /**
      * Called during search to add an element matching the criteria.
@@ -269,7 +278,7 @@ class KNNResultSet
 
     //! Returns the worst distance among found solutions if the search result is
     //! full, or the maximum possible distance, if not full yet.
-    DistanceType worstDist() const
+    DistanceType worstDist() const noexcept
     {
         return (count < capacity || !count)
                    ? std::numeric_limits<DistanceType>::max()
@@ -319,9 +328,9 @@ class RKNNResultSet
         if (capacity) dists[capacity - 1] = maximumSearchDistanceSquared;
     }
 
-    CountType size() const { return count; }
-    bool      empty() const { return count == 0; }
-    bool      full() const { return count == capacity; }
+    CountType size() const noexcept { return count; }
+    bool      empty() const noexcept { return count == 0; }
+    bool      full() const noexcept { return count == capacity; }
 
     /**
      * Called during search to add an element matching the criteria.
@@ -365,7 +374,7 @@ class RKNNResultSet
 
     //! Returns the worst distance among found solutions if the search result is
     //! full, or the maximum possible distance, if not full yet.
-    DistanceType worstDist() const
+    DistanceType worstDist() const noexcept
     {
         return (count < capacity || !count) ? maximumSearchDistanceSquared
                                             : dists[count - 1];
@@ -403,10 +412,9 @@ class RadiusResultSet
     void init() { clear(); }
     void clear() { m_indices_dists.clear(); }
 
-    size_t size() const { return m_indices_dists.size(); }
-    size_t empty() const { return m_indices_dists.empty(); }
-
-    bool full() const { return true; }
+    size_t size() const noexcept { return m_indices_dists.size(); }
+    bool empty() const noexcept { return m_indices_dists.empty(); }
+    bool full() const noexcept { return true; }
 
     /**
      * Called during search to add an element matching the criteria.
@@ -419,7 +427,7 @@ class RadiusResultSet
         return true;
     }
 
-    DistanceType worstDist() const { return radius; }
+    DistanceType worstDist() const noexcept { return radius; }
 
     /**
      * Find the worst result (farthest neighbor) without copying or sorting
@@ -506,41 +514,63 @@ struct L1_Adaptor
 
     L1_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
-    DistanceType evalMetric(
-        const T* a, const IndexType b_idx, size_t size,
+    inline DistanceType evalMetric(
+        const T* NANOFLANN_RESTRICT a, const IndexType b_idx, size_t size,
         DistanceType worst_dist = -1) const
     {
-        DistanceType result    = DistanceType();
-        const T*     last      = a + size;
-        const T*     lastgroup = last - 3;
-        size_t       d         = 0;
+        DistanceType result  = DistanceType();
+        const size_t multof4 = (size >> 2) << 2; // largest multiple of 4, i.e. 1 << 2
+        size_t       d;
 
         /* Process 4 items with each loop for efficiency. */
-        while (a < lastgroup)
+        if (worst_dist <= 0)
         {
-            const DistanceType diff0 =
-                std::abs(a[0] - data_source.kdtree_get_pt(b_idx, d++));
-            const DistanceType diff1 =
-                std::abs(a[1] - data_source.kdtree_get_pt(b_idx, d++));
-            const DistanceType diff2 =
-                std::abs(a[2] - data_source.kdtree_get_pt(b_idx, d++));
-            const DistanceType diff3 =
-                std::abs(a[3] - data_source.kdtree_get_pt(b_idx, d++));
-            result += diff0 + diff1 + diff2 + diff3;
-            a += 4;
-            if ((worst_dist > 0) && (result > worst_dist)) { return result; }
+            /* No checks with worst_dist. */
+            for (d = 0; d < multof4; d += 4)
+            {
+                const DistanceType diff0 =
+                    std::abs(a[d+0] - data_source.kdtree_get_pt(b_idx, d+0));
+                const DistanceType diff1 =
+                    std::abs(a[d+1] - data_source.kdtree_get_pt(b_idx, d+1));
+                const DistanceType diff2 =
+                    std::abs(a[d+2] - data_source.kdtree_get_pt(b_idx, d+2));
+                const DistanceType diff3 =
+                    std::abs(a[d+3] - data_source.kdtree_get_pt(b_idx, d+3));
+                /* Parentheses break dependency chain: */
+                result += (diff0 + diff1) + (diff2 + diff3);
+            }
         }
-        /* Process last 0-3 components.  Not needed for standard vector lengths.
-         */
-        while (a < last)
+        else
         {
-            result += std::abs(*a++ - data_source.kdtree_get_pt(b_idx, d++));
+            /* Check with worst_dist. */
+            for (d = 0; d < multof4; d += 4)
+            {
+                const DistanceType diff0 =
+                    std::abs(a[d+0] - data_source.kdtree_get_pt(b_idx, d+0));
+                const DistanceType diff1 =
+                    std::abs(a[d+1] - data_source.kdtree_get_pt(b_idx, d+1));
+                const DistanceType diff2 =
+                    std::abs(a[d+2] - data_source.kdtree_get_pt(b_idx, d+2));
+                const DistanceType diff3 =
+                    std::abs(a[d+3] - data_source.kdtree_get_pt(b_idx, d+3));
+                /* Parentheses break dependency chain: */
+                result += (diff0 + diff1) + (diff2 + diff3);
+                if (result > worst_dist) { return result; }
+            }
+        }
+        /* Process last 0-3 components. Unrolled loop with fall-through switch.
+         */
+        switch(size - multof4){
+            case 3 : result += std::abs(a[d+2] - data_source.kdtree_get_pt(b_idx, d+2));
+            case 2 : result += std::abs(a[d+1] - data_source.kdtree_get_pt(b_idx, d+1));
+            case 1 : result += std::abs(a[d+0] - data_source.kdtree_get_pt(b_idx, d+0));
+            case 0 : break;
         }
         return result;
     }
 
     template <typename U, typename V>
-    DistanceType accum_dist(const U a, const V b, const size_t) const
+    inline DistanceType accum_dist(const U a, const V b, const size_t) const
     {
         return std::abs(a - b);
     }
@@ -568,46 +598,69 @@ struct L2_Adaptor
 
     L2_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
-    DistanceType evalMetric(
-        const T* a, const IndexType b_idx, size_t size,
+    inline DistanceType evalMetric(
+        const T* NANOFLANN_RESTRICT a, const IndexType b_idx, size_t size,
         DistanceType worst_dist = -1) const
     {
-        DistanceType result    = DistanceType();
-        const T*     last      = a + size;
-        const T*     lastgroup = last - 3;
-        size_t       d         = 0;
+        DistanceType result  = DistanceType();
+        const size_t multof4 = (size >> 2) << 2; // largest multiple of 4, i.e. 1 << 2
+        size_t       d;
 
         /* Process 4 items with each loop for efficiency. */
-        while (a < lastgroup)
+        if (worst_dist <= 0)
         {
-            const DistanceType diff0 =
-                a[0] - data_source.kdtree_get_pt(b_idx, d++);
-            const DistanceType diff1 =
-                a[1] - data_source.kdtree_get_pt(b_idx, d++);
-            const DistanceType diff2 =
-                a[2] - data_source.kdtree_get_pt(b_idx, d++);
-            const DistanceType diff3 =
-                a[3] - data_source.kdtree_get_pt(b_idx, d++);
-            result +=
-                diff0 * diff0 + diff1 * diff1 + diff2 * diff2 + diff3 * diff3;
-            a += 4;
-            if ((worst_dist > 0) && (result > worst_dist)) { return result; }
+            /* No checks with worst_dist. */
+            for (d = 0; d < multof4; d += 4)
+            {
+                const DistanceType diff0 =
+                    a[d+0] - data_source.kdtree_get_pt(b_idx, d+0);
+                const DistanceType diff1 =
+                    a[d+1] - data_source.kdtree_get_pt(b_idx, d+1);
+                const DistanceType diff2 =
+                    a[d+2] - data_source.kdtree_get_pt(b_idx, d+2);
+                const DistanceType diff3 =
+                    a[d+3] - data_source.kdtree_get_pt(b_idx, d+3);
+                /* Parentheses break dependency chain: */
+                result +=
+                    (diff0 * diff0 + diff1 * diff1) + (diff2 * diff2 + diff3 * diff3);
+            }
         }
-        /* Process last 0-3 components.  Not needed for standard vector lengths.
-         */
-        while (a < last)
+        else
         {
-            const DistanceType diff0 =
-                *a++ - data_source.kdtree_get_pt(b_idx, d++);
-            result += diff0 * diff0;
+            /* Check with worst_dist. */
+            for (d = 0; d < multof4; d += 4)
+            {
+                const DistanceType diff0 =
+                    a[d+0] - data_source.kdtree_get_pt(b_idx, d+0);
+                const DistanceType diff1 =
+                    a[d+1] - data_source.kdtree_get_pt(b_idx, d+1);
+                const DistanceType diff2 =
+                    a[d+2] - data_source.kdtree_get_pt(b_idx, d+2);
+                const DistanceType diff3 =
+                    a[d+3] - data_source.kdtree_get_pt(b_idx, d+3);
+                /* Parentheses break dependency chain: */
+                result +=
+                    (diff0 * diff0 + diff1 * diff1) + (diff2 * diff2 + diff3 * diff3);
+                if (result > worst_dist) { return result; }
+            }
+        }
+        /* Process last 0-3 components. Unrolled loop with fall-through switch.
+         */
+        DistanceType diff;
+        switch(size - multof4){
+            case 3 : diff = a[d+2] - data_source.kdtree_get_pt(b_idx, d+2);  result += diff * diff;
+            case 2 : diff = a[d+1] - data_source.kdtree_get_pt(b_idx, d+1);  result += diff * diff;
+            case 1 : diff = a[d+0] - data_source.kdtree_get_pt(b_idx, d+0);  result += diff * diff;
+            case 0 : break;
         }
         return result;
     }
 
     template <typename U, typename V>
-    DistanceType accum_dist(const U a, const V b, const size_t) const
+    inline DistanceType accum_dist(const U a, const V b, const size_t) const
     {
-        return (a - b) * (a - b);
+        auto diff = a - b;
+        return diff * diff;
     }
 };
 
@@ -636,7 +689,7 @@ struct L2_Simple_Adaptor
     {
     }
 
-    DistanceType evalMetric(
+    inline DistanceType evalMetric(
         const T* a, const IndexType b_idx, size_t size) const
     {
         DistanceType result = DistanceType();
@@ -650,9 +703,10 @@ struct L2_Simple_Adaptor
     }
 
     template <typename U, typename V>
-    DistanceType accum_dist(const U a, const V b, const size_t) const
+    inline DistanceType accum_dist(const U a, const V b, const size_t) const
     {
-        return (a - b) * (a - b);
+        auto diff = a - b;
+        return diff * diff;
     }
 };
 
@@ -678,7 +732,7 @@ struct SO2_Adaptor
 
     SO2_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
-    DistanceType evalMetric(
+    inline DistanceType evalMetric(
         const T* a, const IndexType b_idx, size_t size) const
     {
         return accum_dist(
@@ -688,7 +742,7 @@ struct SO2_Adaptor
     /** Note: this assumes that input angles are already in the range [-pi,pi]
      */
     template <typename U, typename V>
-    DistanceType accum_dist(const U a, const V b, const size_t) const
+    inline DistanceType accum_dist(const U a, const V b, const size_t) const
     {
         DistanceType result = DistanceType();
         DistanceType PI     = pi_const<DistanceType>();
@@ -727,14 +781,14 @@ struct SO3_Adaptor
     {
     }
 
-    DistanceType evalMetric(
+    inline DistanceType evalMetric(
         const T* a, const IndexType b_idx, size_t size) const
     {
         return distance_L2_Simple.evalMetric(a, b_idx, size);
     }
 
     template <typename U, typename V>
-    DistanceType accum_dist(const U a, const V b, const size_t idx) const
+    inline DistanceType accum_dist(const U a, const V b, const size_t idx) const
     {
         return distance_L2_Simple.accum_dist(a, b, idx);
     }
@@ -1030,10 +1084,19 @@ class KDTreeBaseClass
     using Size      = typename decltype(vAcc_)::size_type;
     using Dimension = int32_t;
 
-    /*---------------------------
+    /*-------------------------------------------------------------------
      * Internal Data Structures
-     * --------------------------*/
-    struct Node
+     *
+     * "Node" below can be declared with alignas(N) to improve
+     * cache friendliness and SIMD load/store performance.
+     *
+     * The optimal N depends on the underlying hardware:
+     *  + Intel x86-64: 16 for SSE, 32 for AVX/AVX2 and 64 for AVX-512
+     *  + NVIDIA Jetson: 16 for ARM + NEON and CUDA float4/
+     *  To avoid unnecessary padding, the smallest alignment
+     *  compatible with a platform's vector width should be chosen.
+     * ------------------------------------------------------------------*/
+    struct /*alignas(N)*/ Node
     {
         /** Union used because a node can be either a LEAF node or a non-leaf
          * node, so both data fields are never used simultaneously */
@@ -1894,7 +1957,7 @@ class KDTreeSingleIndexAdaptor
     /** @} */
 
    public:
-    /** Make sure the auxiliary list \a vind has the same size than the
+    /** Make sure the auxiliary list \a vind has the same size as the
      * current dataset, and re-generate if size has changed. */
     void init_vind()
     {
@@ -2774,11 +2837,11 @@ struct KDTreeEigenMatrixAdaptor
     /** @name Interface expected by KDTreeSingleIndexAdaptor
      * @{ */
 
-    const self_t& derived() const { return *this; }
-    self_t&       derived() { return *this; }
+    inline const self_t& derived() const noexcept { return *this; }
+    inline self_t&       derived() noexcept { return *this; }
 
     // Must return the number of data points
-    Size kdtree_get_point_count() const
+    inline Size kdtree_get_point_count() const
     {
         if (row_major)
             return m_data_matrix.get().rows();
@@ -2787,7 +2850,7 @@ struct KDTreeEigenMatrixAdaptor
     }
 
     // Returns the dim'th component of the idx'th point in the class:
-    num_t kdtree_get_pt(const IndexType idx, size_t dim) const
+    inline num_t kdtree_get_pt(const IndexType idx, size_t dim) const
     {
         if (row_major)
             return m_data_matrix.get().coeff(idx, IndexType(dim));
@@ -2801,7 +2864,7 @@ struct KDTreeEigenMatrixAdaptor
     //   in "bb" so it can be avoided to redo it again. Look at bb.size() to
     //   find out the expected dimensionality (e.g. 2 or 3 for point clouds)
     template <class BBOX>
-    bool kdtree_get_bbox(BBOX& /*bb*/) const
+    inline bool kdtree_get_bbox(BBOX& /*bb*/) const
     {
         return false;
     }
@@ -2813,3 +2876,5 @@ struct KDTreeEigenMatrixAdaptor
 
 /** @} */  // end of grouping
 }  // namespace nanoflann
+
+#undef NANOFLANN_RESTRICT
