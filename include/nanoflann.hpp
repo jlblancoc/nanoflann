@@ -78,6 +78,15 @@
 #undef None
 #endif
 
+// Handle restricted pointers
+#if defined(__GNUC__) || defined(__clang__)
+#  define NANOFLANN_RESTRICT __restrict__
+#elif defined(_MSC_VER)
+#  define NANOFLANN_RESTRICT __restrict
+#else
+#  define NANOFLANN_RESTRICT
+#endif
+
 namespace nanoflann
 {
 /** @addtogroup nanoflann_grp nanoflann C++ library for KD-trees
@@ -506,7 +515,7 @@ struct L1_Adaptor
     L1_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
     inline DistanceType evalMetric(
-        const T* __restrict a, const IndexType b_idx, size_t size,
+        const T* NANOFLANN_RESTRICT a, const IndexType b_idx, size_t size,
         DistanceType worst_dist = -1) const
     {
         DistanceType result  = DistanceType();
@@ -590,7 +599,7 @@ struct L2_Adaptor
     L2_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
     inline DistanceType evalMetric(
-        const T* __restrict a, const IndexType b_idx, size_t size,
+        const T* NANOFLANN_RESTRICT a, const IndexType b_idx, size_t size,
         DistanceType worst_dist = -1) const
     {
         DistanceType result  = DistanceType();
@@ -1075,10 +1084,19 @@ class KDTreeBaseClass
     using Size      = typename decltype(vAcc_)::size_type;
     using Dimension = int32_t;
 
-    /*---------------------------
+    /*-------------------------------------------------------------------
      * Internal Data Structures
-     * --------------------------*/
-    struct /*alignas(64)*/ Node
+     *
+     * "Node" below can be declared with alignas(N) to improve
+     * cache friendliness and SIMD load/store performance.
+     *
+     * The optimal N depends on the underlying hardware:
+     *  + Intel x86-64: 16 for SSE, 32 for AVX/AVX2 and 64 for AVX-512
+     *  + NVIDIA Jetson: 16 for ARM + NEON and CUDA float4/
+     *  To avoid unnecessary padding, the smallest alignment
+     *  compatible with a platform's vector width should be chosen.
+     * ------------------------------------------------------------------*/
+    struct /*alignas(N)*/ Node
     {
         /** Union used because a node can be either a LEAF node or a non-leaf
          * node, so both data fields are never used simultaneously */
@@ -2858,3 +2876,5 @@ struct KDTreeEigenMatrixAdaptor
 
 /** @} */  // end of grouping
 }  // namespace nanoflann
+
+#undef NANOFLANN_RESTRICT
