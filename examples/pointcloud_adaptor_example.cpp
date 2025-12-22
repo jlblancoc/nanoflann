@@ -51,10 +51,7 @@ struct PointCloudAdaptor
     inline const Derived& derived() const { return obj; }
 
     // Must return the number of data points
-    inline size_t kdtree_get_point_count() const
-    {
-        return derived().pts.size();
-    }
+    inline size_t kdtree_get_point_count() const { return derived().pts.size(); }
 
     // Returns the dim'th component of the idx'th point in the class:
     // Since this is inlined and the "dim" argument is typically an immediate
@@ -114,8 +111,7 @@ void kdtree_demo(const size_t N)
         index.findNeighbors(resultSet, &query_pt[0]);
 
         std::cout << "knnSearch(nn=" << num_results << "): \n";
-        std::cout << "ret_index=" << ret_index
-                  << " out_dist_sqr=" << out_dist_sqr << std::endl;
+        std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr << std::endl;
     };
 
     my_kd_tree_t index1(3 /*dim*/, pc2kd, {10 /* max leaf */});

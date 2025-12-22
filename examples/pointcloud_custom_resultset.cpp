@@ -46,13 +46,11 @@ class MyCustomResultSet
    public:
     const DistanceType radius;
 
-    std::vector<nanoflann::ResultItem<IndexType, DistanceType>>&
-        m_indices_dists;
+    std::vector<nanoflann::ResultItem<IndexType, DistanceType>>& m_indices_dists;
 
     explicit MyCustomResultSet(
-        DistanceType radius_,
-        std::vector<nanoflann::ResultItem<IndexType, DistanceType>>&
-            indices_dists)
+        DistanceType                                                 radius_,
+        std::vector<nanoflann::ResultItem<IndexType, DistanceType>>& indices_dists)
         : radius(radius_), m_indices_dists(indices_dists)
     {
         init();
@@ -73,9 +71,7 @@ class MyCustomResultSet
      */
     bool addPoint(DistanceType dist, IndexType index)
     {
-        printf(
-            "addPoint() called: dist=%f index=%u\n", dist,
-            static_cast<unsigned int>(index));
+        printf("addPoint() called: dist=%f index=%u\n", dist, static_cast<unsigned int>(index));
 
         if (dist < radius) m_indices_dists.emplace_back(index, dist);
         return true;
@@ -85,9 +81,7 @@ class MyCustomResultSet
 
     void sort()
     {
-        std::sort(
-            m_indices_dists.begin(), m_indices_dists.end(),
-            nanoflann::IndexDist_Sorter());
+        std::sort(m_indices_dists.begin(), m_indices_dists.end(), nanoflann::IndexDist_Sorter());
     }
 };
 
@@ -102,8 +96,7 @@ void kdtree_demo(const size_t N)
 
     // construct a kd-tree index:
     using my_kd_tree_t = nanoflann::KDTreeSingleIndexAdaptor<
-        nanoflann::L2_Simple_Adaptor<num_t, PointCloud<num_t>>,
-        PointCloud<num_t>, 3 /* dim */
+        nanoflann::L2_Simple_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>, 3 /* dim */
         >;
 
     my_kd_tree_t index(3 /*dim*/, cloud, {10 /* max leaf */});
@@ -113,13 +106,11 @@ void kdtree_demo(const size_t N)
         const num_t                                       squaredRadius = 1;
         std::vector<nanoflann::ResultItem<size_t, num_t>> indices_dists;
 
-        MyCustomResultSet<num_t, size_t> resultSet(
-            squaredRadius, indices_dists);
+        MyCustomResultSet<num_t, size_t> resultSet(squaredRadius, indices_dists);
 
         index.findNeighbors(resultSet, query_pt);
 
-        std::cout << "Found: " << indices_dists.size() << " NN points."
-                  << std::endl;
+        std::cout << "Found: " << indices_dists.size() << " NN points." << std::endl;
     }
 }
 

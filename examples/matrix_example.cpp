@@ -43,8 +43,7 @@ void generateRandomPointCloud(
     mat.resize(N, dim);
     for (size_t i = 0; i < N; i++)
         for (size_t d = 0; d < dim; d++)
-            mat(i, d) =
-                max_range * (rand() % 1000) / typename Der::Scalar(1000);
+            mat(i, d) = max_range * (rand() % 1000) / typename Der::Scalar(1000);
     std::cout << "done\n";
 }
 
@@ -64,8 +63,7 @@ void kdtree_demo(const size_t nSamples, const size_t dim)
 
     // Query point:
     std::vector<num_t> query_pt(dim);
-    for (size_t d = 0; d < dim; d++)
-        query_pt[d] = max_range * (rand() % 1000) / num_t(1000);
+    for (size_t d = 0; d < dim; d++) query_pt[d] = max_range * (rand() % 1000) / num_t(1000);
 
         // ------------------------------------------------------------
         // construct a kd-tree index:

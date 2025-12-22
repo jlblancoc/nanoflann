@@ -46,8 +46,7 @@ void kdtree_demo(const size_t N)
 
     // construct a kd-tree index:
     using my_kd_tree_t = nanoflann::KDTreeSingleIndexAdaptor<
-        nanoflann::L2_Simple_Adaptor<num_t, PointCloud<num_t>>,
-        PointCloud<num_t>, 3 /* dim */
+        nanoflann::L2_Simple_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>, 3 /* dim */
         >;
 
     my_kd_tree_t index(3 /*dim*/, cloud, {10 /* max leaf */});
@@ -68,8 +67,7 @@ void kdtree_demo(const size_t N)
         std::vector<uint32_t> ret_index(num_results);
         std::vector<num_t>    out_dist_sqr(num_results);
 
-        num_results = index.knnSearch(
-            &query_pt[0], num_results, &ret_index[0], &out_dist_sqr[0]);
+        num_results = index.knnSearch(&query_pt[0], num_results, &ret_index[0], &out_dist_sqr[0]);
 
         // In case of less points in the tree than requested:
         ret_index.resize(num_results);
@@ -77,8 +75,8 @@ void kdtree_demo(const size_t N)
 
         cout << "knnSearch(): num_results=" << num_results << "\n";
         for (size_t i = 0; i < num_results; i++)
-            cout << "idx[" << i << "]=" << ret_index[i] << " dist[" << i
-                 << "]=" << out_dist_sqr[i] << endl;
+            cout << "idx[" << i << "]=" << ret_index[i] << " dist[" << i << "]=" << out_dist_sqr[i]
+                 << endl;
         cout << "\n";
     }
 
@@ -86,17 +84,15 @@ void kdtree_demo(const size_t N)
     // radiusSearch(): Perform a search for the points within search_radius
     // ----------------------------------------------------------------
     {
-        const num_t search_radius = static_cast<num_t>(0.1);
+        const num_t                                         search_radius = static_cast<num_t>(0.1);
         std::vector<nanoflann::ResultItem<uint32_t, num_t>> ret_matches;
 
         // nanoflanSearchParamsameters params;
         // params.sorted = false;
 
-        const size_t nMatches =
-            index.radiusSearch(&query_pt[0], search_radius, ret_matches);
+        const size_t nMatches = index.radiusSearch(&query_pt[0], search_radius, ret_matches);
 
-        cout << "radiusSearch(): radius=" << search_radius << " -> " << nMatches
-             << " matches\n";
+        cout << "radiusSearch(): radius=" << search_radius << " -> " << nMatches << " matches\n";
         for (size_t i = 0; i < nMatches; i++)
             cout << "idx[" << i << "]=" << ret_matches[i].first << " dist[" << i
                  << "]=" << ret_matches[i].second << endl;

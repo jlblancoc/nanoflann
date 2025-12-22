@@ -54,12 +54,10 @@ template <
     class Distance = nanoflann::metric_L2, typename IndexType = size_t>
 struct KDTreeVectorOfVectorsAdaptor
 {
-    using self_t = KDTreeVectorOfVectorsAdaptor<
-        VectorOfVectorsType, num_t, DIM, Distance, IndexType>;
-    using metric_t =
-        typename Distance::template traits<num_t, self_t>::distance_t;
-    using index_t =
-        nanoflann::KDTreeSingleIndexAdaptor<metric_t, self_t, DIM, IndexType>;
+    using self_t =
+        KDTreeVectorOfVectorsAdaptor<VectorOfVectorsType, num_t, DIM, Distance, IndexType>;
+    using metric_t = typename Distance::template traits<num_t, self_t>::distance_t;
+    using index_t  = nanoflann::KDTreeSingleIndexAdaptor<metric_t, self_t, DIM, IndexType>;
 
     /** The kd-tree index for the user to call its methods as usual with any
      * other FLANN index */
@@ -81,8 +79,7 @@ struct KDTreeVectorOfVectorsAdaptor
         index = new index_t(
             static_cast<int>(dims), *this /* adaptor */,
             nanoflann::KDTreeSingleIndexAdaptorParams(
-                leaf_max_size, nanoflann::KDTreeSingleIndexAdaptorFlags::None,
-                n_thread_build));
+                leaf_max_size, nanoflann::KDTreeSingleIndexAdaptorFlags::None, n_thread_build));
     }
 
     ~KDTreeVectorOfVectorsAdaptor() { delete index; }
@@ -95,8 +92,8 @@ struct KDTreeVectorOfVectorsAdaptor
      *  The user can also call index->... methods as desired.
      */
     inline void query(
-        const num_t* query_point, const size_t num_closest,
-        IndexType* out_indices, num_t* out_distances_sq) const
+        const num_t* query_point, const size_t num_closest, IndexType* out_indices,
+        num_t* out_distances_sq) const
     {
         nanoflann::KNNResultSet<num_t, IndexType> resultSet(num_closest);
         resultSet.init(out_indices, out_distances_sq);

@@ -40,9 +40,7 @@ using namespace nanoflann;
 // the metric class My_Custom_Metric_Adaptor, whose constructor accepts
 // arbitrary parameters:
 
-template <
-    class T, class DataSource, typename _DistanceType = T,
-    typename IndexType = uint32_t>
+template <class T, class DataSource, typename _DistanceType = T, typename IndexType = uint32_t>
 struct My_Custom_Metric_Adaptor
 {
     using ElementType  = T;
@@ -57,14 +55,12 @@ struct My_Custom_Metric_Adaptor
     {
     }
 
-    inline DistanceType evalMetric(
-        const T* a, const IndexType b_idx, size_t size) const
+    inline DistanceType evalMetric(const T* a, const IndexType b_idx, size_t size) const
     {
         DistanceType result = DistanceType();
         for (size_t i = 0; i < size; ++i)
         {
-            const DistanceType diff =
-                a[i] - data_source.kdtree_get_pt(b_idx, i);
+            const DistanceType diff = a[i] - data_source.kdtree_get_pt(b_idx, i);
             result += std::pow(diff, _myParam);
         }
         return result;
@@ -90,8 +86,7 @@ static void kdtree_custom_metric_demo(const size_t N)
 
     // construct a kd-tree index:
     using my_kd_tree_t = KDTreeSingleIndexAdaptor<
-        My_Custom_Metric_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>,
-        3 /* dim */
+        My_Custom_Metric_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>, 3 /* dim */
         >;
 
     dump_mem_usage();
@@ -112,22 +107,19 @@ static void kdtree_custom_metric_demo(const size_t N)
         index.findNeighbors(resultSet, &query_pt[0]);
 
         std::cout << "knnSearch(nn=" << num_results << "\n";
-        std::cout << "ret_index=" << ret_index
-                  << " out_dist_sqr=" << out_dist_sqr << endl;
+        std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr << endl;
     }
     {
         // Unsorted radius search:
         const num_t                                       radius = 1;
         std::vector<nanoflann::ResultItem<size_t, num_t>> indices_dists;
-        RadiusResultSet<num_t, size_t> resultSet(radius, indices_dists);
+        RadiusResultSet<num_t, size_t>                    resultSet(radius, indices_dists);
 
         index.findNeighbors(resultSet, query_pt);
 
         // Get worst (furthest) point, without sorting:
-        nanoflann::ResultItem<size_t, num_t> worst_pair =
-            resultSet.worst_item();
-        cout << "Worst pair: idx=" << worst_pair.first
-             << " dist=" << worst_pair.second << endl;
+        nanoflann::ResultItem<size_t, num_t> worst_pair = resultSet.worst_item();
+        cout << "Worst pair: idx=" << worst_pair.first << " dist=" << worst_pair.second << endl;
     }
 }
 

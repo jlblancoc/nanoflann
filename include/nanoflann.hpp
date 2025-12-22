@@ -36,8 +36,8 @@
  *
  *  nanoflann does not require compiling or installing, just an
  *  #include <nanoflann.hpp> in your code.
- *  
- *  Macros that are observed in this file: 
+ *
+ *  Macros that are observed in this file:
  *  - NANOFLANN_NO_THREADS: If defined, single thread will be enforced.
  *  - NANOFLANN_FIRST_MATCH: If defined, in case of a tie in distances the item with the smallest
  *    index will be returned.
@@ -71,8 +71,7 @@
 #define NANOFLANN_VERSION 0x180
 
 // Avoid conflicting declaration of min/max macros in Windows headers
-#if !defined(NOMINMAX) && \
-    (defined(_WIN32) || defined(_WIN32_) || defined(WIN32) || defined(_WIN64))
+#if !defined(NOMINMAX) && (defined(_WIN32) || defined(_WIN32_) || defined(WIN32) || defined(_WIN64))
 #define NOMINMAX
 #ifdef max
 #undef max
@@ -120,8 +119,7 @@ struct has_resize : std::false_type
 };
 
 template <typename T>
-struct has_resize<T, decltype((void)std::declval<T>().resize(1), 0)>
-    : std::true_type
+struct has_resize<T, decltype((void)std::declval<T>().resize(1), 0)> : std::true_type
 {
 };
 
@@ -131,8 +129,7 @@ struct has_assign : std::false_type
 };
 
 template <typename T>
-struct has_assign<T, decltype((void)std::declval<T>().assign(1, 0), 0)>
-    : std::true_type
+struct has_assign<T, decltype((void)std::declval<T>().assign(1, 0), 0)> : std::true_type
 {
 };
 
@@ -151,11 +148,10 @@ inline typename std::enable_if<has_resize<Container>::value, void>::type resize(
  * std::array) It raises an exception if the expected size does not match
  */
 template <typename Container>
-inline typename std::enable_if<!has_resize<Container>::value, void>::type
-    resize(Container& c, const size_t nElements)
+inline typename std::enable_if<!has_resize<Container>::value, void>::type resize(
+    Container& c, const size_t nElements)
 {
-    if (nElements != c.size())
-        throw std::logic_error("Attempt to resize a fixed size container.");
+    if (nElements != c.size()) throw std::logic_error("Attempt to resize a fixed size container.");
 }
 
 /**
@@ -172,8 +168,8 @@ inline typename std::enable_if<has_assign<Container>::value, void>::type assign(
  * Free function to assign to a std::array
  */
 template <typename Container, typename T>
-inline typename std::enable_if<!has_assign<Container>::value, void>::type
-    assign(Container& c, const size_t nElements, const T& value)
+inline typename std::enable_if<!has_assign<Container>::value, void>::type assign(
+    Container& c, const size_t nElements, const T& value)
 {
     for (size_t i = 0; i < nElements; i++) c[i] = value;
 }
@@ -201,8 +197,7 @@ template <typename IndexType = size_t, typename DistanceType = double>
 struct ResultItem
 {
     ResultItem() = default;
-    ResultItem(const IndexType index, const DistanceType distance)
-        : first(index), second(distance)
+    ResultItem(const IndexType index, const DistanceType distance) : first(index), second(distance)
     {
     }
 
@@ -214,9 +209,7 @@ struct ResultItem
  *  @{ */
 
 /** Result set for KNN searches (N-closest neighbors) */
-template <
-    typename _DistanceType, typename _IndexType = size_t,
-    typename _CountType = size_t>
+template <typename _DistanceType, typename _IndexType = size_t, typename _CountType = size_t>
 class KNNResultSet
 {
    public:
@@ -260,8 +253,7 @@ class KNNResultSet
             /** If defined and two points have the same distance, the one with
              *  the lowest-index will be returned first. */
 #ifdef NANOFLANN_FIRST_MATCH
-            if ((dists[i - 1] > dist) ||
-                ((dist == dists[i - 1]) && (indices[i - 1] > index)))
+            if ((dists[i - 1] > dist) || ((dist == dists[i - 1]) && (indices[i - 1] > index)))
             {
 #else
             if (dists[i - 1] > dist)
@@ -291,9 +283,8 @@ class KNNResultSet
     //! full, or the maximum possible distance, if not full yet.
     DistanceType worstDist() const noexcept
     {
-        return (count < capacity || !count)
-                   ? std::numeric_limits<DistanceType>::max()
-                   : dists[count - 1];
+        return (count < capacity || !count) ? std::numeric_limits<DistanceType>::max()
+                                            : dists[count - 1];
     }
 
     void sort()
@@ -303,9 +294,7 @@ class KNNResultSet
 };
 
 /** Result set for RKNN searches (N-closest neighbors with a maximum radius) */
-template <
-    typename _DistanceType, typename _IndexType = size_t,
-    typename _CountType = size_t>
+template <typename _DistanceType, typename _IndexType = size_t, typename _CountType = size_t>
 class RKNNResultSet
 {
    public:
@@ -321,8 +310,7 @@ class RKNNResultSet
     DistanceType  maximumSearchDistanceSquared;
 
    public:
-    explicit RKNNResultSet(
-        CountType capacity_, DistanceType maximumSearchDistanceSquared_)
+    explicit RKNNResultSet(CountType capacity_, DistanceType maximumSearchDistanceSquared_)
         : indices(nullptr),
           dists(nullptr),
           capacity(capacity_),
@@ -356,8 +344,7 @@ class RKNNResultSet
             /** If defined and two points have the same distance, the one with
              *  the lowest-index will be returned first. */
 #ifdef NANOFLANN_FIRST_MATCH
-            if ((dists[i - 1] > dist) ||
-                ((dist == dists[i - 1]) && (indices[i - 1] > index)))
+            if ((dists[i - 1] > dist) || ((dist == dists[i - 1]) && (indices[i - 1] > index)))
             {
 #else
             if (dists[i - 1] > dist)
@@ -387,8 +374,7 @@ class RKNNResultSet
     //! full, or the maximum possible distance, if not full yet.
     DistanceType worstDist() const noexcept
     {
-        return (count < capacity || !count) ? maximumSearchDistanceSquared
-                                            : dists[count - 1];
+        return (count < capacity || !count) ? maximumSearchDistanceSquared : dists[count - 1];
     }
 
     void sort()
@@ -413,8 +399,7 @@ class RadiusResultSet
     std::vector<ResultItem<IndexType, DistanceType>>& m_indices_dists;
 
     explicit RadiusResultSet(
-        DistanceType                                      radius_,
-        std::vector<ResultItem<IndexType, DistanceType>>& indices_dists)
+        DistanceType radius_, std::vector<ResultItem<IndexType, DistanceType>>& indices_dists)
         : radius(radius_), m_indices_dists(indices_dists)
     {
         init();
@@ -450,16 +435,12 @@ class RadiusResultSet
             throw std::runtime_error(
                 "Cannot invoke RadiusResultSet::worst_item() on "
                 "an empty list of results.");
-        auto it = std::max_element(
-            m_indices_dists.begin(), m_indices_dists.end(), IndexDist_Sorter());
+        auto it =
+            std::max_element(m_indices_dists.begin(), m_indices_dists.end(), IndexDist_Sorter());
         return *it;
     }
 
-    void sort()
-    {
-        std::sort(
-            m_indices_dists.begin(), m_indices_dists.end(), IndexDist_Sorter());
-    }
+    void sort() { std::sort(m_indices_dists.begin(), m_indices_dists.end(), IndexDist_Sorter()); }
 };
 
 /** @} */
@@ -513,9 +494,7 @@ struct Metric
  * \tparam IndexType Type of the arguments with which the data can be
  * accessed (e.g. float, double, int64_t, T*)
  */
-template <
-    class T, class DataSource, typename _DistanceType = T,
-    typename IndexType = size_t>
+template <class T, class DataSource, typename _DistanceType = T, typename IndexType = size_t>
 struct L1_Adaptor
 {
     using ElementType  = T;
@@ -530,9 +509,8 @@ struct L1_Adaptor
         DistanceType worst_dist = -1) const
     {
         DistanceType result  = DistanceType();
-        const size_t multof4 = (size >> 2)
-                               << 2;  // largest multiple of 4, i.e. 1 << 2
-        size_t d;
+        const size_t multof4 = (size >> 2) << 2;  // largest multiple of 4, i.e. 1 << 2
+        size_t       d;
 
         /* Process 4 items with each loop for efficiency. */
         if (worst_dist <= 0)
@@ -540,14 +518,14 @@ struct L1_Adaptor
             /* No checks with worst_dist. */
             for (d = 0; d < multof4; d += 4)
             {
-                const DistanceType diff0 = std::abs(
-                    a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
-                const DistanceType diff1 = std::abs(
-                    a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
-                const DistanceType diff2 = std::abs(
-                    a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
-                const DistanceType diff3 = std::abs(
-                    a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3));
+                const DistanceType diff0 =
+                    std::abs(a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
+                const DistanceType diff1 =
+                    std::abs(a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
+                const DistanceType diff2 =
+                    std::abs(a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
+                const DistanceType diff3 =
+                    std::abs(a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3));
                 /* Parentheses break dependency chain: */
                 result += (diff0 + diff1) + (diff2 + diff3);
             }
@@ -557,17 +535,20 @@ struct L1_Adaptor
             /* Check with worst_dist. */
             for (d = 0; d < multof4; d += 4)
             {
-                const DistanceType diff0 = std::abs(
-                    a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
-                const DistanceType diff1 = std::abs(
-                    a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
-                const DistanceType diff2 = std::abs(
-                    a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
-                const DistanceType diff3 = std::abs(
-                    a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3));
+                const DistanceType diff0 =
+                    std::abs(a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
+                const DistanceType diff1 =
+                    std::abs(a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
+                const DistanceType diff2 =
+                    std::abs(a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
+                const DistanceType diff3 =
+                    std::abs(a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3));
                 /* Parentheses break dependency chain: */
                 result += (diff0 + diff1) + (diff2 + diff3);
-                if (result > worst_dist) { return result; }
+                if (result > worst_dist)
+                {
+                    return result;
+                }
             }
         }
         /* Process last 0-3 components. Unrolled loop with fall-through switch.
@@ -575,14 +556,11 @@ struct L1_Adaptor
         switch (size - multof4)
         {
             case 3:
-                result += std::abs(
-                    a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
+                result += std::abs(a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
             case 2:
-                result += std::abs(
-                    a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
+                result += std::abs(a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
             case 1:
-                result += std::abs(
-                    a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
+                result += std::abs(a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
             case 0:
                 break;
         }
@@ -606,9 +584,7 @@ struct L1_Adaptor
  * \tparam IndexType Type of the arguments with which the data can be
  * accessed (e.g. float, double, int64_t, T*)
  */
-template <
-    class T, class DataSource, typename _DistanceType = T,
-    typename IndexType = size_t>
+template <class T, class DataSource, typename _DistanceType = T, typename IndexType = size_t>
 struct L2_Adaptor
 {
     using ElementType  = T;
@@ -623,9 +599,8 @@ struct L2_Adaptor
         DistanceType worst_dist = -1) const
     {
         DistanceType result  = DistanceType();
-        const size_t multof4 = (size >> 2)
-                               << 2;  // largest multiple of 4, i.e. 1 << 2
-        size_t d;
+        const size_t multof4 = (size >> 2) << 2;  // largest multiple of 4, i.e. 1 << 2
+        size_t       d;
 
         /* Process 4 items with each loop for efficiency. */
         if (worst_dist <= 0)
@@ -633,17 +608,12 @@ struct L2_Adaptor
             /* No checks with worst_dist. */
             for (d = 0; d < multof4; d += 4)
             {
-                const DistanceType diff0 =
-                    a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0);
-                const DistanceType diff1 =
-                    a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1);
-                const DistanceType diff2 =
-                    a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2);
-                const DistanceType diff3 =
-                    a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3);
+                const DistanceType diff0 = a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0);
+                const DistanceType diff1 = a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1);
+                const DistanceType diff2 = a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2);
+                const DistanceType diff3 = a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3);
                 /* Parentheses break dependency chain: */
-                result += (diff0 * diff0 + diff1 * diff1) +
-                          (diff2 * diff2 + diff3 * diff3);
+                result += (diff0 * diff0 + diff1 * diff1) + (diff2 * diff2 + diff3 * diff3);
             }
         }
         else
@@ -651,18 +621,16 @@ struct L2_Adaptor
             /* Check with worst_dist. */
             for (d = 0; d < multof4; d += 4)
             {
-                const DistanceType diff0 =
-                    a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0);
-                const DistanceType diff1 =
-                    a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1);
-                const DistanceType diff2 =
-                    a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2);
-                const DistanceType diff3 =
-                    a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3);
+                const DistanceType diff0 = a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0);
+                const DistanceType diff1 = a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1);
+                const DistanceType diff2 = a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2);
+                const DistanceType diff3 = a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3);
                 /* Parentheses break dependency chain: */
-                result += (diff0 * diff0 + diff1 * diff1) +
-                          (diff2 * diff2 + diff3 * diff3);
-                if (result > worst_dist) { return result; }
+                result += (diff0 * diff0 + diff1 * diff1) + (diff2 * diff2 + diff3 * diff3);
+                if (result > worst_dist)
+                {
+                    return result;
+                }
             }
         }
         /* Process last 0-3 components. Unrolled loop with fall-through switch.
@@ -703,9 +671,7 @@ struct L2_Adaptor
  * \tparam IndexType Type of the arguments with which the data can be
  * accessed (e.g. float, double, int64_t, T*)
  */
-template <
-    class T, class DataSource, typename _DistanceType = T,
-    typename IndexType = size_t>
+template <class T, class DataSource, typename _DistanceType = T, typename IndexType = size_t>
 struct L2_Simple_Adaptor
 {
     using ElementType  = T;
@@ -713,19 +679,14 @@ struct L2_Simple_Adaptor
 
     const DataSource& data_source;
 
-    L2_Simple_Adaptor(const DataSource& _data_source)
-        : data_source(_data_source)
-    {
-    }
+    L2_Simple_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
-    inline DistanceType evalMetric(
-        const T* a, const IndexType b_idx, size_t size) const
+    inline DistanceType evalMetric(const T* a, const IndexType b_idx, size_t size) const
     {
         DistanceType result = DistanceType();
         for (size_t i = 0; i < size; ++i)
         {
-            const DistanceType diff =
-                a[i] - data_source.kdtree_get_pt(b_idx, i);
+            const DistanceType diff = a[i] - data_source.kdtree_get_pt(b_idx, i);
             result += diff * diff;
         }
         return result;
@@ -749,9 +710,7 @@ struct L2_Simple_Adaptor
  * \tparam IndexType Type of the arguments with which the data can be
  * accessed (e.g. float, double, int64_t, T*)
  */
-template <
-    class T, class DataSource, typename _DistanceType = T,
-    typename IndexType = size_t>
+template <class T, class DataSource, typename _DistanceType = T, typename IndexType = size_t>
 struct SO2_Adaptor
 {
     using ElementType  = T;
@@ -761,11 +720,9 @@ struct SO2_Adaptor
 
     SO2_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
-    inline DistanceType evalMetric(
-        const T* a, const IndexType b_idx, size_t size) const
+    inline DistanceType evalMetric(const T* a, const IndexType b_idx, size_t size) const
     {
-        return accum_dist(
-            a[size - 1], data_source.kdtree_get_pt(b_idx, size - 1), size - 1);
+        return accum_dist(a[size - 1], data_source.kdtree_get_pt(b_idx, size - 1), size - 1);
     }
 
     /** Note: this assumes that input angles are already in the range [-pi,pi]
@@ -794,24 +751,17 @@ struct SO2_Adaptor
  * \tparam IndexType Type of the arguments with which the data can be
  * accessed (e.g. float, double, int64_t, T*)
  */
-template <
-    class T, class DataSource, typename _DistanceType = T,
-    typename IndexType = size_t>
+template <class T, class DataSource, typename _DistanceType = T, typename IndexType = size_t>
 struct SO3_Adaptor
 {
     using ElementType  = T;
     using DistanceType = _DistanceType;
 
-    L2_Simple_Adaptor<T, DataSource, DistanceType, IndexType>
-        distance_L2_Simple;
+    L2_Simple_Adaptor<T, DataSource, DistanceType, IndexType> distance_L2_Simple;
 
-    SO3_Adaptor(const DataSource& _data_source)
-        : distance_L2_Simple(_data_source)
-    {
-    }
+    SO3_Adaptor(const DataSource& _data_source) : distance_L2_Simple(_data_source) {}
 
-    inline DistanceType evalMetric(
-        const T* a, const IndexType b_idx, size_t size) const
+    inline DistanceType evalMetric(const T* a, const IndexType b_idx, size_t size) const
     {
         return distance_L2_Simple.evalMetric(a, b_idx, size);
     }
@@ -885,8 +835,7 @@ enum class KDTreeSingleIndexAdaptorFlags
 inline std::underlying_type<KDTreeSingleIndexAdaptorFlags>::type operator&(
     KDTreeSingleIndexAdaptorFlags lhs, KDTreeSingleIndexAdaptorFlags rhs)
 {
-    using underlying =
-        typename std::underlying_type<KDTreeSingleIndexAdaptorFlags>::type;
+    using underlying = typename std::underlying_type<KDTreeSingleIndexAdaptorFlags>::type;
     return static_cast<underlying>(lhs) & static_cast<underlying>(rhs);
 }
 
@@ -894,13 +843,10 @@ inline std::underlying_type<KDTreeSingleIndexAdaptorFlags>::type operator&(
 struct KDTreeSingleIndexAdaptorParams
 {
     KDTreeSingleIndexAdaptorParams(
-        size_t                        _leaf_max_size = 10,
-        KDTreeSingleIndexAdaptorFlags _flags =
-            KDTreeSingleIndexAdaptorFlags::None,
-        unsigned int _n_thread_build = 1)
-        : leaf_max_size(_leaf_max_size),
-          flags(_flags),
-          n_thread_build(_n_thread_build)
+        size_t                        _leaf_max_size  = 10,
+        KDTreeSingleIndexAdaptorFlags _flags          = KDTreeSingleIndexAdaptorFlags::None,
+        unsigned int                  _n_thread_build = 1)
+        : leaf_max_size(_leaf_max_size), flags(_flags), n_thread_build(_n_thread_build)
     {
     }
 
@@ -912,10 +858,7 @@ struct KDTreeSingleIndexAdaptorParams
 /** Search options for KDTreeSingleIndexAdaptor::findNeighbors() */
 struct SearchParameters
 {
-    SearchParameters(float eps_ = 0, bool sorted_ = true)
-        : eps(eps_), sorted(sorted_)
-    {
-    }
+    SearchParameters(float eps_ = 0, bool sorted_ = true) : eps(eps_), sorted(sorted_) {}
 
     float eps;  //!< search for eps-approximate neighbours (default: 0)
     bool  sorted;  //!< only for radius search, require neighbours sorted by
@@ -954,8 +897,8 @@ class PooledAllocator
     using Size = size_t;
 
     Size  remaining_ = 0;  //!< Number of bytes left in current block of storage
-    void* base_ = nullptr;  //!< Pointer to base of current block of storage
-    void* loc_  = nullptr;  //!< Current location in block to next allocate
+    void* base_      = nullptr;  //!< Pointer to base of current block of storage
+    void* loc_       = nullptr;  //!< Current location in block to next allocate
 
     void internal_init()
     {
@@ -1012,12 +955,14 @@ class PooledAllocator
             wastedMemory += remaining_;
 
             /* Allocate new storage. */
-            const Size blocksize =
-                size > BLOCKSIZE ? size + WORDSIZE : BLOCKSIZE + WORDSIZE;
+            const Size blocksize = size > BLOCKSIZE ? size + WORDSIZE : BLOCKSIZE + WORDSIZE;
 
             // use the standard C malloc to allocate memory
             void* m = ::malloc(blocksize);
-            if (!m) { throw std::bad_alloc(); }
+            if (!m)
+            {
+                throw std::bad_alloc();
+            }
 
             /* Fill first word of new block with pointer to previous block. */
             static_cast<void**>(m)[0] = base_;
@@ -1194,8 +1139,7 @@ class KDTreeBaseClass
     Size veclen(const Derived& obj) const { return DIM > 0 ? DIM : obj.dim_; }
 
     /// Helper accessor to the dataset points:
-    ElementType dataset_get(
-        const Derived& obj, IndexType element, Dimension component) const
+    ElementType dataset_get(const Derived& obj, IndexType element, Dimension component) const
     {
         return obj.dataset_.kdtree_get_pt(element, component);
     }
@@ -1215,8 +1159,8 @@ class KDTreeBaseClass
      * Compute the minimum and maximum element values in the specified dimension
      */
     void computeMinMax(
-        const Derived& obj, Offset ind, Size count, Dimension element,
-        ElementType& min_elem, ElementType& max_elem) const
+        const Derived& obj, Offset ind, Size count, Dimension element, ElementType& min_elem,
+        ElementType& max_elem) const
     {
         min_elem = dataset_get(obj, vAcc_[ind], element);
         max_elem = min_elem;
@@ -1237,12 +1181,11 @@ class KDTreeBaseClass
      * @param bbox bounding box used as input for splitting and output for
      * parent node
      */
-    NodePtr divideTree(
-        Derived& obj, const Offset left, const Offset right, BoundingBox& bbox)
+    NodePtr divideTree(Derived& obj, const Offset left, const Offset right, BoundingBox& bbox)
     {
         assert(left < obj.dataset_.kdtree_get_point_count());
 
-        NodePtr node = obj.pool_.template allocate<Node>();  // allocate memory
+        NodePtr    node = obj.pool_.template allocate<Node>();  // allocate memory
         const auto dims = (DIM > 0 ? DIM : obj.dim_);
 
         /* If too few exemplars remain, then make this a leaf node. */
@@ -1281,12 +1224,12 @@ class KDTreeBaseClass
             /* Recurse on left */
             BoundingBox left_bbox(bbox);
             left_bbox[cutfeat].high = cutval;
-            node->child1 = this->divideTree(obj, left, left + idx, left_bbox);
+            node->child1            = this->divideTree(obj, left, left + idx, left_bbox);
 
             /* Recurse on right */
             BoundingBox right_bbox(bbox);
             right_bbox[cutfeat].low = cutval;
-            node->child2 = this->divideTree(obj, left + idx, right, right_bbox);
+            node->child2            = this->divideTree(obj, left + idx, right, right_bbox);
 
             node->node_type.sub.divlow  = left_bbox[cutfeat].high;
             node->node_type.sub.divhigh = right_bbox[cutfeat].low;
@@ -1318,7 +1261,7 @@ class KDTreeBaseClass
         std::atomic<unsigned int>& thread_count, std::mutex& mutex)
     {
         std::unique_lock<std::mutex> lock(mutex);
-        NodePtr node = obj.pool_.template allocate<Node>();  // allocate memory
+        NodePtr                      node = obj.pool_.template allocate<Node>();  // allocate memory
         lock.unlock();
 
         const auto dims = (DIM > 0 ? DIM : obj.dim_);
@@ -1367,19 +1310,21 @@ class KDTreeBaseClass
                 /* Concurrent thread for right recursion */
 
                 right_future = std::async(
-                    std::launch::async, &KDTreeBaseClass::divideTreeConcurrent,
-                    this, std::ref(obj), left + idx, right,
-                    std::ref(right_bbox), std::ref(thread_count),
+                    std::launch::async, &KDTreeBaseClass::divideTreeConcurrent, this, std::ref(obj),
+                    left + idx, right, std::ref(right_bbox), std::ref(thread_count),
                     std::ref(mutex));
             }
-            else { --thread_count; }
+            else
+            {
+                --thread_count;
+            }
 
             /* Recurse on left in this thread */
 
             BoundingBox left_bbox(bbox);
             left_bbox[cutfeat].high = cutval;
-            node->child1            = this->divideTreeConcurrent(
-                           obj, left, left + idx, left_bbox, thread_count, mutex);
+            node->child1 =
+                this->divideTreeConcurrent(obj, left, left + idx, left_bbox, thread_count, mutex);
 
             if (right_future.valid())
             {
@@ -1410,8 +1355,8 @@ class KDTreeBaseClass
     }
 
     void middleSplit_(
-        const Derived& obj, const Offset ind, const Size count, Offset& index,
-        Dimension& cutfeat, DistanceType& cutval, const BoundingBox& bbox)
+        const Derived& obj, const Offset ind, const Size count, Offset& index, Dimension& cutfeat,
+        DistanceType& cutval, const BoundingBox& bbox)
     {
         const auto dims = (DIM > 0 ? DIM : obj.dim_);
         const auto EPS  = static_cast<DistanceType>(0.00001);
@@ -1489,9 +1434,7 @@ class KDTreeBaseClass
         Offset lim1, lim2;
         planeSplit(obj, ind, count, cutfeat, cutval, lim1, lim2);
 
-        index = (lim1 > count / 2)   ? lim1
-                : (lim2 < count / 2) ? lim2
-                                     : count / 2;
+        index = (lim1 > count / 2) ? lim1 : (lim2 < count / 2) ? lim2 : count / 2;
     }
 
     /**
@@ -1504,9 +1447,8 @@ class KDTreeBaseClass
      *  dataset[ind[lim2..count]][cutfeat] > cutval
      */
     void planeSplit(
-        const Derived& obj, const Offset ind, const Size count,
-        const Dimension cutfeat, const DistanceType& cutval, Offset& lim1,
-        Offset& lim2)
+        const Derived& obj, const Offset ind, const Size count, const Dimension cutfeat,
+        const DistanceType& cutval, Offset& lim1, Offset& lim2)
     {
         // Dutch National Flag algorithm for three-way partitioning
         Offset left  = 0;
@@ -1528,7 +1470,10 @@ class KDTreeBaseClass
                 std::swap(vAcc_[ind + mid], vAcc_[ind + right]);
                 right--;
             }
-            else { mid++; }
+            else
+            {
+                mid++;
+            }
         }
 
         lim1 = left;
@@ -1536,8 +1481,7 @@ class KDTreeBaseClass
     }
 
     DistanceType computeInitialDistances(
-        const Derived& obj, const ElementType* vec,
-        distance_vector_t& dists) const
+        const Derived& obj, const ElementType* vec, distance_vector_t& dists) const
     {
         assert(vec);
         DistanceType dist = DistanceType();
@@ -1546,34 +1490,43 @@ class KDTreeBaseClass
         {
             if (vec[i] < obj.root_bbox_[i].low)
             {
-                dists[i] =
-                    obj.distance_.accum_dist(vec[i], obj.root_bbox_[i].low, i);
+                dists[i] = obj.distance_.accum_dist(vec[i], obj.root_bbox_[i].low, i);
                 dist += dists[i];
             }
             if (vec[i] > obj.root_bbox_[i].high)
             {
-                dists[i] =
-                    obj.distance_.accum_dist(vec[i], obj.root_bbox_[i].high, i);
+                dists[i] = obj.distance_.accum_dist(vec[i], obj.root_bbox_[i].high, i);
                 dist += dists[i];
             }
         }
         return dist;
     }
 
-    static void save_tree(
-        const Derived& obj, std::ostream& stream, const NodeConstPtr tree)
+    static void save_tree(const Derived& obj, std::ostream& stream, const NodeConstPtr tree)
     {
         save_value(stream, *tree);
-        if (tree->child1 != nullptr) { save_tree(obj, stream, tree->child1); }
-        if (tree->child2 != nullptr) { save_tree(obj, stream, tree->child2); }
+        if (tree->child1 != nullptr)
+        {
+            save_tree(obj, stream, tree->child1);
+        }
+        if (tree->child2 != nullptr)
+        {
+            save_tree(obj, stream, tree->child2);
+        }
     }
 
     static void load_tree(Derived& obj, std::istream& stream, NodePtr& tree)
     {
         tree = obj.pool_.template allocate<Node>();
         load_value(stream, *tree);
-        if (tree->child1 != nullptr) { load_tree(obj, stream, tree->child1); }
-        if (tree->child2 != nullptr) { load_tree(obj, stream, tree->child2); }
+        if (tree->child1 != nullptr)
+        {
+            load_tree(obj, stream, tree->child1);
+        }
+        if (tree->child2 != nullptr)
+        {
+            load_tree(obj, stream, tree->child2);
+        }
     }
 
     /**  Stores the index in a binary file.
@@ -1648,19 +1601,16 @@ class KDTreeBaseClass
  * Dimensionality of data points (e.g. 3 for 3D points) \tparam IndexType Will
  * be typically size_t or int
  */
-template <
-    typename Distance, class DatasetAdaptor, int32_t DIM = -1,
-    typename index_t = uint32_t>
+template <typename Distance, class DatasetAdaptor, int32_t DIM = -1, typename index_t = uint32_t>
 class KDTreeSingleIndexAdaptor
     : public KDTreeBaseClass<
-          KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, index_t>,
-          Distance, DatasetAdaptor, DIM, index_t>
+          KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, index_t>, Distance,
+          DatasetAdaptor, DIM, index_t>
 {
    public:
     /** Deleted copy constructor*/
     explicit KDTreeSingleIndexAdaptor(
-        const KDTreeSingleIndexAdaptor<
-            Distance, DatasetAdaptor, DIM, index_t>&) = delete;
+        const KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, index_t>&) = delete;
 
     /** The data source used by this index */
     const DatasetAdaptor& dataset_;
@@ -1670,9 +1620,8 @@ class KDTreeSingleIndexAdaptor
     Distance distance_;
 
     using Base = typename nanoflann::KDTreeBaseClass<
-        nanoflann::KDTreeSingleIndexAdaptor<
-            Distance, DatasetAdaptor, DIM, index_t>,
-        Distance, DatasetAdaptor, DIM, index_t>;
+        nanoflann::KDTreeSingleIndexAdaptor<Distance, DatasetAdaptor, DIM, index_t>, Distance,
+        DatasetAdaptor, DIM, index_t>;
 
     using Offset    = typename Base::Offset;
     using Size      = typename Base::Size;
@@ -1735,9 +1684,7 @@ class KDTreeSingleIndexAdaptor
     }
 
    private:
-    void init(
-        const Dimension                       dimensionality,
-        const KDTreeSingleIndexAdaptorParams& params)
+    void init(const Dimension dimensionality, const KDTreeSingleIndexAdaptorParams& params)
     {
         Base::size_                = dataset_.kdtree_get_point_count();
         Base::size_at_index_build_ = Base::size_;
@@ -1750,12 +1697,10 @@ class KDTreeSingleIndexAdaptor
         }
         else
         {
-            Base::n_thread_build_ =
-                std::max(std::thread::hardware_concurrency(), 1u);
+            Base::n_thread_build_ = std::max(std::thread::hardware_concurrency(), 1u);
         }
 
-        if (!(params.flags &
-              KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex))
+        if (!(params.flags & KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex))
         {
             // Build KD-tree:
             buildIndex();
@@ -1778,8 +1723,7 @@ class KDTreeSingleIndexAdaptor
         // construct the tree
         if (Base::n_thread_build_ == 1)
         {
-            Base::root_node_ =
-                this->divideTree(*this, 0, Base::size_, Base::root_bbox_);
+            Base::root_node_ = this->divideTree(*this, 0, Base::size_, Base::root_bbox_);
         }
         else
         {
@@ -1815,8 +1759,7 @@ class KDTreeSingleIndexAdaptor
      */
     template <typename RESULTSET>
     bool findNeighbors(
-        RESULTSET& result, const ElementType* vec,
-        const SearchParameters& searchParams = {}) const
+        RESULTSET& result, const ElementType* vec, const SearchParameters& searchParams = {}) const
     {
         assert(vec);
         if (this->size(*this) == 0) return false;
@@ -1874,8 +1817,7 @@ class KDTreeSingleIndexAdaptor
             // If this is a leaf node, then do check and return.
             if (!node->child1)  // (if one node is nullptr, both are)
             {
-                for (Offset i = node->node_type.lr.left;
-                     i < node->node_type.lr.right; ++i)
+                for (Offset i = node->node_type.lr.left; i < node->node_type.lr.right; ++i)
                 {
                     if (contains(bbox, Base::vAcc_[i]))
                     {
@@ -1918,8 +1860,8 @@ class KDTreeSingleIndexAdaptor
      *       number of elements in the tree is less than `num_closest`.
      */
     Size knnSearch(
-        const ElementType* query_point, const Size num_closest,
-        IndexType* out_indices, DistanceType* out_distances) const
+        const ElementType* query_point, const Size num_closest, IndexType* out_indices,
+        DistanceType* out_distances) const
     {
         nanoflann::KNNResultSet<DistanceType, IndexType> resultSet(num_closest);
         resultSet.init(out_indices, out_distances);
@@ -1949,12 +1891,10 @@ class KDTreeSingleIndexAdaptor
     Size radiusSearch(
         const ElementType* query_point, const DistanceType& radius,
         std::vector<ResultItem<IndexType, DistanceType>>& IndicesDists,
-        const SearchParameters& searchParams = {}) const
+        const SearchParameters&                           searchParams = {}) const
     {
-        RadiusResultSet<DistanceType, IndexType> resultSet(
-            radius, IndicesDists);
-        const Size nFound =
-            radiusSearchCustomCallback(query_point, resultSet, searchParams);
+        RadiusResultSet<DistanceType, IndexType> resultSet(radius, IndicesDists);
+        const Size nFound = radiusSearchCustomCallback(query_point, resultSet, searchParams);
         return nFound;
     }
 
@@ -1989,12 +1929,10 @@ class KDTreeSingleIndexAdaptor
      *       number of elements in the tree is less than `num_closest`.
      */
     Size rknnSearch(
-        const ElementType* query_point, const Size num_closest,
-        IndexType* out_indices, DistanceType* out_distances,
-        const DistanceType& radius) const
+        const ElementType* query_point, const Size num_closest, IndexType* out_indices,
+        DistanceType* out_distances, const DistanceType& radius) const
     {
-        nanoflann::RKNNResultSet<DistanceType, IndexType> resultSet(
-            num_closest, radius);
+        nanoflann::RKNNResultSet<DistanceType, IndexType> resultSet(num_closest, radius);
         resultSet.init(out_indices, out_distances);
         findNeighbors(resultSet, query_point);
         return resultSet.size();
@@ -2010,8 +1948,7 @@ class KDTreeSingleIndexAdaptor
         // Create a permutable array of indices to the input vectors.
         Base::size_ = dataset_.kdtree_get_point_count();
         if (Base::vAcc_.size() != Base::size_) Base::vAcc_.resize(Base::size_);
-        for (IndexType i = 0; i < static_cast<IndexType>(Base::size_); i++)
-            Base::vAcc_[i] = i;
+        for (IndexType i = 0; i < static_cast<IndexType>(Base::size_); i++) Base::vAcc_[i] = i;
     }
 
     void computeBoundingBox(BoundingBox& bbox)
@@ -2031,15 +1968,13 @@ class KDTreeSingleIndexAdaptor
                     "no data points found.");
             for (Dimension i = 0; i < dims; ++i)
             {
-                bbox[i].low = bbox[i].high =
-                    this->dataset_get(*this, Base::vAcc_[0], i);
+                bbox[i].low = bbox[i].high = this->dataset_get(*this, Base::vAcc_[0], i);
             }
             for (Offset k = 1; k < N; ++k)
             {
                 for (Dimension i = 0; i < dims; ++i)
                 {
-                    const auto val =
-                        this->dataset_get(*this, Base::vAcc_[k], i);
+                    const auto val = this->dataset_get(*this, Base::vAcc_[k], i);
                     if (val < bbox[i].low) bbox[i].low = val;
                     if (val > bbox[i].high) bbox[i].high = val;
                 }
@@ -2066,19 +2001,17 @@ class KDTreeSingleIndexAdaptor
      */
     template <class RESULTSET>
     bool searchLevel(
-        RESULTSET& result_set, const ElementType* vec, const NodePtr node,
-        DistanceType mindist, distance_vector_t& dists,
-        const float epsError) const
+        RESULTSET& result_set, const ElementType* vec, const NodePtr node, DistanceType mindist,
+        distance_vector_t& dists, const float epsError) const
     {
         // If this is a leaf node, then do check and return.
         if (!node->child1)  // (if one node is nullptr, both are)
         {
-            for (Offset i = node->node_type.lr.left;
-                 i < node->node_type.lr.right; ++i)
+            for (Offset i = node->node_type.lr.left; i < node->node_type.lr.right; ++i)
             {
                 const IndexType accessor = Base::vAcc_[i];  // reorder... : i;
-                DistanceType    dist     = distance_.evalMetric(
-                           vec, accessor, (DIM > 0 ? DIM : Base::dim_));
+                DistanceType    dist =
+                    distance_.evalMetric(vec, accessor, (DIM > 0 ? DIM : Base::dim_));
                 if (dist < result_set.worstDist())
                 {
                     if (!result_set.addPoint(dist, Base::vAcc_[i]))
@@ -2105,15 +2038,13 @@ class KDTreeSingleIndexAdaptor
         {
             bestChild  = node->child1;
             otherChild = node->child2;
-            cut_dist =
-                distance_.accum_dist(val, node->node_type.sub.divhigh, idx);
+            cut_dist   = distance_.accum_dist(val, node->node_type.sub.divhigh, idx);
         }
         else
         {
             bestChild  = node->child2;
             otherChild = node->child1;
-            cut_dist =
-                distance_.accum_dist(val, node->node_type.sub.divlow, idx);
+            cut_dist   = distance_.accum_dist(val, node->node_type.sub.divlow, idx);
         }
 
         /* Call recursively to search next level down. */
@@ -2129,8 +2060,7 @@ class KDTreeSingleIndexAdaptor
         dists[idx]       = cut_dist;
         if (mindist * epsError <= result_set.worstDist())
         {
-            if (!searchLevel(
-                    result_set, vec, otherChild, mindist, dists, epsError))
+            if (!searchLevel(result_set, vec, otherChild, mindist, dists, epsError))
             {
                 // the resultset doesn't want to receive any more points, we're
                 // done searching!
@@ -2147,10 +2077,7 @@ class KDTreeSingleIndexAdaptor
      * when loading the index object it must be constructed associated to the
      * same source of data points used while building it. See the example:
      * examples/saveload_example.cpp \sa loadIndex  */
-    void saveIndex(std::ostream& stream) const
-    {
-        Base::saveIndex(*this, stream);
-    }
+    void saveIndex(std::ostream& stream) const { Base::saveIndex(*this, stream); }
 
     /**  Loads a previous index from a binary file.
      *   IMPORTANT NOTE: The set of data points is NOT stored in the file, so
@@ -2198,14 +2125,11 @@ class KDTreeSingleIndexAdaptor
  * \tparam IndexType Type of the arguments with which the data can be
  * accessed (e.g. float, double, int64_t, T*)
  */
-template <
-    typename Distance, class DatasetAdaptor, int32_t DIM = -1,
-    typename IndexType = uint32_t>
+template <typename Distance, class DatasetAdaptor, int32_t DIM = -1, typename IndexType = uint32_t>
 class KDTreeSingleIndexDynamicAdaptor_
     : public KDTreeBaseClass<
-          KDTreeSingleIndexDynamicAdaptor_<
-              Distance, DatasetAdaptor, DIM, IndexType>,
-          Distance, DatasetAdaptor, DIM, IndexType>
+          KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM, IndexType>, Distance,
+          DatasetAdaptor, DIM, IndexType>
 {
    public:
     /**
@@ -2220,8 +2144,7 @@ class KDTreeSingleIndexDynamicAdaptor_
     Distance distance_;
 
     using Base = typename nanoflann::KDTreeBaseClass<
-        nanoflann::KDTreeSingleIndexDynamicAdaptor_<
-            Distance, DatasetAdaptor, DIM, IndexType>,
+        nanoflann::KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM, IndexType>,
         Distance, DatasetAdaptor, DIM, IndexType>;
 
     using ElementType  = typename Base::ElementType;
@@ -2261,12 +2184,8 @@ class KDTreeSingleIndexDynamicAdaptor_
     KDTreeSingleIndexDynamicAdaptor_(
         const Dimension dimensionality, const DatasetAdaptor& inputData,
         std::vector<int>&                     treeIndex,
-        const KDTreeSingleIndexAdaptorParams& params =
-            KDTreeSingleIndexAdaptorParams())
-        : dataset_(inputData),
-          index_params_(params),
-          treeIndex_(treeIndex),
-          distance_(inputData)
+        const KDTreeSingleIndexAdaptorParams& params = KDTreeSingleIndexAdaptorParams())
+        : dataset_(inputData), index_params_(params), treeIndex_(treeIndex), distance_(inputData)
     {
         Base::size_                = 0;
         Base::size_at_index_build_ = 0;
@@ -2280,18 +2199,15 @@ class KDTreeSingleIndexDynamicAdaptor_
         }
         else
         {
-            Base::n_thread_build_ =
-                std::max(std::thread::hardware_concurrency(), 1u);
+            Base::n_thread_build_ = std::max(std::thread::hardware_concurrency(), 1u);
         }
     }
 
     /** Explicitly default the copy constructor */
-    KDTreeSingleIndexDynamicAdaptor_(
-        const KDTreeSingleIndexDynamicAdaptor_& rhs) = default;
+    KDTreeSingleIndexDynamicAdaptor_(const KDTreeSingleIndexDynamicAdaptor_& rhs) = default;
 
     /** Assignment operator definiton */
-    KDTreeSingleIndexDynamicAdaptor_ operator=(
-        const KDTreeSingleIndexDynamicAdaptor_& rhs)
+    KDTreeSingleIndexDynamicAdaptor_ operator=(const KDTreeSingleIndexDynamicAdaptor_& rhs)
     {
         KDTreeSingleIndexDynamicAdaptor_ tmp(rhs);
         std::swap(Base::vAcc_, tmp.Base::vAcc_);
@@ -2319,8 +2235,7 @@ class KDTreeSingleIndexDynamicAdaptor_
         // construct the tree
         if (Base::n_thread_build_ == 1)
         {
-            Base::root_node_ =
-                this->divideTree(*this, 0, Base::size_, Base::root_bbox_);
+            Base::root_node_ = this->divideTree(*this, 0, Base::size_, Base::root_bbox_);
         }
         else
         {
@@ -2360,8 +2275,7 @@ class KDTreeSingleIndexDynamicAdaptor_
      */
     template <typename RESULTSET>
     bool findNeighbors(
-        RESULTSET& result, const ElementType* vec,
-        const SearchParameters& searchParams = {}) const
+        RESULTSET& result, const ElementType* vec, const SearchParameters& searchParams = {}) const
     {
         assert(vec);
         if (this->size(*this) == 0) return false;
@@ -2397,9 +2311,8 @@ class KDTreeSingleIndexDynamicAdaptor_
      *       number of elements in the tree is less than `num_closest`.
      */
     Size knnSearch(
-        const ElementType* query_point, const Size num_closest,
-        IndexType* out_indices, DistanceType* out_distances,
-        const SearchParameters& searchParams = {}) const
+        const ElementType* query_point, const Size num_closest, IndexType* out_indices,
+        DistanceType* out_distances, const SearchParameters& searchParams = {}) const
     {
         nanoflann::KNNResultSet<DistanceType, IndexType> resultSet(num_closest);
         resultSet.init(out_indices, out_distances);
@@ -2429,12 +2342,10 @@ class KDTreeSingleIndexDynamicAdaptor_
     Size radiusSearch(
         const ElementType* query_point, const DistanceType& radius,
         std::vector<ResultItem<IndexType, DistanceType>>& IndicesDists,
-        const SearchParameters& searchParams = {}) const
+        const SearchParameters&                           searchParams = {}) const
     {
-        RadiusResultSet<DistanceType, IndexType> resultSet(
-            radius, IndicesDists);
-        const size_t nFound =
-            radiusSearchCustomCallback(query_point, resultSet, searchParams);
+        RadiusResultSet<DistanceType, IndexType> resultSet(radius, IndicesDists);
+        const size_t nFound = radiusSearchCustomCallback(query_point, resultSet, searchParams);
         return nFound;
     }
 
@@ -2473,15 +2384,13 @@ class KDTreeSingleIndexDynamicAdaptor_
                     "no data points found.");
             for (Dimension i = 0; i < dims; ++i)
             {
-                bbox[i].low = bbox[i].high =
-                    this->dataset_get(*this, Base::vAcc_[0], i);
+                bbox[i].low = bbox[i].high = this->dataset_get(*this, Base::vAcc_[0], i);
             }
             for (Offset k = 1; k < N; ++k)
             {
                 for (Dimension i = 0; i < dims; ++i)
                 {
-                    const auto val =
-                        this->dataset_get(*this, Base::vAcc_[k], i);
+                    const auto val = this->dataset_get(*this, Base::vAcc_[k], i);
                     if (val < bbox[i].low) bbox[i].low = val;
                     if (val > bbox[i].high) bbox[i].high = val;
                 }
@@ -2495,26 +2404,22 @@ class KDTreeSingleIndexDynamicAdaptor_
      */
     template <class RESULTSET>
     void searchLevel(
-        RESULTSET& result_set, const ElementType* vec, const NodePtr node,
-        DistanceType mindist, distance_vector_t& dists,
-        const float epsError) const
+        RESULTSET& result_set, const ElementType* vec, const NodePtr node, DistanceType mindist,
+        distance_vector_t& dists, const float epsError) const
     {
         // If this is a leaf node, then do check and return.
         if (!node->child1)  // (if one node is nullptr, both are)
         {
-            for (Offset i = node->node_type.lr.left;
-                 i < node->node_type.lr.right; ++i)
+            for (Offset i = node->node_type.lr.left; i < node->node_type.lr.right; ++i)
             {
                 const IndexType index = Base::vAcc_[i];  // reorder... : i;
                 if (treeIndex_[index] == -1) continue;
-                DistanceType dist = distance_.evalMetric(
-                    vec, index, (DIM > 0 ? DIM : Base::dim_));
+                DistanceType dist = distance_.evalMetric(vec, index, (DIM > 0 ? DIM : Base::dim_));
                 if (dist < result_set.worstDist())
                 {
                     if (!result_set.addPoint(
                             static_cast<typename RESULTSET::DistanceType>(dist),
-                            static_cast<typename RESULTSET::IndexType>(
-                                Base::vAcc_[i])))
+                            static_cast<typename RESULTSET::IndexType>(Base::vAcc_[i])))
                     {
                         // the resultset doesn't want to receive any more
                         // points, we're done searching!
@@ -2538,15 +2443,13 @@ class KDTreeSingleIndexDynamicAdaptor_
         {
             bestChild  = node->child1;
             otherChild = node->child2;
-            cut_dist =
-                distance_.accum_dist(val, node->node_type.sub.divhigh, idx);
+            cut_dist   = distance_.accum_dist(val, node->node_type.sub.divhigh, idx);
         }
         else
         {
             bestChild  = node->child2;
             otherChild = node->child1;
-            cut_dist =
-                distance_.accum_dist(val, node->node_type.sub.divlow, idx);
+            cut_dist   = distance_.accum_dist(val, node->node_type.sub.divlow, idx);
         }
 
         /* Call recursively to search next level down. */
@@ -2592,21 +2495,17 @@ class KDTreeSingleIndexDynamicAdaptor_
  * Dimensionality of data points (e.g. 3 for 3D points) \tparam IndexType
  * Will be typically size_t or int
  */
-template <
-    typename Distance, class DatasetAdaptor, int32_t DIM = -1,
-    typename IndexType = uint32_t>
+template <typename Distance, class DatasetAdaptor, int32_t DIM = -1, typename IndexType = uint32_t>
 class KDTreeSingleIndexDynamicAdaptor
 {
    public:
     using ElementType  = typename Distance::ElementType;
     using DistanceType = typename Distance::DistanceType;
 
-    using Offset = typename KDTreeSingleIndexDynamicAdaptor_<
-        Distance, DatasetAdaptor, DIM>::Offset;
-    using Size = typename KDTreeSingleIndexDynamicAdaptor_<
-        Distance, DatasetAdaptor, DIM>::Size;
-    using Dimension = typename KDTreeSingleIndexDynamicAdaptor_<
-        Distance, DatasetAdaptor, DIM>::Dimension;
+    using Offset = typename KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM>::Offset;
+    using Size   = typename KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM>::Size;
+    using Dimension =
+        typename KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM>::Dimension;
 
    protected:
     Size leaf_max_size_;
@@ -2627,17 +2526,14 @@ class KDTreeSingleIndexDynamicAdaptor
 
     Dimension dim_;  //!< Dimensionality of each data point
 
-    using index_container_t = KDTreeSingleIndexDynamicAdaptor_<
-        Distance, DatasetAdaptor, DIM, IndexType>;
+    using index_container_t =
+        KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM, IndexType>;
     std::vector<index_container_t> index_;
 
    public:
     /** Get a const ref to the internal list of indices; the number of indices
      * is adapted dynamically as the dataset grows in size. */
-    const std::vector<index_container_t>& getAllIndices() const
-    {
-        return index_;
-    }
+    const std::vector<index_container_t>& getAllIndices() const { return index_; }
 
    private:
     /** finds position of least significant unset bit */
@@ -2655,11 +2551,10 @@ class KDTreeSingleIndexDynamicAdaptor
     /** Creates multiple empty trees to handle dynamic support */
     void init()
     {
-        using my_kd_tree_t = KDTreeSingleIndexDynamicAdaptor_<
-            Distance, DatasetAdaptor, DIM, IndexType>;
+        using my_kd_tree_t =
+            KDTreeSingleIndexDynamicAdaptor_<Distance, DatasetAdaptor, DIM, IndexType>;
         std::vector<my_kd_tree_t> index(
-            treeCount_,
-            my_kd_tree_t(dim_ /*dim*/, dataset_, treeIndex_, index_params_));
+            treeCount_, my_kd_tree_t(dim_ /*dim*/, dataset_, treeIndex_, index_params_));
         index_ = index;
     }
 
@@ -2683,9 +2578,8 @@ class KDTreeSingleIndexDynamicAdaptor
      */
     explicit KDTreeSingleIndexDynamicAdaptor(
         const int dimensionality, const DatasetAdaptor& inputData,
-        const KDTreeSingleIndexAdaptorParams& params =
-            KDTreeSingleIndexAdaptorParams(),
-        const size_t maximumPointCount = 1000000000U)
+        const KDTreeSingleIndexAdaptorParams& params            = KDTreeSingleIndexAdaptorParams(),
+        const size_t                          maximumPointCount = 1000000000U)
         : dataset_(inputData), index_params_(params), distance_(inputData)
     {
         treeCount_  = static_cast<size_t>(std::log2(maximumPointCount)) + 1;
@@ -2696,13 +2590,15 @@ class KDTreeSingleIndexDynamicAdaptor
         leaf_max_size_ = params.leaf_max_size;
         init();
         const size_t num_initial_points = dataset_.kdtree_get_point_count();
-        if (num_initial_points > 0) { addPoints(0, num_initial_points - 1); }
+        if (num_initial_points > 0)
+        {
+            addPoints(0, num_initial_points - 1);
+        }
     }
 
     /** Deleted copy constructor*/
     explicit KDTreeSingleIndexDynamicAdaptor(
-        const KDTreeSingleIndexDynamicAdaptor<
-            Distance, DatasetAdaptor, DIM, IndexType>&) = delete;
+        const KDTreeSingleIndexDynamicAdaptor<Distance, DatasetAdaptor, DIM, IndexType>&) = delete;
 
     /** Add points to the set, Inserts all points from [start, end] */
     void addPoints(IndexType start, IndexType end)
@@ -2725,12 +2621,10 @@ class KDTreeSingleIndexDynamicAdaptor
 
             for (int i = 0; i < pos; i++)
             {
-                for (int j = 0; j < static_cast<int>(index_[i].vAcc_.size());
-                     j++)
+                for (int j = 0; j < static_cast<int>(index_[i].vAcc_.size()); j++)
                 {
                     index_[pos].vAcc_.push_back(index_[i].vAcc_[j]);
-                    if (treeIndex_[index_[i].vAcc_[j]] != -1)
-                        treeIndex_[index_[i].vAcc_[j]] = pos;
+                    if (treeIndex_[index_[i].vAcc_[j]] != -1) treeIndex_[index_[i].vAcc_[j]] = pos;
                 }
                 index_[i].vAcc_.clear();
             }
@@ -2771,8 +2665,7 @@ class KDTreeSingleIndexDynamicAdaptor
      */
     template <typename RESULTSET>
     bool findNeighbors(
-        RESULTSET& result, const ElementType* vec,
-        const SearchParameters& searchParams = {}) const
+        RESULTSET& result, const ElementType* vec, const SearchParameters& searchParams = {}) const
     {
         for (size_t i = 0; i < treeCount_; i++)
         {
@@ -2812,17 +2705,13 @@ template <
     bool row_major = true>
 struct KDTreeEigenMatrixAdaptor
 {
-    using self_t =
-        KDTreeEigenMatrixAdaptor<MatrixType, DIM, Distance, row_major>;
+    using self_t    = KDTreeEigenMatrixAdaptor<MatrixType, DIM, Distance, row_major>;
     using num_t     = typename MatrixType::Scalar;
     using IndexType = typename MatrixType::Index;
-    using metric_t  = typename Distance::template traits<
-        num_t, self_t, IndexType>::distance_t;
+    using metric_t  = typename Distance::template traits<num_t, self_t, IndexType>::distance_t;
 
     using index_t = KDTreeSingleIndexAdaptor<
-        metric_t, self_t,
-        row_major ? MatrixType::ColsAtCompileTime
-                  : MatrixType::RowsAtCompileTime,
+        metric_t, self_t, row_major ? MatrixType::ColsAtCompileTime : MatrixType::RowsAtCompileTime,
         IndexType>;
 
     index_t* index_;  //! The kd-tree index for the user to call its methods as
@@ -2834,8 +2723,7 @@ struct KDTreeEigenMatrixAdaptor
 
     /// Constructor: takes a const ref to the matrix object with the data points
     explicit KDTreeEigenMatrixAdaptor(
-        const Dimension                                 dimensionality,
-        const std::reference_wrapper<const MatrixType>& mat,
+        const Dimension dimensionality, const std::reference_wrapper<const MatrixType>& mat,
         const int leaf_max_size = 10, const unsigned int n_thread_build = 1)
         : m_data_matrix(mat)
     {
@@ -2851,8 +2739,7 @@ struct KDTreeEigenMatrixAdaptor
         index_ = new index_t(
             dims, *this /* adaptor */,
             nanoflann::KDTreeSingleIndexAdaptorParams(
-                leaf_max_size, nanoflann::KDTreeSingleIndexAdaptorFlags::None,
-                n_thread_build));
+                leaf_max_size, nanoflann::KDTreeSingleIndexAdaptorFlags::None, n_thread_build));
     }
 
    public:
@@ -2872,8 +2759,8 @@ struct KDTreeEigenMatrixAdaptor
      *       distances.
      */
     void query(
-        const num_t* query_point, const Size num_closest,
-        IndexType* out_indices, num_t* out_distances) const
+        const num_t* query_point, const Size num_closest, IndexType* out_indices,
+        num_t* out_distances) const
     {
         nanoflann::KNNResultSet<num_t, IndexType> resultSet(num_closest);
         resultSet.init(out_indices, out_distances);
