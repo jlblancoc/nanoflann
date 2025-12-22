@@ -45,8 +45,7 @@ void kdtree_demo(const size_t N)
 
     // construct a kd-tree index:
     using my_kd_tree_t = nanoflann::KDTreeSingleIndexAdaptor<
-        nanoflann::L2_Simple_Adaptor<num_t, PointCloud<num_t>>,
-        PointCloud<num_t>, 3 /* dim */
+        nanoflann::L2_Simple_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>, 3 /* dim */
         >;
 
     dump_mem_usage();
@@ -61,26 +60,23 @@ void kdtree_demo(const size_t N)
         num_t                          out_dist_sqr;
         nanoflann::KNNResultSet<num_t> resultSet(num_results);
         resultSet.init(&ret_index, &out_dist_sqr);
-        index.findNeighbors(
-            resultSet, &query_pt[0], nanoflann::SearchParams(10));
+        index.findNeighbors(resultSet, &query_pt[0], nanoflann::SearchParams(10));
 
         std::cout << "knnSearch(nn=" << num_results << "): \n";
-        std::cout << "ret_index=" << ret_index
-                  << " out_dist_sqr=" << out_dist_sqr << std::endl;
+        std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr << std::endl;
     }
     {
         // Unsorted radius search:
         const num_t                               radius = 1;
         std::vector<std::pair<size_t, num_t>>     indices_dists;
-        nanoflann::RadiusResultSet<num_t, size_t> resultSet(
-            radius, indices_dists);
+        nanoflann::RadiusResultSet<num_t, size_t> resultSet(radius, indices_dists);
 
         index.findNeighbors(resultSet, query_pt, nanoflann::SearchParams());
 
         // Get worst (furthest) point, without sorting:
         std::pair<size_t, num_t> worst_pair = resultSet.worst_item();
-        std::cout << "Worst pair: idx=" << worst_pair.first
-                  << " dist=" << worst_pair.second << std::endl;
+        std::cout << "Worst pair: idx=" << worst_pair.first << " dist=" << worst_pair.second
+                  << std::endl;
     }
 }
 

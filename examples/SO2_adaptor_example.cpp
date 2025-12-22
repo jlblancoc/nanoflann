@@ -45,8 +45,8 @@ void kdtree_demo(const size_t N)
 
     // construct a kd-tree index:
     using my_kd_tree_t = nanoflann::KDTreeSingleIndexAdaptor<
-        nanoflann::SO2_Adaptor<num_t, PointCloud_Orient<num_t>>,
-        PointCloud_Orient<num_t>, 1 /* dim */
+        nanoflann::SO2_Adaptor<num_t, PointCloud_Orient<num_t>>, PointCloud_Orient<num_t>,
+        1 /* dim */
         >;
 
     dump_mem_usage();
@@ -64,8 +64,7 @@ void kdtree_demo(const size_t N)
         index.findNeighbors(resultSet, &query_pt[0]);
 
         std::cout << "knnSearch(nn=" << num_results << "): \n";
-        std::cout << "ret_index=" << ret_index
-                  << " out_dist_sqr=" << out_dist_sqr << std::endl;
+        std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr << std::endl;
     }
 }
 

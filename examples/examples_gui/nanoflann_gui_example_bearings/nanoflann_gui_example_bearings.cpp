@@ -79,8 +79,7 @@ struct Bearing
 mrpt::math::TPoint3D bearing_to_point(const Bearing& b)
 {
     const auto R =
-        mrpt::poses::CPose3D::FromYawPitchRoll(b.yaw, b.pitch, 0.0 /*roll*/)
-            .getRotationMatrix();
+        mrpt::poses::CPose3D::FromYawPitchRoll(b.yaw, b.pitch, 0.0 /*roll*/).getRotationMatrix();
     return {R(0, 0), R(1, 0), R(2, 0)};
 }
 #endif
@@ -175,9 +174,7 @@ inline T my_angDistance(T from, T to)
 //
 // ********************************* IMPORTANT ********************************
 //
-template <
-    class T, class DataSource, typename _DistanceType = T,
-    typename IndexType = uint32_t>
+template <class T, class DataSource, typename _DistanceType = T, typename IndexType = uint32_t>
 struct ThetaPhiMetric_Adaptor
 {
     using ElementType  = T;
@@ -185,17 +182,12 @@ struct ThetaPhiMetric_Adaptor
 
     const DataSource& data_source;
 
-    ThetaPhiMetric_Adaptor(const DataSource& _data_source)
-        : data_source(_data_source)
-    {
-    }
+    ThetaPhiMetric_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
-    DistanceType evalMetric(
-        const T* a, const IndexType b_idx, size_t /*size = 2*/) const
+    DistanceType evalMetric(const T* a, const IndexType b_idx, size_t /*size = 2*/) const
     {
         DistanceType result =
-            mrpt::square(
-                my_angDistance(a[0], data_source.kdtree_get_pt(b_idx, 0))) +
+            mrpt::square(my_angDistance(a[0], data_source.kdtree_get_pt(b_idx, 0))) +
             mrpt::square(a[1] - data_source.kdtree_get_pt(b_idx, 1));
 
         return result;
@@ -217,8 +209,7 @@ struct ThetaPhiMetric_Adaptor
 };
 
 using my_kd_tree_t = nanoflann::KDTreeSingleIndexAdaptor<
-    ThetaPhiMetric_Adaptor<double, BearingsDataset>, BearingsDataset,
-    2 /* dim */
+    ThetaPhiMetric_Adaptor<double, BearingsDataset>, BearingsDataset, 2 /* dim */
     >;
 
 void kdtree_demo(const size_t N)
@@ -241,8 +232,7 @@ void kdtree_demo(const size_t N)
         auto glPts = pc_to_viz(data);
         scene->insert(glPts);
         scene->insert(mrpt::opengl::stock_objects::CornerXYZSimple());
-        auto glAxis =
-            mrpt::opengl::CAxis::Create(-1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 0.25);
+        auto glAxis = mrpt::opengl::CAxis::Create(-1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 0.25);
         glAxis->setTextScale(0.1);
         scene->insert(glAxis);
 
@@ -276,18 +266,17 @@ void kdtree_demo(const size_t N)
     for (size_t i = 0; i < N; i++)
 #endif
     {
-        const double queryPt[2] = {
-            data.kdtree_get_pt(i, 0), data.kdtree_get_pt(i, 1)};
+        const double queryPt[2] = {data.kdtree_get_pt(i, 0), data.kdtree_get_pt(i, 1)};
 
         mrpt::system::CTimeLoggerEntry tle2(profiler, "query");
 
-        const auto numNN = index.knnSearch(
-            queryPt, NUM_NEIGHBORS, nn_indices.data(), nn_distances.data());
+        const auto numNN =
+            index.knnSearch(queryPt, NUM_NEIGHBORS, nn_indices.data(), nn_distances.data());
 
         tle2.stop();
 
-        std::cout << "\nQuery point: (" << queryPt[0] << "," << queryPt[1]
-                  << ") => " << numNN << " results.\n";
+        std::cout << "\nQuery point: (" << queryPt[0] << "," << queryPt[1] << ") => " << numNN
+                  << " results.\n";
 
 #ifdef SHOW_GUI
         bool stop = false;
@@ -305,8 +294,7 @@ void kdtree_demo(const size_t N)
             glFoundPts->clear();
             for (size_t j = 0; j < numNN; j++)
             {
-                const auto pt =
-                    bearing_to_point(data.samples.at(nn_indices[j]));
+                const auto pt = bearing_to_point(data.samples.at(nn_indices[j]));
                 glFoundPts->insertPoint(pt.x, pt.y, pt.z);
             }
 
@@ -324,10 +312,8 @@ void kdtree_demo(const size_t N)
 
 int main()
 {
-    std::cout << my_angDistance(mrpt::DEG2RAD(179.0), mrpt::DEG2RAD(-179.0))
-              << std::endl;
-    std::cout << my_angDistance(mrpt::DEG2RAD(-179.0), mrpt::DEG2RAD(179.0))
-              << std::endl;
+    std::cout << my_angDistance(mrpt::DEG2RAD(179.0), mrpt::DEG2RAD(-179.0)) << std::endl;
+    std::cout << my_angDistance(mrpt::DEG2RAD(-179.0), mrpt::DEG2RAD(179.0)) << std::endl;
 
     kdtree_demo(NUM_SAMPLES);
     return 0;

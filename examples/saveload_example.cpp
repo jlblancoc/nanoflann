@@ -45,16 +45,14 @@ void kdtree_save_load_demo(const size_t N)
 
     // construct a kd-tree index:
     using my_kd_tree_t = nanoflann::KDTreeSingleIndexAdaptor<
-        nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>,
-        PointCloud<double>, 3 /* dim */
+        nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>, PointCloud<double>, 3 /* dim */
         >;
 
     // Construct the index and save it:
     // --------------------------------------------
     {
         my_kd_tree_t index(
-            3 /*dim*/, cloud,
-            nanoflann::KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
+            3 /*dim*/, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
 
         std::ofstream f("index.bin", std::ofstream::binary);
 
@@ -74,8 +72,8 @@ void kdtree_save_load_demo(const size_t N)
         my_kd_tree_t index(
             3 /*dim*/, cloud,
             nanoflann::KDTreeSingleIndexAdaptorParams(
-                10 /* max leaf */, nanoflann::KDTreeSingleIndexAdaptorFlags::
-                                       SkipInitialBuildIndex));
+                10 /* max leaf */,
+                nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
 
         std::ifstream f("index.bin", std::ofstream::binary);
 
@@ -93,8 +91,7 @@ void kdtree_save_load_demo(const size_t N)
         index.findNeighbors(resultSet, &query_pt[0]);
 
         std::cout << "knnSearch(nn=" << num_results << "): \n";
-        std::cout << "ret_index=" << ret_index
-                  << " out_dist_sqr=" << out_dist_sqr << std::endl;
+        std::cout << "ret_index=" << ret_index << " out_dist_sqr=" << out_dist_sqr << std::endl;
     }
 
     // Stress test: try to save an empty index

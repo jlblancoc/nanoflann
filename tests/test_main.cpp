@@ -60,19 +60,16 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
 
     // construct a kd-tree index:
     using my_kd_tree_simple_t = KDTreeSingleIndexAdaptor<
-        L2_Simple_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>,
-        3 /* dim */
+        L2_Simple_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>, 3 /* dim */
         >;
 
     using my_kd_tree_t = KDTreeSingleIndexAdaptor<
         L2_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>, 3 /* dim */
         >;
 
-    my_kd_tree_simple_t index1(
-        3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
+    my_kd_tree_simple_t index1(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
 
-    my_kd_tree_t index2(
-        3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
+    my_kd_tree_t index2(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
 
     // do a knn search
     std::vector<size_t>            ret_index(num_results);
@@ -88,8 +85,14 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
 
     index2.findNeighbors(resultSet, &query_pt[0]);
 
-    if (N >= num_results) { EXPECT_EQ(resultSet.size(), num_results); }
-    else { EXPECT_EQ(resultSet.size(), N); }
+    if (N >= num_results)
+    {
+        EXPECT_EQ(resultSet.size(), num_results);
+    }
+    else
+    {
+        EXPECT_EQ(resultSet.size(), N);
+    }
 
     for (size_t i = 0; i < resultSet.size(); i++)
     {
@@ -109,12 +112,11 @@ void L2_vs_L2_simple_test(const size_t N, const size_t num_results)
     const num_t maxRadiusSqrSearch = 10.0 * 10.0;
 
     std::vector<nanoflann::ResultItem<
-        typename my_kd_tree_simple_t::IndexType,
-        typename my_kd_tree_simple_t::DistanceType>>
+        typename my_kd_tree_simple_t::IndexType, typename my_kd_tree_simple_t::DistanceType>>
         radiusIdxs;
 
-    nanoflann::RadiusResultSet<num_t, typename my_kd_tree_simple_t::IndexType>
-        radiusResults(maxRadiusSqrSearch, radiusIdxs);
+    nanoflann::RadiusResultSet<num_t, typename my_kd_tree_simple_t::IndexType> radiusResults(
+        maxRadiusSqrSearch, radiusIdxs);
     radiusResults.init();
     nanoflann::SearchParameters searchParams;
     searchParams.sorted = true;
@@ -135,21 +137,18 @@ using namespace nanoflann;
 
 template <typename NUM>
 void generateRandomPointCloud(
-    std::vector<std::vector<NUM>>& samples, const size_t N, const size_t dim,
-    const NUM max_range)
+    std::vector<std::vector<NUM>>& samples, const size_t N, const size_t dim, const NUM max_range)
 {
     samples.resize(N);
     for (size_t i = 0; i < N; i++)
     {
         samples[i].resize(dim);
-        for (size_t d = 0; d < dim; d++)
-            samples[i][d] = max_range * (rand() % 1000) / NUM(1000.0);
+        for (size_t d = 0; d < dim; d++) samples[i][d] = max_range * (rand() % 1000) / NUM(1000.0);
     }
 }
 
 template <typename NUM>
-void L1_vs_bruteforce_test(
-    const size_t nSamples, const size_t DIM, const size_t numToSearch)
+void L1_vs_bruteforce_test(const size_t nSamples, const size_t DIM, const size_t numToSearch)
 {
     std::vector<std::vector<NUM>> samples;
 
@@ -196,8 +195,7 @@ void L1_vs_bruteforce_test(
         for (size_t i = 0; i < nSamples; i++)
         {
             double dist = 0.0;
-            for (size_t d = 0; d < DIM; d++)
-                dist += std::abs(query_pt[d] - samples[i][d]);
+            for (size_t d = 0; d < DIM; d++) dist += std::abs(query_pt[d] - samples[i][d]);
             bf_nn.emplace(dist, i);
         }
     }
@@ -218,16 +216,15 @@ void L1_vs_bruteforce_test(
 
             // indices may be not in the (rare) case of a tie:
             EXPECT_NEAR(bf_idx2dist.at(ret_indexes[i]), out_dists_sqr[i], 1e-3)
-                << "For: numToSearch=" << numToSearch
-                << " out_dists_sqr[i]=" << out_dists_sqr[i] << "\n";
+                << "For: numToSearch=" << numToSearch << " out_dists_sqr[i]=" << out_dists_sqr[i]
+                << "\n";
         }
     }
 }
 
 template <typename NUM>
 void rknn_L1_vs_bruteforce_test(
-    const size_t nSamples, const size_t DIM, const size_t numToSearch,
-    const NUM maxRadiusSqr)
+    const size_t nSamples, const size_t DIM, const size_t numToSearch, const NUM maxRadiusSqr)
 {
     std::vector<std::vector<NUM>> samples;
 
@@ -273,8 +270,7 @@ void rknn_L1_vs_bruteforce_test(
         for (size_t i = 0; i < nSamples; i++)
         {
             double dist = 0.0;
-            for (size_t d = 0; d < DIM; d++)
-                dist += std::abs(query_pt[d] - samples[i][d]);
+            for (size_t d = 0; d < DIM; d++) dist += std::abs(query_pt[d] - samples[i][d]);
 
             if (dist <= maxRadiusSqr) bf_nn.emplace(dist, i);
         }
@@ -293,20 +289,19 @@ void rknn_L1_vs_bruteforce_test(
         {
             // Distances must be in exact order:
             EXPECT_NEAR(it->first, out_dists_sqr[i], 1e-3)
-                << "For: numToSearch=" << numToSearch
-                << " out_dists_sqr[i]=" << out_dists_sqr[i] << "\n";
+                << "For: numToSearch=" << numToSearch << " out_dists_sqr[i]=" << out_dists_sqr[i]
+                << "\n";
 
             // indices may be not in the (rare) case of a tie:
             EXPECT_NEAR(bf_idx2dist.at(ret_indexes[i]), out_dists_sqr[i], 1e-3)
-                << "For: numToSearch=" << numToSearch
-                << " out_dists_sqr[i]=" << out_dists_sqr[i] << "\n";
+                << "For: numToSearch=" << numToSearch << " out_dists_sqr[i]=" << out_dists_sqr[i]
+                << "\n";
         }
     }
 }
 
 template <typename NUM>
-void L2_vs_bruteforce_test(
-    const size_t nSamples, const size_t DIM, const size_t numToSearch)
+void L2_vs_bruteforce_test(const size_t nSamples, const size_t DIM, const size_t numToSearch)
 {
     std::vector<std::vector<NUM>> samples;
 
@@ -323,8 +318,7 @@ void L2_vs_bruteforce_test(
     // construct a kd-tree index:
     // Dimensionality set at run-time (default: L2)
     // ------------------------------------------------------------
-    typedef KDTreeVectorOfVectorsAdaptor<std::vector<std::vector<NUM>>, NUM>
-        my_kd_tree_t;
+    typedef KDTreeVectorOfVectorsAdaptor<std::vector<std::vector<NUM>>, NUM> my_kd_tree_t;
 
     my_kd_tree_t mat_index(DIM /*dim*/, samples, 10 /* max leaf */);
 
@@ -353,8 +347,7 @@ void L2_vs_bruteforce_test(
         {
             double dist = 0.0;
             for (size_t d = 0; d < DIM; d++)
-                dist += (query_pt[d] - samples[i][d]) *
-                        (query_pt[d] - samples[i][d]);
+                dist += (query_pt[d] - samples[i][d]) * (query_pt[d] - samples[i][d]);
             bf_nn.emplace(dist, i);
         }
     }
@@ -375,8 +368,8 @@ void L2_vs_bruteforce_test(
 
             // indices may be not in the (rare) case of a tie:
             EXPECT_NEAR(bf_idx2dist.at(ret_indexes[i]), out_dists_sqr[i], 1e-3)
-                << "For: numToSearch=" << numToSearch
-                << " out_dists_sqr[i]=" << out_dists_sqr[i] << "\n";
+                << "For: numToSearch=" << numToSearch << " out_dists_sqr[i]=" << out_dists_sqr[i]
+                << "\n";
         }
     }
 }
@@ -391,19 +384,15 @@ void box_L2_vs_bruteforce_test(const size_t nSamples, const size_t DIM)
     // Generate points:
     generateRandomPointCloud(samples, nSamples, DIM, max_range);
 
-    typedef KDTreeVectorOfVectorsAdaptor<std::vector<std::vector<NUM>>, NUM>
-        my_kd_tree_t;
+    typedef KDTreeVectorOfVectorsAdaptor<std::vector<std::vector<NUM>>, NUM> my_kd_tree_t;
 
     // Query box:
     typename my_kd_tree_t::index_t::BoundingBox query_box(DIM);
     for (size_t d = 0; d < DIM; d++)
     {
-        query_box[d].low =
-            static_cast<NUM>(max_range * (rand() % 1000) / (1000.0));
-        query_box[d].high =
-            static_cast<NUM>(max_range * (rand() % 1000) / (1000.0));
-        if (query_box[d].low > query_box[d].high)
-            std::swap(query_box[d].low, query_box[d].high);
+        query_box[d].low  = static_cast<NUM>(max_range * (rand() % 1000) / (1000.0));
+        query_box[d].high = static_cast<NUM>(max_range * (rand() % 1000) / (1000.0));
+        if (query_box[d].low > query_box[d].high) std::swap(query_box[d].low, query_box[d].high);
     }
 
     // construct a kd-tree index:
@@ -438,8 +427,7 @@ void box_L2_vs_bruteforce_test(const size_t nSamples, const size_t DIM)
 
 template <typename NUM>
 void rknn_L2_vs_bruteforce_test(
-    const size_t nSamples, const size_t DIM, const size_t numToSearch,
-    const NUM maxRadiusSqr)
+    const size_t nSamples, const size_t DIM, const size_t numToSearch, const NUM maxRadiusSqr)
 {
     std::vector<std::vector<NUM>> samples;
 
@@ -456,8 +444,7 @@ void rknn_L2_vs_bruteforce_test(
     // construct a kd-tree index:
     // Dimensionality set at run-time (default: L2)
     // ------------------------------------------------------------
-    typedef KDTreeVectorOfVectorsAdaptor<std::vector<std::vector<NUM>>, NUM>
-        my_kd_tree_t;
+    typedef KDTreeVectorOfVectorsAdaptor<std::vector<std::vector<NUM>>, NUM> my_kd_tree_t;
 
     my_kd_tree_t mat_index(DIM /*dim*/, samples, 10 /* max leaf */);
 
@@ -485,8 +472,7 @@ void rknn_L2_vs_bruteforce_test(
         {
             double dist = 0.0;
             for (size_t d = 0; d < DIM; d++)
-                dist += (query_pt[d] - samples[i][d]) *
-                        (query_pt[d] - samples[i][d]);
+                dist += (query_pt[d] - samples[i][d]) * (query_pt[d] - samples[i][d]);
 
             if (dist <= maxRadiusSqr) bf_nn.emplace(dist, i);
         }
@@ -505,13 +491,13 @@ void rknn_L2_vs_bruteforce_test(
         {
             // Distances must be in exact order:
             EXPECT_NEAR(it->first, out_dists_sqr[i], 1e-3)
-                << "For: numToSearch=" << numToSearch
-                << " out_dists_sqr[i]=" << out_dists_sqr[i] << "\n";
+                << "For: numToSearch=" << numToSearch << " out_dists_sqr[i]=" << out_dists_sqr[i]
+                << "\n";
 
             // indices may be not in the (rare) case of a tie:
             EXPECT_NEAR(bf_idx2dist.at(ret_indexes[i]), out_dists_sqr[i], 1e-3)
-                << "For: numToSearch=" << numToSearch
-                << " out_dists_sqr[i]=" << out_dists_sqr[i] << "\n";
+                << "For: numToSearch=" << numToSearch << " out_dists_sqr[i]=" << out_dists_sqr[i]
+                << "\n";
         }
     }
 }
@@ -528,13 +514,11 @@ void SO3_vs_bruteforce_test(const size_t nSamples)
 
     // construct a kd-tree index:
     typedef KDTreeSingleIndexAdaptor<
-        SO3_Adaptor<NUM, PointCloud_Quat<NUM>>, PointCloud_Quat<NUM>,
-        4 /* dim */
+        SO3_Adaptor<NUM, PointCloud_Quat<NUM>>, PointCloud_Quat<NUM>, 4 /* dim */
         >
         my_kd_tree_t;
 
-    my_kd_tree_t index(
-        4 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
+    my_kd_tree_t index(4 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
     // do a knn search
     const size_t        num_results = 1;
     std::vector<size_t> ret_indexes(num_results);
@@ -581,13 +565,11 @@ void SO2_vs_bruteforce_test(const size_t nSamples)
 
     // construct a kd-tree index:
     typedef KDTreeSingleIndexAdaptor<
-        SO2_Adaptor<NUM, PointCloud_Orient<NUM>>, PointCloud_Orient<NUM>,
-        1 /* dim */
+        SO2_Adaptor<NUM, PointCloud_Orient<NUM>>, PointCloud_Orient<NUM>, 1 /* dim */
         >
         my_kd_tree_t;
 
-    my_kd_tree_t index(
-        1 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
+    my_kd_tree_t index(1 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
     // do a knn search
     const size_t        num_results = 1;
     std::vector<size_t> ret_indexes(num_results);
@@ -639,8 +621,7 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
         >
         my_kd_tree_t;
 
-    my_kd_tree_t index(
-        3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
+    my_kd_tree_t index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
 
     // Generate points:
     generateRandomPointCloud(cloud, nSamples, max_range);
@@ -731,8 +712,7 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
 }
 
 template <typename NUM>
-void L2_concurrent_build_vs_bruteforce_test(
-    const size_t nSamples, const size_t DIM)
+void L2_concurrent_build_vs_bruteforce_test(const size_t nSamples, const size_t DIM)
 {
     std::vector<std::vector<NUM>> samples;
 
@@ -749,11 +729,9 @@ void L2_concurrent_build_vs_bruteforce_test(
     // construct a kd-tree index:
     // Dimensionality set at run-time (default: L2)
     // ------------------------------------------------------------
-    typedef KDTreeVectorOfVectorsAdaptor<std::vector<std::vector<NUM>>, NUM>
-        my_kd_tree_t;
+    typedef KDTreeVectorOfVectorsAdaptor<std::vector<std::vector<NUM>>, NUM> my_kd_tree_t;
 
-    my_kd_tree_t mat_index(
-        DIM /*dim*/, samples, 10 /* max leaf */, 0 /* concurrent build */);
+    my_kd_tree_t mat_index(DIM /*dim*/, samples, 10 /* max leaf */, 0 /* concurrent build */);
 
     // do a knn search
     const size_t        num_results = 1;
@@ -773,8 +751,7 @@ void L2_concurrent_build_vs_bruteforce_test(
         {
             double dist = 0.0;
             for (size_t d = 0; d < DIM; d++)
-                dist += (query_pt[d] - samples[i][d]) *
-                        (query_pt[d] - samples[i][d]);
+                dist += (query_pt[d] - samples[i][d]) * (query_pt[d] - samples[i][d]);
             if (dist < min_dist_L2)
             {
                 min_dist_L2 = dist;
@@ -807,8 +784,7 @@ void L2_concurrent_build_vs_L2_test(const size_t nSamples, const size_t DIM)
     // construct a kd-tree index:
     // Dimensionality set at run-time (default: L2)
     // ------------------------------------------------------------
-    typedef KDTreeVectorOfVectorsAdaptor<std::vector<std::vector<NUM>>, NUM>
-        my_kd_tree_t;
+    typedef KDTreeVectorOfVectorsAdaptor<std::vector<std::vector<NUM>>, NUM> my_kd_tree_t;
 
     my_kd_tree_t mat_index_concurrent_build(
         DIM /*dim*/, samples, 10 /* max leaf */, 0 /* concurrent build */);
@@ -837,8 +813,7 @@ void L2_dynamic_sorted_test(const size_t N, const size_t num_results)
     std::vector<num_t>                     dynamic_dist(num_results);
     KNNResultSet<num_t>                    dynamic_knn_result(num_results);
     std::vector<ResultItem<size_t, num_t>> radius_results_vec;
-    RadiusResultSet<num_t, size_t>         dynamic_radius_result(
-                10.0 * 10.0, radius_results_vec);
+    RadiusResultSet<num_t, size_t>         dynamic_radius_result(10.0 * 10.0, radius_results_vec);
 
     // Prepare search params to sort result
     const auto search_params = SearchParameters(0, true);
@@ -846,10 +821,8 @@ void L2_dynamic_sorted_test(const size_t N, const size_t num_results)
     dynamic_knn_result.init(&dynamic_idx[0], &dynamic_dist[0]);
     dynamic_radius_result.init();
 
-    dynamic_index.findNeighbors(
-        dynamic_knn_result, &query_pt[0], search_params);
-    dynamic_index.findNeighbors(
-        dynamic_radius_result, &query_pt[0], search_params);
+    dynamic_index.findNeighbors(dynamic_knn_result, &query_pt[0], search_params);
+    dynamic_index.findNeighbors(dynamic_radius_result, &query_pt[0], search_params);
 
     // Check size
     const size_t expected_size = std::min(N, num_results);
@@ -934,13 +907,11 @@ TEST(kdtree, robust_empty_tree)
 
     // construct a kd-tree index:
     typedef KDTreeSingleIndexAdaptor<
-        L2_Simple_Adaptor<double, PointCloud<double>>, PointCloud<double>,
-        3 /* dim */
+        L2_Simple_Adaptor<double, PointCloud<double>>, PointCloud<double>, 3 /* dim */
         >
         my_kd_tree_simple_t;
 
-    my_kd_tree_simple_t index1(
-        3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
+    my_kd_tree_simple_t index1(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
 
     // Now we will try to search in the tree, and WE EXPECT a result of
     // no neighbors found if the error detection works fine:
@@ -1073,8 +1044,7 @@ TEST(kdtree, robust_nonempty_tree)
         my_kd_tree_simple_t;
 
     my_kd_tree_simple_t index1(
-        3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */),
-        max_point_count);
+        3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */), max_point_count);
 
     // Try a search and expect a neighbor to exist because the dynamic tree was
     // passed a non-empty cloud
@@ -1096,8 +1066,7 @@ TEST(kdtree, add_and_remove_points)
         L2_Simple_Adaptor<double, PointCloud<double>>, PointCloud<double>, 3>
         my_kd_tree_simple_t;
 
-    my_kd_tree_simple_t index(
-        3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
+    my_kd_tree_simple_t index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10 /* max leaf */));
 
     const auto query = [&index]() -> size_t
     {

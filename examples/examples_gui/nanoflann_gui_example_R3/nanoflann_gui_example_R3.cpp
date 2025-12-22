@@ -44,7 +44,10 @@
 mrpt::opengl::CPointCloud::Ptr pc_to_viz(const PointCloud<double>& pc)
 {
     auto gl = mrpt::opengl::CPointCloud::Create();
-    for (const auto pt : pc.pts) { gl->insertPoint(pt.x, pt.y, pt.z); }
+    for (const auto pt : pc.pts)
+    {
+        gl->insertPoint(pt.x, pt.y, pt.z);
+    }
     gl->setPointSize(3.0f);
     return gl;
 }
@@ -91,8 +94,7 @@ void kdtree_demo(const size_t N)
 
     // construct a kd-tree index:
     using my_kd_tree_t = nanoflann::KDTreeSingleIndexAdaptor<
-        nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>,
-        PointCloud<double>, 3 /* dim */
+        nanoflann::L2_Simple_Adaptor<double, PointCloud<double>>, PointCloud<double>, 3 /* dim */
         >;
 
     mrpt::system::CTimeLogger profiler;
@@ -127,22 +129,19 @@ void kdtree_demo(const size_t N)
         const size_t nnToSearch = (rng.drawUniform32bit() % 10) + 1;
 #endif
         const double queryPt[3] = {
-            rng.drawUniform(-0.3, maxRangeXY + 0.3),
-            rng.drawUniform(-0.3, maxRangeXY + 0.3),
+            rng.drawUniform(-0.3, maxRangeXY + 0.3), rng.drawUniform(-0.3, maxRangeXY + 0.3),
             rng.drawUniform(-0.3, maxRangeZ + 0.3)};
 
         mrpt::system::CTimeLoggerEntry tle2(profiler, "query");
 
 #if defined(USE_RADIUS_SEARCH)
         indicesDists.clear();
-        nanoflann::RadiusResultSet<double, size_t> resultSet(
-            sqRadius, indicesDists);
+        nanoflann::RadiusResultSet<double, size_t> resultSet(sqRadius, indicesDists);
         index.findNeighbors(resultSet, queryPt);
 #else
 
 #if defined(USE_RKNN_SEARCH)
-        nanoflann::RKNNResultSet<double, size_t> resultSet(
-            nnToSearch, sqRadius);
+        nanoflann::RKNNResultSet<double, size_t> resultSet(nnToSearch, sqRadius);
 #elif defined(USE_KNN_SEARCH)
         nanoflann::KNNResultSet<double, size_t> resultSet(nnToSearch);
 #else
@@ -162,20 +161,17 @@ void kdtree_demo(const size_t N)
 #endif
         tle2.stop();
 
-        std::cout << "\nQuery point: (" << queryPt[0] << "," << queryPt[1]
-                  << "," << queryPt[2] << ") => " << resultSet.size()
-                  << " results.\n";
+        std::cout << "\nQuery point: (" << queryPt[0] << "," << queryPt[1] << "," << queryPt[2]
+                  << ") => " << resultSet.size() << " results.\n";
 
         if (!resultSet.empty())
         {
 #if defined(USE_RADIUS_SEARCH)
-            nanoflann::ResultItem<size_t, double> worstPair =
-                resultSet.worst_item();
+            nanoflann::ResultItem<size_t, double> worstPair = resultSet.worst_item();
             std::cout << "Worst pair: idx=" << worstPair.first
                       << " dist=" << std::sqrt(worstPair.second) << std::endl;
 #else
-            std::cout << "nnToSearch=" << nnToSearch
-                      << " actual found=" << indices.size()
+            std::cout << "nnToSearch=" << nnToSearch << " actual found=" << indices.size()
                       << " Worst found dist=" << worstDist << std::endl;
 #endif
         }
