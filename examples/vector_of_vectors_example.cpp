@@ -35,6 +35,9 @@ using namespace nanoflann;
 
 #include "KDTreeVectorOfVectorsAdaptor.h"
 
+namespace
+{
+
 const int SAMPLES_DIM = 15;
 
 typedef std::vector<std::vector<double>> my_vector_of_vectors_t;
@@ -88,10 +91,20 @@ void kdtree_demo(const size_t nSamples, const size_t dim)
         std::cout << "ret_index[" << i << "]=" << ret_indexes[i]
                   << " out_dist_sqr=" << out_dists_sqr[i] << std::endl;
 }
+}  // namespace
 
 int main()
 {
-    // Randomize Seed
-    srand(static_cast<unsigned int>(time(nullptr)));
-    kdtree_demo(1000 /* samples */, SAMPLES_DIM /* dim */);
+    try
+    {
+        // Randomize Seed
+        srand(static_cast<unsigned int>(time(nullptr)));
+        kdtree_demo(1000 /* samples */, SAMPLES_DIM /* dim */);
+        return 0;
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << e.what() << "\n";
+        return 1;
+    }
 }

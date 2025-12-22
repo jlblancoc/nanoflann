@@ -40,6 +40,9 @@ using namespace nanoflann;
 // the metric class My_Custom_Metric_Adaptor, whose constructor accepts
 // arbitrary parameters:
 
+namespace
+{
+
 template <class T, class DataSource, typename _DistanceType = T, typename IndexType = uint32_t>
 struct My_Custom_Metric_Adaptor
 {
@@ -122,11 +125,20 @@ static void kdtree_custom_metric_demo(const size_t N)
         cout << "Worst pair: idx=" << worst_pair.first << " dist=" << worst_pair.second << endl;
     }
 }
+}  // namespace
 
 int main()
 {
-    // Randomize Seed
-    srand(static_cast<unsigned int>(time(nullptr)));
-    kdtree_custom_metric_demo(10000);
-    return 0;
+    try
+    {
+        // Randomize Seed
+        srand(static_cast<unsigned int>(time(nullptr)));
+        kdtree_custom_metric_demo(10000);
+        return 0;
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << e.what() << "\n";
+        return 1;
+    }
 }

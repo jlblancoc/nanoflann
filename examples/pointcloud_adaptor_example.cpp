@@ -36,6 +36,9 @@
 
 void dump_mem_usage();
 
+namespace
+{
+
 // And this is the "dataset to kd-tree" adaptor class:
 template <typename Derived>
 struct PointCloudAdaptor
@@ -122,12 +125,21 @@ void kdtree_demo(const size_t N)
     do_knn_search(index1);
     do_knn_search(index2);
 }
+}  // namespace
 
 int main()
 {
-    // Randomize Seed
-    srand((unsigned int)time(NULL));
-    kdtree_demo<float>(1000000);
-    kdtree_demo<double>(1000000);
-    return 0;
+    try
+    {
+        // Randomize Seed
+        srand((unsigned int)time(NULL));
+        kdtree_demo<float>(1000000);
+        kdtree_demo<double>(1000000);
+        return 0;
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << e.what() << "\n";
+        return 1;
+    }
 }

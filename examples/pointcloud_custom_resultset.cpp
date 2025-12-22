@@ -30,11 +30,13 @@
 #include <ctime>
 #include <iostream>
 #include <nanoflann.hpp>
-#include <type_traits>
 
 #include "utils.h"
 
 using num_t = double;
+
+namespace
+{
 
 template <typename _DistanceType, typename _IndexType = size_t>
 class MyCustomResultSet
@@ -113,11 +115,20 @@ void kdtree_demo(const size_t N)
         std::cout << "Found: " << indices_dists.size() << " NN points." << std::endl;
     }
 }
+}  // namespace
 
 int main()
 {
-    // Randomize Seed
-    srand(static_cast<unsigned int>(time(nullptr)));
-    kdtree_demo(10000);
-    return 0;
+    try
+    {
+        // Randomize Seed
+        srand(static_cast<unsigned int>(time(nullptr)));
+        kdtree_demo(10000);
+        return 0;
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << e.what() << "\n";
+        return 1;
+    }
 }

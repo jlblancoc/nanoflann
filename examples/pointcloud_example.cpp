@@ -34,6 +34,9 @@
 
 #include "utils.h"
 
+namespace
+{
+
 template <typename num_t>
 void kdtree_demo(const size_t N)
 {
@@ -85,12 +88,21 @@ void kdtree_demo(const size_t N)
                   << std::endl;
     }
 }
+}  // namespace
 
 int main()
 {
-    // Randomize Seed
-    srand(static_cast<unsigned int>(time(nullptr)));
-    kdtree_demo<float>(1000000);
-    kdtree_demo<double>(1000000);
-    return 0;
+    try
+    {
+        // Randomize Seed
+        srand(static_cast<unsigned int>(time(nullptr)));
+        kdtree_demo<float>(1000000);
+        kdtree_demo<double>(1000000);
+        return 0;
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << e.what() << "\n";
+        return 1;
+    }
 }

@@ -33,6 +33,9 @@
 
 #include "utils.h"
 
+namespace
+{
+
 template <typename num_t>
 void kdtree_demo(const size_t N)
 {
@@ -50,10 +53,10 @@ void kdtree_demo(const size_t N)
     // Generate points:
     generateRandomPointCloud(cloud, N);
 
-    num_t query_pt[3] = {0.5, 0.5, 0.5};
+    const num_t query_pt[3] = {0.5, 0.5, 0.5};
 
     // add points in chunks at a time
-    size_t chunk_size = 100;
+    const size_t chunk_size = 100;
     for (size_t i = 0; i < N; i = i + chunk_size)
     {
         size_t end = std::min<size_t>(i + chunk_size, N - 1);
@@ -62,7 +65,7 @@ void kdtree_demo(const size_t N)
     }
 
     // remove a point
-    size_t removePointIndex = N - 1;
+    const size_t removePointIndex = N - 1;
     index.removePoint(removePointIndex);
 
     dump_mem_usage();
@@ -115,7 +118,7 @@ void kdtree_demo(const size_t N)
 
         index.findNeighbors(resultSet, query_pt);
 
-        nanoflann::ResultItem<size_t, num_t> worst_pair = resultSet.worst_item();
+        const nanoflann::ResultItem<size_t, num_t> worst_pair = resultSet.worst_item();
         std::cout << "Worst pair: idx=" << worst_pair.first << " dist=" << worst_pair.second
                   << std::endl;
         std::cout << "point: (" << cloud.pts[worst_pair.first].x << ", "
@@ -124,12 +127,21 @@ void kdtree_demo(const size_t N)
         std::cout << std::endl;
     }
 }
+}  // namespace
 
 int main()
 {
-    // Randomize Seed
-    srand(static_cast<unsigned int>(time(nullptr)));
-    kdtree_demo<float>(1000000);
-    kdtree_demo<double>(1000000);
-    return 0;
+    try
+    {
+        // Randomize Seed
+        srand(static_cast<unsigned int>(time(nullptr)));
+        kdtree_demo<float>(1000000);
+        kdtree_demo<double>(1000000);
+        return 0;
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << e.what() << "\n";
+        return 1;
+    }
 }
