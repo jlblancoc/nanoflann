@@ -80,11 +80,11 @@
 
 // Handle restricted pointers
 #if defined(__GNUC__) || defined(__clang__)
-#  define NANOFLANN_RESTRICT __restrict__
+#define NANOFLANN_RESTRICT __restrict__
 #elif defined(_MSC_VER)
-#  define NANOFLANN_RESTRICT __restrict
+#define NANOFLANN_RESTRICT __restrict
 #else
-#  define NANOFLANN_RESTRICT
+#define NANOFLANN_RESTRICT
 #endif
 
 namespace nanoflann
@@ -413,8 +413,8 @@ class RadiusResultSet
     void clear() { m_indices_dists.clear(); }
 
     size_t size() const noexcept { return m_indices_dists.size(); }
-    bool empty() const noexcept { return m_indices_dists.empty(); }
-    bool full() const noexcept { return true; }
+    bool   empty() const noexcept { return m_indices_dists.empty(); }
+    bool   full() const noexcept { return true; }
 
     /**
      * Called during search to add an element matching the criteria.
@@ -519,8 +519,9 @@ struct L1_Adaptor
         DistanceType worst_dist = -1) const
     {
         DistanceType result  = DistanceType();
-        const size_t multof4 = (size >> 2) << 2; // largest multiple of 4, i.e. 1 << 2
-        size_t       d;
+        const size_t multof4 = (size >> 2)
+                               << 2;  // largest multiple of 4, i.e. 1 << 2
+        size_t d;
 
         /* Process 4 items with each loop for efficiency. */
         if (worst_dist <= 0)
@@ -528,14 +529,14 @@ struct L1_Adaptor
             /* No checks with worst_dist. */
             for (d = 0; d < multof4; d += 4)
             {
-                const DistanceType diff0 =
-                    std::abs(a[d+0] - data_source.kdtree_get_pt(b_idx, d+0));
-                const DistanceType diff1 =
-                    std::abs(a[d+1] - data_source.kdtree_get_pt(b_idx, d+1));
-                const DistanceType diff2 =
-                    std::abs(a[d+2] - data_source.kdtree_get_pt(b_idx, d+2));
-                const DistanceType diff3 =
-                    std::abs(a[d+3] - data_source.kdtree_get_pt(b_idx, d+3));
+                const DistanceType diff0 = std::abs(
+                    a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
+                const DistanceType diff1 = std::abs(
+                    a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
+                const DistanceType diff2 = std::abs(
+                    a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
+                const DistanceType diff3 = std::abs(
+                    a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3));
                 /* Parentheses break dependency chain: */
                 result += (diff0 + diff1) + (diff2 + diff3);
             }
@@ -545,14 +546,14 @@ struct L1_Adaptor
             /* Check with worst_dist. */
             for (d = 0; d < multof4; d += 4)
             {
-                const DistanceType diff0 =
-                    std::abs(a[d+0] - data_source.kdtree_get_pt(b_idx, d+0));
-                const DistanceType diff1 =
-                    std::abs(a[d+1] - data_source.kdtree_get_pt(b_idx, d+1));
-                const DistanceType diff2 =
-                    std::abs(a[d+2] - data_source.kdtree_get_pt(b_idx, d+2));
-                const DistanceType diff3 =
-                    std::abs(a[d+3] - data_source.kdtree_get_pt(b_idx, d+3));
+                const DistanceType diff0 = std::abs(
+                    a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
+                const DistanceType diff1 = std::abs(
+                    a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
+                const DistanceType diff2 = std::abs(
+                    a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
+                const DistanceType diff3 = std::abs(
+                    a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3));
                 /* Parentheses break dependency chain: */
                 result += (diff0 + diff1) + (diff2 + diff3);
                 if (result > worst_dist) { return result; }
@@ -560,11 +561,19 @@ struct L1_Adaptor
         }
         /* Process last 0-3 components. Unrolled loop with fall-through switch.
          */
-        switch(size - multof4){
-            case 3 : result += std::abs(a[d+2] - data_source.kdtree_get_pt(b_idx, d+2));
-            case 2 : result += std::abs(a[d+1] - data_source.kdtree_get_pt(b_idx, d+1));
-            case 1 : result += std::abs(a[d+0] - data_source.kdtree_get_pt(b_idx, d+0));
-            case 0 : break;
+        switch (size - multof4)
+        {
+            case 3:
+                result += std::abs(
+                    a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
+            case 2:
+                result += std::abs(
+                    a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
+            case 1:
+                result += std::abs(
+                    a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
+            case 0:
+                break;
         }
         return result;
     }
@@ -603,8 +612,9 @@ struct L2_Adaptor
         DistanceType worst_dist = -1) const
     {
         DistanceType result  = DistanceType();
-        const size_t multof4 = (size >> 2) << 2; // largest multiple of 4, i.e. 1 << 2
-        size_t       d;
+        const size_t multof4 = (size >> 2)
+                               << 2;  // largest multiple of 4, i.e. 1 << 2
+        size_t d;
 
         /* Process 4 items with each loop for efficiency. */
         if (worst_dist <= 0)
@@ -613,16 +623,16 @@ struct L2_Adaptor
             for (d = 0; d < multof4; d += 4)
             {
                 const DistanceType diff0 =
-                    a[d+0] - data_source.kdtree_get_pt(b_idx, d+0);
+                    a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0);
                 const DistanceType diff1 =
-                    a[d+1] - data_source.kdtree_get_pt(b_idx, d+1);
+                    a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1);
                 const DistanceType diff2 =
-                    a[d+2] - data_source.kdtree_get_pt(b_idx, d+2);
+                    a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2);
                 const DistanceType diff3 =
-                    a[d+3] - data_source.kdtree_get_pt(b_idx, d+3);
+                    a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3);
                 /* Parentheses break dependency chain: */
-                result +=
-                    (diff0 * diff0 + diff1 * diff1) + (diff2 * diff2 + diff3 * diff3);
+                result += (diff0 * diff0 + diff1 * diff1) +
+                          (diff2 * diff2 + diff3 * diff3);
             }
         }
         else
@@ -631,27 +641,35 @@ struct L2_Adaptor
             for (d = 0; d < multof4; d += 4)
             {
                 const DistanceType diff0 =
-                    a[d+0] - data_source.kdtree_get_pt(b_idx, d+0);
+                    a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0);
                 const DistanceType diff1 =
-                    a[d+1] - data_source.kdtree_get_pt(b_idx, d+1);
+                    a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1);
                 const DistanceType diff2 =
-                    a[d+2] - data_source.kdtree_get_pt(b_idx, d+2);
+                    a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2);
                 const DistanceType diff3 =
-                    a[d+3] - data_source.kdtree_get_pt(b_idx, d+3);
+                    a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3);
                 /* Parentheses break dependency chain: */
-                result +=
-                    (diff0 * diff0 + diff1 * diff1) + (diff2 * diff2 + diff3 * diff3);
+                result += (diff0 * diff0 + diff1 * diff1) +
+                          (diff2 * diff2 + diff3 * diff3);
                 if (result > worst_dist) { return result; }
             }
         }
         /* Process last 0-3 components. Unrolled loop with fall-through switch.
          */
         DistanceType diff;
-        switch(size - multof4){
-            case 3 : diff = a[d+2] - data_source.kdtree_get_pt(b_idx, d+2);  result += diff * diff;
-            case 2 : diff = a[d+1] - data_source.kdtree_get_pt(b_idx, d+1);  result += diff * diff;
-            case 1 : diff = a[d+0] - data_source.kdtree_get_pt(b_idx, d+0);  result += diff * diff;
-            case 0 : break;
+        switch (size - multof4)
+        {
+            case 3:
+                diff = a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2);
+                result += diff * diff;
+            case 2:
+                diff = a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1);
+                result += diff * diff;
+            case 1:
+                diff = a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0);
+                result += diff * diff;
+            case 0:
+                break;
         }
         return result;
     }
@@ -1385,76 +1403,84 @@ class KDTreeBaseClass
         Dimension& cutfeat, DistanceType& cutval, const BoundingBox& bbox)
     {
         const auto dims = (DIM > 0 ? DIM : obj.dim_);
-        const auto EPS = static_cast<DistanceType>(0.00001);
-        
+        const auto EPS  = static_cast<DistanceType>(0.00001);
+
         // Pre-compute max_span once
         ElementType max_span = bbox[0].high - bbox[0].low;
-        for (Dimension i = 1; i < dims; ++i) {
+        for (Dimension i = 1; i < dims; ++i)
+        {
             ElementType span = bbox[i].high - bbox[i].low;
             if (span > max_span) max_span = span;
         }
-        
+
         // Single-pass min/max computation for candidate dimensions
-        cutfeat = 0;
+        cutfeat                = 0;
         ElementType max_spread = -1;
         ElementType min_elem = 0, max_elem = 0;
-        
+
         // Only check dimensions within (1-EPS) of max_span
         std::vector<Dimension> candidates;
         candidates.reserve(dims);
-        for (Dimension i = 0; i < dims; ++i) {
-            if (bbox[i].high - bbox[i].low >= (1 - EPS) * max_span) {
+        for (Dimension i = 0; i < dims; ++i)
+        {
+            if (bbox[i].high - bbox[i].low >= (1 - EPS) * max_span)
+            {
                 candidates.push_back(i);
             }
         }
-        
+
         // Vectorized min/max for candidates
-        for (Dimension dim : candidates) {
+        for (Dimension dim : candidates)
+        {
             ElementType local_min = dataset_get(obj, vAcc_[ind], dim);
             ElementType local_max = local_min;
-            
+
             // Unrolled loop for better performance
             constexpr size_t UNROLL = 4;
-            Offset k = 1;
-            for (; k + UNROLL <= count; k += UNROLL) {
+            Offset           k      = 1;
+            for (; k + UNROLL <= count; k += UNROLL)
+            {
                 ElementType v0 = dataset_get(obj, vAcc_[ind + k], dim);
                 ElementType v1 = dataset_get(obj, vAcc_[ind + k + 1], dim);
                 ElementType v2 = dataset_get(obj, vAcc_[ind + k + 2], dim);
                 ElementType v3 = dataset_get(obj, vAcc_[ind + k + 3], dim);
-                
+
                 local_min = std::min({local_min, v0, v1, v2, v3});
                 local_max = std::max({local_max, v0, v1, v2, v3});
             }
-            
+
             // Handle remainder
-            for (; k < count; ++k) {
+            for (; k < count; ++k)
+            {
                 ElementType val = dataset_get(obj, vAcc_[ind + k], dim);
-                local_min = std::min(local_min, val);
-                local_max = std::max(local_max, val);
+                local_min       = std::min(local_min, val);
+                local_max       = std::max(local_max, val);
             }
-            
+
             ElementType spread = local_max - local_min;
-            if (spread > max_spread) {
-                cutfeat = dim;
+            if (spread > max_spread)
+            {
+                cutfeat    = dim;
                 max_spread = spread;
-                min_elem = local_min;
-                max_elem = local_max;
+                min_elem   = local_min;
+                max_elem   = local_max;
             }
         }
-        
+
         // Median-of-three for better balance
         DistanceType split_val = (bbox[cutfeat].low + bbox[cutfeat].high) / 2;
-        if (split_val<min_elem) split_val = min_elem;
-        if (split_val>max_elem) split_val = max_elem;
-        
+        if (split_val < min_elem) split_val = min_elem;
+        if (split_val > max_elem) split_val = max_elem;
+
         cutval = split_val;
-        
+
         // Optimized partitioning
         Offset lim1, lim2;
         planeSplit(obj, ind, count, cutfeat, cutval, lim1, lim2);
-        
-        index = (lim1 > count/2) ? lim1 : 
-                    (lim2 < count/2) ? lim2 : count/2;
+
+        index = (lim1 > count / 2)   ? lim1
+                : (lim2 < count / 2) ? lim2
+                                     : count / 2;
     }
 
     /**
@@ -1472,27 +1498,28 @@ class KDTreeBaseClass
         Offset& lim2)
     {
         // Dutch National Flag algorithm for three-way partitioning
-        Offset left = 0;
-        Offset mid = 0;
+        Offset left  = 0;
+        Offset mid   = 0;
         Offset right = count - 1;
-        
-        while (mid <= right) {
+
+        while (mid <= right)
+        {
             ElementType val = dataset_get(obj, vAcc_[ind + mid], cutfeat);
-            
-            if (val < cutval) {
+
+            if (val < cutval)
+            {
                 std::swap(vAcc_[ind + left], vAcc_[ind + mid]);
                 left++;
                 mid++;
             }
-            else if (val > cutval) {
+            else if (val > cutval)
+            {
                 std::swap(vAcc_[ind + mid], vAcc_[ind + right]);
                 right--;
             }
-            else {
-                mid++;
-            }
+            else { mid++; }
         }
-        
+
         lim1 = left;
         lim2 = mid;
     }
@@ -2340,7 +2367,7 @@ class KDTreeSingleIndexDynamicAdaptor_
         searchLevel(result, vec, Base::root_node_, dist, dists, epsError);
 
         if (searchParams.sorted) result.sort();
-        
+
         return result.full();
     }
 

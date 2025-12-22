@@ -166,7 +166,8 @@ void L1_vs_bruteforce_test(
     // construct a kd-tree index:
     // Dimensionality set at run-time
     // ------------------------------------------------------------
-    typedef KDTreeVectorOfVectorsAdaptor<std::vector<std::vector<NUM>>, NUM, -1, nanoflann::metric_L1>
+    typedef KDTreeVectorOfVectorsAdaptor<
+        std::vector<std::vector<NUM>>, NUM, -1, nanoflann::metric_L1>
         my_kd_tree_t;
 
     my_kd_tree_t mat_index(DIM /*dim*/, samples, 10 /* max leaf */);
@@ -243,7 +244,8 @@ void rknn_L1_vs_bruteforce_test(
     // construct a kd-tree index:
     // Dimensionality set at run-time
     // ------------------------------------------------------------
-    typedef KDTreeVectorOfVectorsAdaptor<std::vector<std::vector<NUM>>, NUM, -1, nanoflann::metric_L1>
+    typedef KDTreeVectorOfVectorsAdaptor<
+        std::vector<std::vector<NUM>>, NUM, -1, nanoflann::metric_L1>
         my_kd_tree_t;
 
     my_kd_tree_t mat_index(DIM /*dim*/, samples, 10 /* max leaf */);
@@ -825,19 +827,18 @@ void L2_dynamic_sorted_test(const size_t N, const size_t num_results)
     num_t query_pt[3] = {0.5, 0.5, 0.5};
 
     using DynamicKDTree = KDTreeSingleIndexDynamicAdaptor<
-        L2_Adaptor<num_t, PointCloud<num_t>>,
-        PointCloud<num_t>,
-        3 /* dim */
-    >;
+        L2_Adaptor<num_t, PointCloud<num_t>>, PointCloud<num_t>, 3 /* dim */
+        >;
 
     DynamicKDTree dynamic_index(3, cloud);
 
     // Prepare result containers
-    std::vector<size_t> dynamic_idx(num_results);
-    std::vector<num_t> dynamic_dist(num_results);
-    KNNResultSet<num_t> dynamic_knn_result(num_results);
+    std::vector<size_t>                    dynamic_idx(num_results);
+    std::vector<num_t>                     dynamic_dist(num_results);
+    KNNResultSet<num_t>                    dynamic_knn_result(num_results);
     std::vector<ResultItem<size_t, num_t>> radius_results_vec;
-    RadiusResultSet<num_t, size_t> dynamic_radius_result(10.0 * 10.0, radius_results_vec);
+    RadiusResultSet<num_t, size_t>         dynamic_radius_result(
+                10.0 * 10.0, radius_results_vec);
 
     // Prepare search params to sort result
     const auto search_params = SearchParameters(0, true);
@@ -845,8 +846,10 @@ void L2_dynamic_sorted_test(const size_t N, const size_t num_results)
     dynamic_knn_result.init(&dynamic_idx[0], &dynamic_dist[0]);
     dynamic_radius_result.init();
 
-    dynamic_index.findNeighbors(dynamic_knn_result, &query_pt[0], search_params);
-    dynamic_index.findNeighbors(dynamic_radius_result, &query_pt[0], search_params);
+    dynamic_index.findNeighbors(
+        dynamic_knn_result, &query_pt[0], search_params);
+    dynamic_index.findNeighbors(
+        dynamic_radius_result, &query_pt[0], search_params);
 
     // Check size
     const size_t expected_size = std::min(N, num_results);
