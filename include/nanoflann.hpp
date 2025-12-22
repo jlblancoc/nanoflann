@@ -36,6 +36,12 @@
  *
  *  nanoflann does not require compiling or installing, just an
  *  #include <nanoflann.hpp> in your code.
+ *  
+ *  Macros that are observed in this file: 
+ *  - NANOFLANN_NO_THREADS: If defined, single thread will be enforced.
+ *  - NANOFLANN_FIRST_MATCH: If defined, in case of a tie in distances the item with the smallest
+ *    index will be returned.
+ *  - NANOFLANN_NODE_ALIGNMENT: The memory alignment, in bytes, for kd-tree nodes. Default: 16
  *
  *  See:
  *   - [Online README](https://github.com/jlblancoc/nanoflann)
@@ -85,6 +91,11 @@
 #define NANOFLANN_RESTRICT __restrict
 #else
 #define NANOFLANN_RESTRICT
+#endif
+
+// Memory alignment of KD-tree nodes:
+#ifndef NANOFLANN_NODE_ALIGNMENT
+#define NANOFLANN_NODE_ALIGNMENT 16
 #endif
 
 namespace nanoflann
@@ -1114,7 +1125,7 @@ class KDTreeBaseClass
      *  To avoid unnecessary padding, the smallest alignment
      *  compatible with a platform's vector width should be chosen.
      * ------------------------------------------------------------------*/
-    struct alignas(16) Node
+    struct alignas(NANOFLANN_NODE_ALIGNMENT) Node
     {
         /** Union used because a node can be either a LEAF node or a non-leaf
          * node, so both data fields are never used simultaneously */
