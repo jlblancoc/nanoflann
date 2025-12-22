@@ -969,6 +969,7 @@ class KDTreeBaseClass
      *  To avoid unnecessary padding, the smallest alignment
      *  compatible with a platform's vector width should be chosen.
      * ------------------------------------------------------------------*/
+    #pragma pack(push, 1)
     struct /*alignas(N)*/ Node
     {
         /** Union used because a node can be either a LEAF node or a non-leaf
@@ -987,10 +988,14 @@ class KDTreeBaseClass
             } sub;
         } node_type;
 
-        /** Child nodes (both=max() mean its a leaf node) */
-        node_index_t child1 = std::numeric_limits<node_index_t>::max();
-        node_index_t child2 = std::numeric_limits<node_index_t>::max();
+        /** Both child nodes ==0 means leaf node (0: for fastest initialization) */
+        node_index_t child1 = 0;
+        node_index_t child2 = 0;
+        
+        bool is_leaf() const { return !child1 && !child2; }
     };
+    #pragma pack(pop)
+
 
     using NodePtr      = Node*;
     using NodeConstPtr = const Node*;
@@ -1387,12 +1392,9 @@ class KDTreeBaseClass
         const Derived& obj, std::ostream& stream, const node_index_t tree)
     {
         save_value(stream, obj.pool_[tree]);
-        if (obj.pool_[tree].child1 != std::numeric_limits<node_index_t>::max())
+        if (!obj.pool_[tree].is_leaf())
         {
             save_tree(obj, stream, obj.pool_[tree].child1);
-        }
-        if (obj.pool_[tree].child2 != std::numeric_limits<node_index_t>::max())
-        {
             save_tree(obj, stream, obj.pool_[tree].child2);
         }
     }
@@ -1403,14 +1405,9 @@ class KDTreeBaseClass
         node_index_t c_node = obj.pool_.size();
         obj.pool_.push_back(Node());
         load_value(stream, obj.pool_[c_node]);
-        if (obj.pool_[c_node].child1 !=
-            std::numeric_limits<node_index_t>::max())
+        if (!obj.pool_[c_node].is_leaf())
         {
             load_tree(obj, stream, obj.pool_[c_node].child1);
-        }
-        if (obj.pool_[c_node].child2 !=
-            std::numeric_limits<node_index_t>::max())
-        {
             load_tree(obj, stream, obj.pool_[c_node].child2);
         }
     }
@@ -1611,10 +1608,8 @@ class KDTreeSingleIndexAdaptor
     {
         Base::size_ = dataset_.kdtree_get_point_count();
         size_t HeuristicNodeCount =
-            2 * ceil(Base::size_ / Base::leaf_max_size_);
-        // handle if the Base::size_ < Base::leaf_max_size_ using a std::max
-        // function
-        Base::pool_.reserve(std::max(HeuristicNodeCount, Base::size_));
+            4 * ceil(Base::size_ / Base::leaf_max_size_);
+        Base::pool_.reserve(HeuristicNodeCount);
         Base::size_at_index_build_ = Base::size_;
         init_vind();
         this->freeIndex(*this);
@@ -1718,8 +1713,7 @@ class KDTreeSingleIndexAdaptor
             stack.pop();
 
             // If this is a leaf node, then do check and return.
-            // (if one child is empty, both are)
-            if (node->child1 == std::numeric_limits<node_index_t>::max())
+            if (node->is_leaf())
             {
                 for (Offset i = node->node_type.lr.left;
                      i < node->node_type.lr.right; ++i)
@@ -1919,8 +1913,7 @@ class KDTreeSingleIndexAdaptor
     {
         const auto* node = &Base::pool_[node_idx];
         // If this is a leaf node, then do check and return.
-        // (if one child is empty, both are)
-        if (node->child1 == std::numeric_limits<node_index_t>::max())
+        if (node->is_leaf())
         {
             for (Offset i = node->node_type.lr.left;
                  i < node->node_type.lr.right; ++i)
@@ -2163,10 +2156,8 @@ class KDTreeSingleIndexDynamicAdaptor_
     {
         Base::size_ = Base::vAcc_.size();
         size_t HeuristicNodeCount =
-            2 * ceil(Base::size_ / Base::leaf_max_size_);
-        // handle if the Base::size_ < Base::leaf_max_size_ using a std::max
-        // function
-        Base::pool_.reserve(std::max(HeuristicNodeCount, Base::size_));
+            4 * ceil(Base::size_ / Base::leaf_max_size_);
+        Base::pool_.reserve(HeuristicNodeCount);
         this->freeIndex(*this);
         Base::size_at_index_build_ = Base::size_;
         if (Base::size_ == 0) return;
@@ -2357,8 +2348,7 @@ class KDTreeSingleIndexDynamicAdaptor_
     {
         const auto* node = &Base::pool_[node_idx];
         // If this is a leaf node, then do check and return.
-        // (if one child is empty, both are)
-        if (node->child1 == std::numeric_limits<node_index_t>::max())
+        if (node->is_leaf())
         {
             for (Offset i = node->node_type.lr.left;
                  i < node->node_type.lr.right; ++i)
