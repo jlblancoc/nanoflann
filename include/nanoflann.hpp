@@ -80,11 +80,11 @@
 
 // Handle restricted pointers
 #if defined(__GNUC__) || defined(__clang__)
-#  define NANOFLANN_RESTRICT __restrict__
+#define NANOFLANN_RESTRICT __restrict__
 #elif defined(_MSC_VER)
-#  define NANOFLANN_RESTRICT __restrict
+#define NANOFLANN_RESTRICT __restrict
 #else
-#  define NANOFLANN_RESTRICT
+#define NANOFLANN_RESTRICT
 #endif
 
 namespace nanoflann
@@ -413,8 +413,8 @@ class RadiusResultSet
     void clear() { m_indices_dists.clear(); }
 
     size_t size() const noexcept { return m_indices_dists.size(); }
-    bool empty() const noexcept { return m_indices_dists.empty(); }
-    bool full() const noexcept { return true; }
+    bool   empty() const noexcept { return m_indices_dists.empty(); }
+    bool   full() const noexcept { return true; }
 
     /**
      * Called during search to add an element matching the criteria.
@@ -519,8 +519,9 @@ struct L1_Adaptor
         DistanceType worst_dist = -1) const
     {
         DistanceType result  = DistanceType();
-        const size_t multof4 = (size >> 2) << 2; // largest multiple of 4, i.e. 1 << 2
-        size_t       d;
+        const size_t multof4 = (size >> 2)
+                               << 2;  // largest multiple of 4, i.e. 1 << 2
+        size_t d;
 
         /* Process 4 items with each loop for efficiency. */
         if (worst_dist <= 0)
@@ -528,14 +529,14 @@ struct L1_Adaptor
             /* No checks with worst_dist. */
             for (d = 0; d < multof4; d += 4)
             {
-                const DistanceType diff0 =
-                    std::abs(a[d+0] - data_source.kdtree_get_pt(b_idx, d+0));
-                const DistanceType diff1 =
-                    std::abs(a[d+1] - data_source.kdtree_get_pt(b_idx, d+1));
-                const DistanceType diff2 =
-                    std::abs(a[d+2] - data_source.kdtree_get_pt(b_idx, d+2));
-                const DistanceType diff3 =
-                    std::abs(a[d+3] - data_source.kdtree_get_pt(b_idx, d+3));
+                const DistanceType diff0 = std::abs(
+                    a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
+                const DistanceType diff1 = std::abs(
+                    a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
+                const DistanceType diff2 = std::abs(
+                    a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
+                const DistanceType diff3 = std::abs(
+                    a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3));
                 /* Parentheses break dependency chain: */
                 result += (diff0 + diff1) + (diff2 + diff3);
             }
@@ -545,14 +546,14 @@ struct L1_Adaptor
             /* Check with worst_dist. */
             for (d = 0; d < multof4; d += 4)
             {
-                const DistanceType diff0 =
-                    std::abs(a[d+0] - data_source.kdtree_get_pt(b_idx, d+0));
-                const DistanceType diff1 =
-                    std::abs(a[d+1] - data_source.kdtree_get_pt(b_idx, d+1));
-                const DistanceType diff2 =
-                    std::abs(a[d+2] - data_source.kdtree_get_pt(b_idx, d+2));
-                const DistanceType diff3 =
-                    std::abs(a[d+3] - data_source.kdtree_get_pt(b_idx, d+3));
+                const DistanceType diff0 = std::abs(
+                    a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
+                const DistanceType diff1 = std::abs(
+                    a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
+                const DistanceType diff2 = std::abs(
+                    a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
+                const DistanceType diff3 = std::abs(
+                    a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3));
                 /* Parentheses break dependency chain: */
                 result += (diff0 + diff1) + (diff2 + diff3);
                 if (result > worst_dist) { return result; }
@@ -560,11 +561,19 @@ struct L1_Adaptor
         }
         /* Process last 0-3 components. Unrolled loop with fall-through switch.
          */
-        switch(size - multof4){
-            case 3 : result += std::abs(a[d+2] - data_source.kdtree_get_pt(b_idx, d+2));
-            case 2 : result += std::abs(a[d+1] - data_source.kdtree_get_pt(b_idx, d+1));
-            case 1 : result += std::abs(a[d+0] - data_source.kdtree_get_pt(b_idx, d+0));
-            case 0 : break;
+        switch (size - multof4)
+        {
+            case 3:
+                result += std::abs(
+                    a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
+            case 2:
+                result += std::abs(
+                    a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
+            case 1:
+                result += std::abs(
+                    a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
+            case 0:
+                break;
         }
         return result;
     }
@@ -603,8 +612,9 @@ struct L2_Adaptor
         DistanceType worst_dist = -1) const
     {
         DistanceType result  = DistanceType();
-        const size_t multof4 = (size >> 2) << 2; // largest multiple of 4, i.e. 1 << 2
-        size_t       d;
+        const size_t multof4 = (size >> 2)
+                               << 2;  // largest multiple of 4, i.e. 1 << 2
+        size_t d;
 
         /* Process 4 items with each loop for efficiency. */
         if (worst_dist <= 0)
@@ -613,16 +623,16 @@ struct L2_Adaptor
             for (d = 0; d < multof4; d += 4)
             {
                 const DistanceType diff0 =
-                    a[d+0] - data_source.kdtree_get_pt(b_idx, d+0);
+                    a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0);
                 const DistanceType diff1 =
-                    a[d+1] - data_source.kdtree_get_pt(b_idx, d+1);
+                    a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1);
                 const DistanceType diff2 =
-                    a[d+2] - data_source.kdtree_get_pt(b_idx, d+2);
+                    a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2);
                 const DistanceType diff3 =
-                    a[d+3] - data_source.kdtree_get_pt(b_idx, d+3);
+                    a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3);
                 /* Parentheses break dependency chain: */
-                result +=
-                    (diff0 * diff0 + diff1 * diff1) + (diff2 * diff2 + diff3 * diff3);
+                result += (diff0 * diff0 + diff1 * diff1) +
+                          (diff2 * diff2 + diff3 * diff3);
             }
         }
         else
@@ -631,27 +641,35 @@ struct L2_Adaptor
             for (d = 0; d < multof4; d += 4)
             {
                 const DistanceType diff0 =
-                    a[d+0] - data_source.kdtree_get_pt(b_idx, d+0);
+                    a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0);
                 const DistanceType diff1 =
-                    a[d+1] - data_source.kdtree_get_pt(b_idx, d+1);
+                    a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1);
                 const DistanceType diff2 =
-                    a[d+2] - data_source.kdtree_get_pt(b_idx, d+2);
+                    a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2);
                 const DistanceType diff3 =
-                    a[d+3] - data_source.kdtree_get_pt(b_idx, d+3);
+                    a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3);
                 /* Parentheses break dependency chain: */
-                result +=
-                    (diff0 * diff0 + diff1 * diff1) + (diff2 * diff2 + diff3 * diff3);
+                result += (diff0 * diff0 + diff1 * diff1) +
+                          (diff2 * diff2 + diff3 * diff3);
                 if (result > worst_dist) { return result; }
             }
         }
         /* Process last 0-3 components. Unrolled loop with fall-through switch.
          */
         DistanceType diff;
-        switch(size - multof4){
-            case 3 : diff = a[d+2] - data_source.kdtree_get_pt(b_idx, d+2);  result += diff * diff;
-            case 2 : diff = a[d+1] - data_source.kdtree_get_pt(b_idx, d+1);  result += diff * diff;
-            case 1 : diff = a[d+0] - data_source.kdtree_get_pt(b_idx, d+0);  result += diff * diff;
-            case 0 : break;
+        switch (size - multof4)
+        {
+            case 3:
+                diff = a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2);
+                result += diff * diff;
+            case 2:
+                diff = a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1);
+                result += diff * diff;
+            case 1:
+                diff = a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0);
+                result += diff * diff;
+            case 0:
+                break;
         }
         return result;
     }
@@ -894,134 +912,6 @@ struct SearchParameters
 };
 /** @} */
 
-/** @addtogroup memalloc_grp Memory allocation
- * @{ */
-
-/**
- * Pooled storage allocator
- *
- * The following routines allow for the efficient allocation of storage in
- * small chunks from a specified pool.  Rather than allowing each structure
- * to be freed individually, an entire pool of storage is freed at once.
- * This method has two advantages over just using malloc() and free().  First,
- * it is far more efficient for allocating small objects, as there is
- * no overhead for remembering all the information needed to free each
- * object or consolidating fragmented memory.  Second, the decision about
- * how long to keep an object is made at the time of allocation, and there
- * is no need to track down all the objects to free them.
- *
- */
-class PooledAllocator
-{
-    static constexpr size_t WORDSIZE  = 16;  // WORDSIZE must >= 8
-    static constexpr size_t BLOCKSIZE = 8192;
-
-    /* We maintain memory alignment to word boundaries by requiring that all
-        allocations be in multiples of the machine wordsize.  */
-    /* Size of machine word in bytes.  Must be power of 2. */
-    /* Minimum number of bytes requested at a time from the system.  Must be
-     * multiple of WORDSIZE. */
-
-    using Size = size_t;
-
-    Size  remaining_ = 0;  //!< Number of bytes left in current block of storage
-    void* base_ = nullptr;  //!< Pointer to base of current block of storage
-    void* loc_  = nullptr;  //!< Current location in block to next allocate
-
-    void internal_init()
-    {
-        remaining_   = 0;
-        base_        = nullptr;
-        usedMemory   = 0;
-        wastedMemory = 0;
-    }
-
-   public:
-    Size usedMemory   = 0;
-    Size wastedMemory = 0;
-
-    /**
-        Default constructor. Initializes a new pool.
-     */
-    PooledAllocator() { internal_init(); }
-
-    /**
-     * Destructor. Frees all the memory allocated in this pool.
-     */
-    ~PooledAllocator() { free_all(); }
-
-    /** Frees all allocated memory chunks */
-    void free_all()
-    {
-        while (base_ != nullptr)
-        {
-            // Get pointer to prev block
-            void* prev = *(static_cast<void**>(base_));
-            ::free(base_);
-            base_ = prev;
-        }
-        internal_init();
-    }
-
-    /**
-     * Returns a pointer to a piece of new memory of the given size in bytes
-     * allocated from the pool.
-     */
-    void* malloc(const size_t req_size)
-    {
-        /* Round size up to a multiple of wordsize.  The following expression
-            only works for WORDSIZE that is a power of 2, by masking last bits
-           of incremented size to zero.
-         */
-        const Size size = (req_size + (WORDSIZE - 1)) & ~(WORDSIZE - 1);
-
-        /* Check whether a new block must be allocated.  Note that the first
-           word of a block is reserved for a pointer to the previous block.
-         */
-        if (size > remaining_)
-        {
-            wastedMemory += remaining_;
-
-            /* Allocate new storage. */
-            const Size blocksize =
-                size > BLOCKSIZE ? size + WORDSIZE : BLOCKSIZE + WORDSIZE;
-
-            // use the standard C malloc to allocate memory
-            void* m = ::malloc(blocksize);
-            if (!m) { throw std::bad_alloc(); }
-
-            /* Fill first word of new block with pointer to previous block. */
-            static_cast<void**>(m)[0] = base_;
-            base_                     = m;
-
-            remaining_ = blocksize - WORDSIZE;
-            loc_       = static_cast<char*>(m) + WORDSIZE;
-        }
-        void* rloc = loc_;
-        loc_       = static_cast<char*>(loc_) + size;
-        remaining_ -= size;
-
-        usedMemory += size;
-
-        return rloc;
-    }
-
-    /**
-     * Allocates (using this pool) a generic type T.
-     *
-     * Params:
-     *     count = number of instances to allocate.
-     * Returns: pointer (of type T*) to memory buffer
-     */
-    template <typename T>
-    T* allocate(const size_t count = 1)
-    {
-        T* mem = static_cast<T*>(this->malloc(sizeof(T) * count));
-        return mem;
-    }
-};
-/** @} */
-
 /** @addtogroup nanoflann_metaprog_grp Auxiliary metaprogramming stuff
  * @{ */
 
@@ -1066,8 +956,8 @@ class KDTreeBaseClass
      * buildIndex(). */
     void freeIndex(Derived& obj)
     {
-        obj.pool_.free_all();
-        obj.root_node_           = nullptr;
+        obj.pool_.clear();
+        obj.root_node_           = std::numeric_limits<node_index_t>::max();
         obj.size_at_index_build_ = 0;
     }
 
@@ -1080,22 +970,24 @@ class KDTreeBaseClass
      */
     std::vector<IndexType> vAcc_;
 
-    using Offset    = typename decltype(vAcc_)::size_type;
-    using Size      = typename decltype(vAcc_)::size_type;
-    using Dimension = int32_t;
+    using Offset       = typename decltype(vAcc_)::size_type;
+    using Size         = typename decltype(vAcc_)::size_type;
+    using Dimension    = int32_t;
+    using node_index_t = std::size_t;
 
-    /*-------------------------------------------------------------------
-     * Internal Data Structures
-     *
-     * "Node" below can be declared with alignas(N) to improve
-     * cache friendliness and SIMD load/store performance.
-     *
-     * The optimal N depends on the underlying hardware:
-     *  + Intel x86-64: 16 for SSE, 32 for AVX/AVX2 and 64 for AVX-512
-     *  + NVIDIA Jetson: 16 for ARM + NEON and CUDA float4/
-     *  To avoid unnecessary padding, the smallest alignment
-     *  compatible with a platform's vector width should be chosen.
-     * ------------------------------------------------------------------*/
+/*-------------------------------------------------------------------
+ * Internal Data Structures
+ *
+ * "Node" below can be declared with alignas(N) to improve
+ * cache friendliness and SIMD load/store performance.
+ *
+ * The optimal N depends on the underlying hardware:
+ *  + Intel x86-64: 16 for SSE, 32 for AVX/AVX2 and 64 for AVX-512
+ *  + NVIDIA Jetson: 16 for ARM + NEON and CUDA float4/
+ *  To avoid unnecessary padding, the smallest alignment
+ *  compatible with a platform's vector width should be chosen.
+ * ------------------------------------------------------------------*/
+#pragma pack(push, 1)
     struct /*alignas(N)*/ Node
     {
         /** Union used because a node can be either a LEAF node or a non-leaf
@@ -1114,9 +1006,14 @@ class KDTreeBaseClass
             } sub;
         } node_type;
 
-        /** Child nodes (both=nullptr mean its a leaf node) */
-        Node *child1 = nullptr, *child2 = nullptr;
+        /** Both child nodes ==0 means leaf node (0: for fastest initialization)
+         */
+        node_index_t child1 = 0;
+        node_index_t child2 = 0;
+
+        bool is_leaf() const { return !child1 && !child2; }
     };
+#pragma pack(pop)
 
     using NodePtr      = Node*;
     using NodeConstPtr = const Node*;
@@ -1126,7 +1023,7 @@ class KDTreeBaseClass
         ElementType low, high;
     };
 
-    NodePtr root_node_ = nullptr;
+    node_index_t root_node_ = std::numeric_limits<node_index_t>::max();
 
     Size leaf_max_size_ = 0;
 
@@ -1149,14 +1046,7 @@ class KDTreeBaseClass
     /** The KD-tree used to find neighbours */
     BoundingBox root_bbox_;
 
-    /**
-     * Pooled memory allocator.
-     *
-     * Using a pooled memory allocator is more efficient
-     * than allocating memory directly when there is a large
-     * number small of memory allocations.
-     */
-    PooledAllocator pool_;
+    std::vector<Node> pool_;
 
     /** Returns number of points in dataset  */
     Size size(const Derived& obj) const { return obj.size_; }
@@ -1177,9 +1067,7 @@ class KDTreeBaseClass
      */
     Size usedMemory(const Derived& obj) const
     {
-        return obj.pool_.usedMemory + obj.pool_.wastedMemory +
-               obj.dataset_.kdtree_get_point_count() *
-                   sizeof(IndexType);  // pool memory and vind array memory
+        return obj.pool_.capacity() * sizeof(Node);
     }
 
     /**
@@ -1208,20 +1096,21 @@ class KDTreeBaseClass
      * @param bbox bounding box used as input for splitting and output for
      * parent node
      */
-    NodePtr divideTree(
+    node_index_t divideTree(
         Derived& obj, const Offset left, const Offset right, BoundingBox& bbox)
     {
         assert(left < obj.dataset_.kdtree_get_point_count());
 
-        NodePtr node = obj.pool_.template allocate<Node>();  // allocate memory
+        size_t c_node = pool_.size();
+        pool_.push_back(Node());
         const auto dims = (DIM > 0 ? DIM : obj.dim_);
 
         /* If too few exemplars remain, then make this a leaf node. */
         if ((right - left) <= static_cast<Offset>(obj.leaf_max_size_))
         {
-            node->child1 = node->child2 = nullptr; /* Mark as leaf node. */
-            node->node_type.lr.left     = left;
-            node->node_type.lr.right    = right;
+            /* Already marked as leaf node by the Node() constructor */
+            pool_[c_node].node_type.lr.left  = left;
+            pool_[c_node].node_type.lr.right = right;
 
             // compute bounding-box of leaf points
             for (Dimension i = 0; i < dims; ++i)
@@ -1247,20 +1136,22 @@ class KDTreeBaseClass
             DistanceType cutval;
             middleSplit_(obj, left, right - left, idx, cutfeat, cutval, bbox);
 
-            node->node_type.sub.divfeat = cutfeat;
+            pool_[c_node].node_type.sub.divfeat = cutfeat;
 
             /* Recurse on left */
             BoundingBox left_bbox(bbox);
             left_bbox[cutfeat].high = cutval;
-            node->child1 = this->divideTree(obj, left, left + idx, left_bbox);
+            pool_[c_node].child1 =
+                this->divideTree(obj, left, left + idx, left_bbox);
 
             /* Recurse on right */
             BoundingBox right_bbox(bbox);
             right_bbox[cutfeat].low = cutval;
-            node->child2 = this->divideTree(obj, left + idx, right, right_bbox);
+            pool_[c_node].child2 =
+                this->divideTree(obj, left + idx, right, right_bbox);
 
-            node->node_type.sub.divlow  = left_bbox[cutfeat].high;
-            node->node_type.sub.divhigh = right_bbox[cutfeat].low;
+            pool_[c_node].node_type.sub.divlow  = left_bbox[cutfeat].high;
+            pool_[c_node].node_type.sub.divhigh = right_bbox[cutfeat].low;
 
             for (Dimension i = 0; i < dims; ++i)
             {
@@ -1269,7 +1160,7 @@ class KDTreeBaseClass
             }
         }
 
-        return node;
+        return c_node;
     }
 
     /**
@@ -1284,12 +1175,13 @@ class KDTreeBaseClass
      * @param thread_count count of std::async threads
      * @param mutex mutex for mempool allocation
      */
-    NodePtr divideTreeConcurrent(
+    node_index_t divideTreeConcurrent(
         Derived& obj, const Offset left, const Offset right, BoundingBox& bbox,
         std::atomic<unsigned int>& thread_count, std::mutex& mutex)
     {
         std::unique_lock<std::mutex> lock(mutex);
-        NodePtr node = obj.pool_.template allocate<Node>();  // allocate memory
+        size_t                       c_node = pool_.size();
+        pool_.push_back(Node());
         lock.unlock();
 
         const auto dims = (DIM > 0 ? DIM : obj.dim_);
@@ -1297,9 +1189,9 @@ class KDTreeBaseClass
         /* If too few exemplars remain, then make this a leaf node. */
         if ((right - left) <= static_cast<Offset>(obj.leaf_max_size_))
         {
-            node->child1 = node->child2 = nullptr; /* Mark as leaf node. */
-            node->node_type.lr.left     = left;
-            node->node_type.lr.right    = right;
+            /* Already marked as leaf node by the Node() constructor */
+            pool_[c_node].node_type.lr.left  = left;
+            pool_[c_node].node_type.lr.right = right;
 
             // compute bounding-box of leaf points
             for (Dimension i = 0; i < dims; ++i)
@@ -1325,9 +1217,9 @@ class KDTreeBaseClass
             DistanceType cutval;
             middleSplit_(obj, left, right - left, idx, cutfeat, cutval, bbox);
 
-            node->node_type.sub.divfeat = cutfeat;
+            pool_[c_node].node_type.sub.divfeat = cutfeat;
 
-            std::future<NodePtr> right_future;
+            std::future<node_index_t> right_future;
 
             /* Recurse on right concurrently, if possible */
 
@@ -1349,26 +1241,26 @@ class KDTreeBaseClass
 
             BoundingBox left_bbox(bbox);
             left_bbox[cutfeat].high = cutval;
-            node->child1            = this->divideTreeConcurrent(
-                           obj, left, left + idx, left_bbox, thread_count, mutex);
+            pool_[c_node].child1    = this->divideTreeConcurrent(
+                   obj, left, left + idx, left_bbox, thread_count, mutex);
 
             if (right_future.valid())
             {
                 /* Block and wait for concurrent right from above */
 
-                node->child2 = right_future.get();
+                pool_[c_node].child2 = right_future.get();
                 --thread_count;
             }
             else
             {
                 /* Otherwise, recurse on right in this thread */
 
-                node->child2 = this->divideTreeConcurrent(
+                pool_[c_node].child2 = this->divideTreeConcurrent(
                     obj, left + idx, right, right_bbox, thread_count, mutex);
             }
 
-            node->node_type.sub.divlow  = left_bbox[cutfeat].high;
-            node->node_type.sub.divhigh = right_bbox[cutfeat].low;
+            pool_[c_node].node_type.sub.divlow  = left_bbox[cutfeat].high;
+            pool_[c_node].node_type.sub.divhigh = right_bbox[cutfeat].low;
 
             for (Dimension i = 0; i < dims; ++i)
             {
@@ -1377,60 +1269,93 @@ class KDTreeBaseClass
             }
         }
 
-        return node;
+        return c_node;
     }
 
     void middleSplit_(
         const Derived& obj, const Offset ind, const Size count, Offset& index,
         Dimension& cutfeat, DistanceType& cutval, const BoundingBox& bbox)
     {
-        const auto  dims     = (DIM > 0 ? DIM : obj.dim_);
-        const auto  EPS      = static_cast<DistanceType>(0.00001);
+        const auto dims = (DIM > 0 ? DIM : obj.dim_);
+        const auto EPS  = static_cast<DistanceType>(0.00001);
+
+        // Pre-compute max_span once
         ElementType max_span = bbox[0].high - bbox[0].low;
         for (Dimension i = 1; i < dims; ++i)
         {
             ElementType span = bbox[i].high - bbox[i].low;
-            if (span > max_span) { max_span = span; }
+            if (span > max_span) max_span = span;
         }
-        ElementType max_spread = -1;
+
+        // Single-pass min/max computation for candidate dimensions
         cutfeat                = 0;
+        ElementType max_spread = -1;
         ElementType min_elem = 0, max_elem = 0;
+
+        // Only check dimensions within (1-EPS) of max_span
+        std::vector<Dimension> candidates;
+        candidates.reserve(dims);
         for (Dimension i = 0; i < dims; ++i)
         {
-            ElementType span = bbox[i].high - bbox[i].low;
-            if (span >= (1 - EPS) * max_span)
+            if (bbox[i].high - bbox[i].low >= (1 - EPS) * max_span)
             {
-                ElementType min_elem_, max_elem_;
-                computeMinMax(obj, ind, count, i, min_elem_, max_elem_);
-                ElementType spread = max_elem_ - min_elem_;
-                if (spread > max_spread)
-                {
-                    cutfeat    = i;
-                    max_spread = spread;
-                    min_elem   = min_elem_;
-                    max_elem   = max_elem_;
-                }
+                candidates.push_back(i);
             }
         }
-        // split in the middle
+
+        // Vectorized min/max for candidates
+        for (Dimension dim : candidates)
+        {
+            ElementType local_min = dataset_get(obj, vAcc_[ind], dim);
+            ElementType local_max = local_min;
+
+            // Unrolled loop for better performance
+            constexpr size_t UNROLL = 4;
+            Offset           k      = 1;
+            for (; k + UNROLL <= count; k += UNROLL)
+            {
+                ElementType v0 = dataset_get(obj, vAcc_[ind + k], dim);
+                ElementType v1 = dataset_get(obj, vAcc_[ind + k + 1], dim);
+                ElementType v2 = dataset_get(obj, vAcc_[ind + k + 2], dim);
+                ElementType v3 = dataset_get(obj, vAcc_[ind + k + 3], dim);
+
+                local_min = std::min({local_min, v0, v1, v2, v3});
+                local_max = std::max({local_max, v0, v1, v2, v3});
+            }
+
+            // Handle remainder
+            for (; k < count; ++k)
+            {
+                ElementType val = dataset_get(obj, vAcc_[ind + k], dim);
+                local_min       = std::min(local_min, val);
+                local_max       = std::max(local_max, val);
+            }
+
+            ElementType spread = local_max - local_min;
+            if (spread > max_spread)
+            {
+                cutfeat    = dim;
+                max_spread = spread;
+                min_elem   = local_min;
+                max_elem   = local_max;
+            }
+        }
+
+        // Median-of-three for better balance
         DistanceType split_val = (bbox[cutfeat].low + bbox[cutfeat].high) / 2;
+        split_val              = std::clamp(
+                         split_val, static_cast<DistanceType>(min_elem),
+                         static_cast<DistanceType>(max_elem));
 
-        if (split_val < min_elem)
-            cutval = min_elem;
-        else if (split_val > max_elem)
-            cutval = max_elem;
-        else
-            cutval = split_val;
+        cutval = split_val;
 
+        // Optimized partitioning
         Offset lim1, lim2;
         planeSplit(obj, ind, count, cutfeat, cutval, lim1, lim2);
 
-        if (lim1 > count / 2)
-            index = lim1;
-        else if (lim2 < count / 2)
-            index = lim2;
-        else
-            index = count / 2;
+        index = (lim1 > count / 2)   ? lim1
+                : (lim2 < count / 2) ? lim2
+                                     : count / 2;
     }
 
     /**
@@ -1447,46 +1372,31 @@ class KDTreeBaseClass
         const Dimension cutfeat, const DistanceType& cutval, Offset& lim1,
         Offset& lim2)
     {
-        /* First pass.
-         * Determine lim1 with all values less than cutval to the left.
-         */
+        // Dutch National Flag algorithm for three-way partitioning
         Offset left  = 0;
+        Offset mid   = 0;
         Offset right = count - 1;
-        for (;;)
+
+        while (mid <= right)
         {
-            while (left <= right &&
-                   dataset_get(obj, vAcc_[ind + left], cutfeat) < cutval)
-                ++left;
-            while (right && left <= right &&
-                   dataset_get(obj, vAcc_[ind + right], cutfeat) >= cutval)
-                --right;
-            if (left > right || !right)
-                break;  // "!right" was added to support unsigned Index types
-            std::swap(vAcc_[ind + left], vAcc_[ind + right]);
-            ++left;
-            --right;
+            ElementType val = dataset_get(obj, vAcc_[ind + mid], cutfeat);
+
+            if (val < cutval)
+            {
+                std::swap(vAcc_[ind + left], vAcc_[ind + mid]);
+                left++;
+                mid++;
+            }
+            else if (val > cutval)
+            {
+                std::swap(vAcc_[ind + mid], vAcc_[ind + right]);
+                right--;
+            }
+            else { mid++; }
         }
-        /* Second pass
-         * Determine lim2 with all values greater than cutval to the right
-         * The middle is used for balancing the tree
-         */
-        lim1  = left;
-        right = count - 1;
-        for (;;)
-        {
-            while (left <= right &&
-                   dataset_get(obj, vAcc_[ind + left], cutfeat) <= cutval)
-                ++left;
-            while (right && left <= right &&
-                   dataset_get(obj, vAcc_[ind + right], cutfeat) > cutval)
-                --right;
-            if (left > right || !right)
-                break;  // "!right" was added to support unsigned Index types
-            std::swap(vAcc_[ind + left], vAcc_[ind + right]);
-            ++left;
-            --right;
-        }
-        lim2 = left;
+
+        lim1 = left;
+        lim2 = mid;
     }
 
     DistanceType computeInitialDistances(
@@ -1515,19 +1425,27 @@ class KDTreeBaseClass
     }
 
     static void save_tree(
-        const Derived& obj, std::ostream& stream, const NodeConstPtr tree)
+        const Derived& obj, std::ostream& stream, const node_index_t tree)
     {
-        save_value(stream, *tree);
-        if (tree->child1 != nullptr) { save_tree(obj, stream, tree->child1); }
-        if (tree->child2 != nullptr) { save_tree(obj, stream, tree->child2); }
+        save_value(stream, obj.pool_[tree]);
+        if (!obj.pool_[tree].is_leaf())
+        {
+            save_tree(obj, stream, obj.pool_[tree].child1);
+            save_tree(obj, stream, obj.pool_[tree].child2);
+        }
     }
 
-    static void load_tree(Derived& obj, std::istream& stream, NodePtr& tree)
+    static void load_tree(
+        Derived& obj, std::istream& stream, node_index_t& tree)
     {
-        tree = obj.pool_.template allocate<Node>();
-        load_value(stream, *tree);
-        if (tree->child1 != nullptr) { load_tree(obj, stream, tree->child1); }
-        if (tree->child2 != nullptr) { load_tree(obj, stream, tree->child2); }
+        node_index_t c_node = obj.pool_.size();
+        obj.pool_.push_back(Node());
+        load_value(stream, obj.pool_[c_node]);
+        if (!obj.pool_[c_node].is_leaf())
+        {
+            load_tree(obj, stream, obj.pool_[c_node].child1);
+            load_tree(obj, stream, obj.pool_[c_node].child2);
+        }
     }
 
     /**  Stores the index in a binary file.
@@ -1542,7 +1460,8 @@ class KDTreeBaseClass
         save_value(stream, obj.root_bbox_);
         save_value(stream, obj.leaf_max_size_);
         save_value(stream, obj.vAcc_);
-        if (obj.root_node_) save_tree(obj, stream, obj.root_node_);
+        if (obj.root_node_ != std::numeric_limits<node_index_t>::max())
+            save_tree(obj, stream, obj.root_node_);
     }
 
     /**  Loads a previous index from a binary file.
@@ -1636,8 +1555,9 @@ class KDTreeSingleIndexAdaptor
     using DistanceType = typename Base::DistanceType;
     using IndexType    = typename Base::IndexType;
 
-    using Node    = typename Base::Node;
-    using NodePtr = Node*;
+    using Node         = typename Base::Node;
+    using NodePtr      = Node*;
+    using node_index_t = typename Base::node_index_t;
 
     using Interval = typename Base::Interval;
 
@@ -1722,7 +1642,10 @@ class KDTreeSingleIndexAdaptor
      */
     void buildIndex()
     {
-        Base::size_                = dataset_.kdtree_get_point_count();
+        Base::size_ = dataset_.kdtree_get_point_count();
+        size_t HeuristicNodeCount =
+            4 * ceil(Base::size_ / Base::leaf_max_size_);
+        Base::pool_.reserve(HeuristicNodeCount);
         Base::size_at_index_build_ = Base::size_;
         init_vind();
         this->freeIndex(*this);
@@ -1774,7 +1697,7 @@ class KDTreeSingleIndexAdaptor
     {
         assert(vec);
         if (this->size(*this) == 0) return false;
-        if (!Base::root_node_)
+        if (Base::root_node_ == std::numeric_limits<node_index_t>::max())
             throw std::runtime_error(
                 "[nanoflann] findNeighbors() called before building the "
                 "index.");
@@ -1812,21 +1735,21 @@ class KDTreeSingleIndexAdaptor
     Size findWithinBox(RESULTSET& result, const BoundingBox& bbox) const
     {
         if (this->size(*this) == 0) return 0;
-        if (!Base::root_node_)
+        if (Base::root_node_ == std::numeric_limits<node_index_t>::max())
             throw std::runtime_error(
                 "[nanoflann] findWithinBox() called before building the "
                 "index.");
 
-        std::stack<NodePtr> stack;
+        std::stack<node_index_t> stack;
         stack.push(Base::root_node_);
 
         while (!stack.empty())
         {
-            const NodePtr node = stack.top();
+            const auto* node = &Base::pool_[stack.top()];
             stack.pop();
 
             // If this is a leaf node, then do check and return.
-            if (!node->child1)  // (if one node is nullptr, both are)
+            if (node->is_leaf())
             {
                 for (Offset i = node->node_type.lr.left;
                      i < node->node_type.lr.right; ++i)
@@ -2020,12 +1943,13 @@ class KDTreeSingleIndexAdaptor
      */
     template <class RESULTSET>
     bool searchLevel(
-        RESULTSET& result_set, const ElementType* vec, const NodePtr node,
-        DistanceType mindist, distance_vector_t& dists,
-        const float epsError) const
+        RESULTSET& result_set, const ElementType* vec,
+        const node_index_t node_idx, DistanceType mindist,
+        distance_vector_t& dists, const float epsError) const
     {
+        const auto* node = &Base::pool_[node_idx];
         // If this is a leaf node, then do check and return.
-        if (!node->child1)  // (if one node is nullptr, both are)
+        if (node->is_leaf())
         {
             for (Offset i = node->node_type.lr.left;
                  i < node->node_type.lr.right; ++i)
@@ -2052,8 +1976,8 @@ class KDTreeSingleIndexAdaptor
         DistanceType diff1 = val - node->node_type.sub.divlow;
         DistanceType diff2 = val - node->node_type.sub.divhigh;
 
-        NodePtr      bestChild;
-        NodePtr      otherChild;
+        node_index_t bestChild;
+        node_index_t otherChild;
         DistanceType cut_dist;
         if ((diff1 + diff2) < 0)
         {
@@ -2185,8 +2109,9 @@ class KDTreeSingleIndexDynamicAdaptor_
     using Size      = typename Base::Size;
     using Dimension = typename Base::Dimension;
 
-    using Node    = typename Base::Node;
-    using NodePtr = Node*;
+    using Node         = typename Base::Node;
+    using NodePtr      = Node*;
+    using node_index_t = typename Base::node_index_t;
 
     using Interval = typename Base::Interval;
     /** Define "BoundingBox" as a fixed-size or variable-size container
@@ -2266,6 +2191,9 @@ class KDTreeSingleIndexDynamicAdaptor_
     void buildIndex()
     {
         Base::size_ = Base::vAcc_.size();
+        size_t HeuristicNodeCount =
+            4 * ceil(Base::size_ / Base::leaf_max_size_);
+        Base::pool_.reserve(HeuristicNodeCount);
         this->freeIndex(*this);
         Base::size_at_index_build_ = Base::size_;
         if (Base::size_ == 0) return;
@@ -2319,7 +2247,8 @@ class KDTreeSingleIndexDynamicAdaptor_
     {
         assert(vec);
         if (this->size(*this) == 0) return false;
-        if (!Base::root_node_) return false;
+        if (Base::root_node_ == std::numeric_limits<node_index_t>::max())
+            return false;
         float epsError = 1 + searchParams.eps;
 
         // fixed or variable-sized container (depending on DIM)
@@ -2332,7 +2261,7 @@ class KDTreeSingleIndexDynamicAdaptor_
         searchLevel(result, vec, Base::root_node_, dist, dists, epsError);
 
         if (searchParams.sorted) result.sort();
-        
+
         return result.full();
     }
 
@@ -2449,12 +2378,13 @@ class KDTreeSingleIndexDynamicAdaptor_
      */
     template <class RESULTSET>
     void searchLevel(
-        RESULTSET& result_set, const ElementType* vec, const NodePtr node,
-        DistanceType mindist, distance_vector_t& dists,
-        const float epsError) const
+        RESULTSET& result_set, const ElementType* vec,
+        const node_index_t node_idx, DistanceType mindist,
+        distance_vector_t& dists, const float epsError) const
     {
+        const auto* node = &Base::pool_[node_idx];
         // If this is a leaf node, then do check and return.
-        if (!node->child1)  // (if one node is nullptr, both are)
+        if (node->is_leaf())
         {
             for (Offset i = node->node_type.lr.left;
                  i < node->node_type.lr.right; ++i)
@@ -2485,8 +2415,8 @@ class KDTreeSingleIndexDynamicAdaptor_
         DistanceType diff1 = val - node->node_type.sub.divlow;
         DistanceType diff2 = val - node->node_type.sub.divhigh;
 
-        NodePtr      bestChild;
-        NodePtr      otherChild;
+        node_index_t bestChild;
+        node_index_t otherChild;
         DistanceType cut_dist;
         if ((diff1 + diff2) < 0)
         {
