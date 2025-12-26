@@ -797,6 +797,8 @@ void L2_concurrent_build_vs_L2_test(const size_t nSamples, const size_t DIM)
 template <typename num_t>
 void L2_dynamic_sorted_test(const size_t N, const size_t num_results)
 {
+    if (num_results == 0) return;
+
     PointCloud<num_t> cloud;
     generateRandomPointCloud(cloud, N);
 
