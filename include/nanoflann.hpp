@@ -64,7 +64,7 @@
 #include <ostream>
 #include <stack>
 #include <stdexcept>
-#include <unordered_set>
+#include <unordered_map>
 #include <vector>
 
 /** Library version: 0xMmP (M=Major,m=minor,P=patch) */
@@ -2519,8 +2519,11 @@ class KDTreeSingleIndexDynamicAdaptor
 
     /** treeIndex[idx] is the index of tree in which point at idx is stored.
      * treeIndex[idx]=-1 means that point has been removed. */
-    std::vector<int>        treeIndex_;
-    std::unordered_set<int> removedPoints_;
+    std::vector<int> treeIndex_;
+    /** Maps each currently-removed point index to the sub-tree that still
+     * physically holds it (removal is lazy). Used to reactivate the point in
+     * place if it is later re-added, instead of inserting a duplicate. */
+    std::unordered_map<IndexType, int> removedPoints_;
 
     KDTreeSingleIndexAdaptorParams index_params_;
 
@@ -2603,28 +2606,38 @@ class KDTreeSingleIndexDynamicAdaptor
     /** Add points to the set, Inserts all points from [start, end] */
     void addPoints(IndexType start, IndexType end)
     {
-        const Size count    = end - start + 1;
-        int        maxIndex = 0;
-        treeIndex_.resize(treeIndex_.size() + count);
+        int maxIndex = 0;
         for (IndexType idx = start; idx <= end; idx++)
         {
-            const int pos           = First0Bit(pointCount_);
-            maxIndex                = std::max(pos, maxIndex);
-            treeIndex_[pointCount_] = pos;
-
+            // If this index was previously removed, its point is still
+            // physically present in its sub-tree (removal is lazy and never
+            // deletes from vAcc_). Just clear the "removed" mark and restore its
+            // tree index. Re-inserting it would create a duplicate entry that
+            // grows the trees without bound and yields duplicate search results.
             const auto it = removedPoints_.find(idx);
             if (it != removedPoints_.end())
             {
+                treeIndex_[idx] = it->second;
                 removedPoints_.erase(it);
-                treeIndex_[idx] = pos;
+                continue;
             }
+
+            const int pos = First0Bit(pointCount_);
+            maxIndex      = std::max(pos, maxIndex);
+            if (treeIndex_.size() <= static_cast<size_t>(pointCount_))
+                treeIndex_.resize(static_cast<size_t>(pointCount_) + 1);
+            treeIndex_[pointCount_] = pos;
 
             for (int i = 0; i < pos; i++)
             {
                 for (int j = 0; j < static_cast<int>(index_[i].vAcc_.size()); j++)
                 {
-                    index_[pos].vAcc_.push_back(index_[i].vAcc_[j]);
-                    if (treeIndex_[index_[i].vAcc_[j]] != -1) treeIndex_[index_[i].vAcc_[j]] = pos;
+                    const IndexType e = index_[i].vAcc_[j];
+                    index_[pos].vAcc_.push_back(e);
+                    if (treeIndex_[e] != -1)
+                        treeIndex_[e] = pos;
+                    else
+                        removedPoints_[e] = pos;  // keep tombstone's tree index current
                 }
                 index_[i].vAcc_.clear();
             }
@@ -2643,8 +2656,11 @@ class KDTreeSingleIndexDynamicAdaptor
     void removePoint(size_t idx)
     {
         if (idx >= pointCount_) return;
-        removedPoints_.insert(idx);
-        treeIndex_[idx] = -1;
+        if (treeIndex_[idx] == -1) return;  // already removed
+        // Remember which sub-tree still physically holds this point, so it can
+        // be reactivated in place if re-added later (see addPoints).
+        removedPoints_[static_cast<IndexType>(idx)] = treeIndex_[idx];
+        treeIndex_[idx]                             = -1;
     }
 
     /**
