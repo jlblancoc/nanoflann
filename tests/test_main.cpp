@@ -1101,6 +1101,65 @@ TEST(kdtree, add_and_remove_points)
     EXPECT_EQ(actual, static_cast<size_t>(0));
 }
 
+// Test that repeated removePoint/addPoints cycles work correctly.
+// This exercises the case where the dynamic adaptor's internal pointCount_
+// grows beyond kdtree_get_point_count() due to re-adding removed points,
+// which must not cause assertion failures in divideTree.
+TEST(kdtree, dynamic_repeated_remove_readd)
+{
+    PointCloud<double> cloud;
+    // Create enough points that sub-trees accumulate entries exceeding N
+    const size_t N = 20;
+    for (size_t i = 0; i < N; i++)
+    {
+        cloud.pts.push_back({
+            static_cast<double>(i),
+            static_cast<double>(i * 2),
+            static_cast<double>(i * 3),
+        });
+    }
+
+    typedef KDTreeSingleIndexDynamicAdaptor<
+        L2_Simple_Adaptor<double, PointCloud<double>>, PointCloud<double>, 3>
+        my_kd_tree_t;
+
+    my_kd_tree_t index(3, cloud, KDTreeSingleIndexAdaptorParams(10));
+
+    // Repeatedly remove and re-add groups of points, simulating the pattern
+    // of temporarily excluding points from queries then restoring them.
+    for (size_t iteration = 0; iteration < 10; iteration++)
+    {
+        // Remove a group of points
+        for (size_t i = 0; i < N / 2; i++)
+        {
+            index.removePoint(i);
+        }
+
+        // Query while points are removed
+        const double                    query_pt[3] = {5.0, 10.0, 15.0};
+        std::vector<size_t>             ret_index(1);
+        std::vector<double>             out_dist_sqr(1);
+        nanoflann::KNNResultSet<double> resultSet(1);
+        resultSet.init(&ret_index[0], &out_dist_sqr[0]);
+        index.findNeighbors(resultSet, &query_pt[0]);
+
+        // The nearest point should be among the non-removed ones (indices N/2..N-1)
+        EXPECT_GE(ret_index[0], N / 2);
+
+        // Re-add the removed points
+        for (size_t i = 0; i < N / 2; i++)
+        {
+            index.addPoints(i, i);
+        }
+
+        // Query again - nearest should be index 5 (closest to query point)
+        nanoflann::KNNResultSet<double> resultSet2(1);
+        resultSet2.init(&ret_index[0], &out_dist_sqr[0]);
+        index.findNeighbors(resultSet2, &query_pt[0]);
+        EXPECT_EQ(ret_index[0], static_cast<size_t>(5));
+    }
+}
+
 TEST(kdtree, L2_concurrent_build_vs_bruteforce)
 {
     srand(static_cast<unsigned int>(time(nullptr)));

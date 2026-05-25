@@ -1183,7 +1183,7 @@ class KDTreeBaseClass
      */
     NodePtr divideTree(Derived& obj, const Offset left, const Offset right, BoundingBox& bbox)
     {
-        assert(left < obj.dataset_.kdtree_get_point_count());
+        assert(obj.vAcc_.at(left) < obj.dataset_.kdtree_get_point_count());
 
         NodePtr    node = obj.pool_.template allocate<Node>();  // allocate memory
         const auto dims = (DIM > 0 ? DIM : obj.dim_);
