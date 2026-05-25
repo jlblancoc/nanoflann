@@ -1556,7 +1556,7 @@ class KDTreeBaseClass
         load_value(stream, obj.root_bbox_);
         load_value(stream, obj.leaf_max_size_);
         load_value(stream, obj.vAcc_);
-        load_tree(obj, stream, obj.root_node_);
+        if (obj.size_ > 0) load_tree(obj, stream, obj.root_node_);
     }
 };
 

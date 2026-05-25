@@ -1276,3 +1276,86 @@ TEST(kdtree, same_points)
 
     kdtree_t idx(3 /*dim*/, cloud);
 }
+
+// Regression test: saveIndex/loadIndex for an empty dataset.
+// saveIndex conditionally skips save_tree when root_node_==nullptr, but
+// loadIndex used to call load_tree unconditionally, reading past EOF on the
+// stream (setting its failbit) and leaving root_node_ as a non-null pointer to
+// garbage memory.
+TEST(kdtree, saveload_empty_index)
+{
+    using num_t    = double;
+    using cloud_t  = PointCloud<num_t>;
+    using kdtree_t = KDTreeSingleIndexAdaptor<L2_Simple_Adaptor<num_t, cloud_t>, cloud_t, 3>;
+
+    cloud_t emptyCloud;  // 0 points
+
+    std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+    {
+        const kdtree_t index(3, emptyCloud, KDTreeSingleIndexAdaptorParams(10));
+        index.saveIndex(ss);
+    }
+
+    {
+        kdtree_t index(
+            3, emptyCloud,
+            KDTreeSingleIndexAdaptorParams(
+                10, KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
+        index.loadIndex(ss);
+
+        // Bug: load_tree always ran even for empty indices, reading sizeof(Node)
+        // bytes past EOF and setting the stream's failbit.
+        EXPECT_FALSE(ss.fail());
+
+        num_t                          query_pt[3] = {0.5, 0.5, 0.5};
+        nanoflann::KNNResultSet<num_t> resultSet(1);
+        size_t                         ret_index;
+        num_t                          out_dist_sqr;
+        resultSet.init(&ret_index, &out_dist_sqr);
+        EXPECT_FALSE(index.findNeighbors(resultSet, query_pt));
+    }
+}
+
+// Verify that a non-empty index produces identical search results after a
+// save/load round-trip.
+TEST(kdtree, saveload_nonempty_index)
+{
+    srand(42);
+
+    using num_t    = double;
+    using cloud_t  = PointCloud<num_t>;
+    using kdtree_t = KDTreeSingleIndexAdaptor<L2_Simple_Adaptor<num_t, cloud_t>, cloud_t, 3>;
+
+    cloud_t cloud;
+    generateRandomPointCloud(cloud, 10000);
+
+    const num_t query_pt[3] = {0.5, 0.5, 0.5};
+    size_t      expected_idx;
+    num_t       expected_dist;
+
+    std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+    {
+        kdtree_t                       index(3, cloud, KDTreeSingleIndexAdaptorParams(10));
+        nanoflann::KNNResultSet<num_t> rs(1);
+        rs.init(&expected_idx, &expected_dist);
+        index.findNeighbors(rs, query_pt);
+        index.saveIndex(ss);
+    }
+
+    {
+        kdtree_t index(
+            3, cloud,
+            KDTreeSingleIndexAdaptorParams(
+                10, KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
+        index.loadIndex(ss);
+
+        size_t                         loaded_idx;
+        num_t                          loaded_dist;
+        nanoflann::KNNResultSet<num_t> rs(1);
+        rs.init(&loaded_idx, &loaded_dist);
+        index.findNeighbors(rs, query_pt);
+
+        EXPECT_EQ(loaded_idx, expected_idx);
+        EXPECT_NEAR(loaded_dist, expected_dist, 1e-10);
+    }
+}
