@@ -35,6 +35,7 @@
 #include <iostream>
 #include <map>
 #include <nanoflann.hpp>
+#include <set>
 
 #include "../examples/utils.h"
 
@@ -1158,6 +1159,64 @@ TEST(kdtree, dynamic_repeated_remove_readd)
         index.findNeighbors(resultSet2, &query_pt[0]);
         EXPECT_EQ(ret_index[0], static_cast<size_t>(5));
     }
+}
+
+// Re-adding a previously-removed point must reactivate the existing entry in
+// place, not insert a duplicate. Otherwise repeated remove/add cycles make the
+// internal index vectors grow without bound and cause the same point index to
+// be reported multiple times in radius/knn searches.
+TEST(kdtree, dynamic_readd_no_duplicates)
+{
+    PointCloud<double> cloud;
+    const size_t       N = 20;
+    for (size_t i = 0; i < N; i++)
+    {
+        cloud.pts.push_back({
+            static_cast<double>(i),
+            static_cast<double>(i * 2),
+            static_cast<double>(i * 3),
+        });
+    }
+
+    typedef KDTreeSingleIndexDynamicAdaptor<
+        L2_Simple_Adaptor<double, PointCloud<double>>, PointCloud<double>, 3>
+        my_kd_tree_t;
+
+    my_kd_tree_t index(3, cloud, KDTreeSingleIndexAdaptorParams(10));
+
+    // Helper: total number of entries physically stored across all sub-trees.
+    const auto total_stored_entries = [&index]() -> size_t
+    {
+        size_t total = 0;
+        for (const auto& subtree : index.getAllIndices()) total += subtree.vAcc_.size();
+        return total;
+    };
+
+    // Right after construction every point is stored exactly once.
+    EXPECT_EQ(total_stored_entries(), N);
+
+    // Repeatedly remove and re-add the same group of points.
+    for (size_t iteration = 0; iteration < 10; iteration++)
+    {
+        for (size_t i = 0; i < N / 2; i++) index.removePoint(i);
+        for (size_t i = 0; i < N / 2; i++) index.addPoints(i, i);
+    }
+
+    // The number of stored entries must not have grown: re-adding a removed
+    // point reuses its slot rather than appending a duplicate.
+    EXPECT_EQ(total_stored_entries(), N);
+
+    // A radius search large enough to cover every point must return each point
+    // index exactly once (no duplicates).
+    const double                                       query_pt[3] = {0.0, 0.0, 0.0};
+    std::vector<nanoflann::ResultItem<size_t, double>> matches;
+    nanoflann::RadiusResultSet<double, size_t>         resultSet(1e30, matches);
+    index.findNeighbors(resultSet, &query_pt[0]);
+
+    EXPECT_EQ(matches.size(), N);
+    std::set<size_t> unique_indices;
+    for (const auto& m : matches) unique_indices.insert(m.first);
+    EXPECT_EQ(unique_indices.size(), N);
 }
 
 TEST(kdtree, L2_concurrent_build_vs_bruteforce)
