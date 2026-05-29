@@ -2471,14 +2471,14 @@ class KDTreeSingleIndexDynamicAdaptor_
      * when loading the index object it must be constructed associated to the
      * same source of data points used while building it. See the example:
      * examples/saveload_example.cpp \sa loadIndex  */
-    void saveIndex(std::ostream& stream) { saveIndex(*this, stream); }
+    void saveIndex(std::ostream& stream) { Base::saveIndex(*this, stream); }
 
     /**  Loads a previous index from a binary file.
      *   IMPORTANT NOTE: The set of data points is NOT stored in the file, so
      * the index object must be constructed associated to the same source of
      * data points used while building the index. See the example:
      * examples/saveload_example.cpp \sa loadIndex  */
-    void loadIndex(std::istream& stream) { loadIndex(*this, stream); }
+    void loadIndex(std::istream& stream) { Base::loadIndex(*this, stream); }
 };
 
 /** kd-tree dynaimic index
