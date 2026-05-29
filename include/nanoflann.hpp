@@ -1782,7 +1782,7 @@ class KDTreeSingleIndexAdaptor
             }
             else
             {
-                const int  idx        = node->node_type.sub.divfeat;
+                const Dimension idx        = node->node_type.sub.divfeat;
                 const auto low_bound  = node->node_type.sub.divlow;
                 const auto high_bound = node->node_type.sub.divhigh;
 
@@ -2156,14 +2156,15 @@ class KDTreeSingleIndexDynamicAdaptor_
     /** Explicitly default the copy constructor */
     KDTreeSingleIndexDynamicAdaptor_(const KDTreeSingleIndexDynamicAdaptor_& rhs) = default;
 
-    /** Assignment operator definiton */
-    KDTreeSingleIndexDynamicAdaptor_ operator=(const KDTreeSingleIndexDynamicAdaptor_& rhs)
+    /** Assignment operator definition */
+    KDTreeSingleIndexDynamicAdaptor_& operator=(const KDTreeSingleIndexDynamicAdaptor_& rhs)
     {
+        if (this == &rhs) return *this;
         KDTreeSingleIndexDynamicAdaptor_ tmp(rhs);
         std::swap(Base::vAcc_, tmp.Base::vAcc_);
         std::swap(Base::leaf_max_size_, tmp.Base::leaf_max_size_);
         std::swap(index_params_, tmp.index_params_);
-        std::swap(treeIndex_, tmp.treeIndex_);
+        // treeIndex_ is a reference member and cannot be rebound; do not swap.
         std::swap(Base::size_, tmp.Base::size_);
         std::swap(Base::size_at_index_build_, tmp.Base::size_at_index_build_);
         std::swap(Base::root_node_, tmp.Base::root_node_);
@@ -2490,7 +2491,7 @@ class KDTreeSingleIndexDynamicAdaptor
 
    private:
     /** finds position of least significant unset bit */
-    int First0Bit(IndexType num)
+    int First0Bit(Size num)
     {
         int pos = 0;
         while (num & 1)
