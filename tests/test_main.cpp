@@ -1362,3 +1362,55 @@ TEST(kdtree, saveload_nonempty_index)
         EXPECT_NEAR(loaded_dist, expected_dist, 1e-10);
     }
 }
+
+// Regression test: saveIndex/loadIndex on KDTreeSingleIndexDynamicAdaptor_ used
+// to recurse infinitely because the 1-arg method name-hid Base::saveIndex and
+// called itself instead of Base::saveIndex(*this, stream).
+TEST(kdtree, dynamic_saveload_roundtrip)
+{
+    srand(42);
+
+    using num_t    = double;
+    using cloud_t  = PointCloud<num_t>;
+    using dist_t   = nanoflann::L2_Simple_Adaptor<num_t, cloud_t>;
+    using subidx_t = KDTreeSingleIndexDynamicAdaptor_<dist_t, cloud_t, 3>;
+
+    cloud_t cloud;
+    generateRandomPointCloud(cloud, 200);
+
+    // Build a sub-tree directly with all points assigned to tree slot 0.
+    std::vector<int> treeIndex(cloud.pts.size(), 0);
+    subidx_t         orig(3, cloud, treeIndex);
+    for (size_t i = 0; i < cloud.pts.size(); ++i)
+    {
+        orig.vAcc_.push_back(static_cast<uint32_t>(i));
+    }
+    orig.buildIndex();
+
+    const num_t query_pt[3] = {0.5, 0.5, 0.5};
+
+    size_t                         expected_idx;
+    num_t                          expected_dist;
+    nanoflann::KNNResultSet<num_t> rs_orig(1);
+    rs_orig.init(&expected_idx, &expected_dist);
+    orig.findNeighbors(rs_orig, query_pt, nanoflann::SearchParameters());
+
+    // Save the sub-tree index.
+    std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+    orig.saveIndex(ss);
+    EXPECT_FALSE(ss.fail());
+
+    // Load into a fresh sub-tree and verify the search result matches.
+    subidx_t loaded(3, cloud, treeIndex);
+    loaded.loadIndex(ss);
+    EXPECT_FALSE(ss.fail());
+
+    size_t                         loaded_idx;
+    num_t                          loaded_dist;
+    nanoflann::KNNResultSet<num_t> rs_loaded(1);
+    rs_loaded.init(&loaded_idx, &loaded_dist);
+    loaded.findNeighbors(rs_loaded, query_pt, nanoflann::SearchParameters());
+
+    EXPECT_EQ(loaded_idx, expected_idx);
+    EXPECT_NEAR(loaded_dist, expected_dist, 1e-10);
+}
