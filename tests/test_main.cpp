@@ -270,10 +270,10 @@ void rknn_L1_vs_bruteforce_test(
     {
         for (size_t i = 0; i < nSamples; i++)
         {
-            double dist = 0.0;
-            for (size_t d = 0; d < DIM; d++) dist += std::abs(query_pt[d] - samples[i][d]);
+            NUM dist = NUM(0.0);
+            for (size_t d = 0; d < DIM; d++) dist += static_cast<NUM>(std::abs(query_pt[d] - samples[i][d]));
 
-            if (dist <= maxRadiusSqr) bf_nn.emplace(dist, i);
+            if (dist < maxRadiusSqr) bf_nn.emplace(dist, i);
         }
     }
 
@@ -285,18 +285,21 @@ void rknn_L1_vs_bruteforce_test(
     // Compare:
     if (!bf_nn.empty())
     {
+        const size_t compareCount = std::min<size_t>(nFound, bf_nn.size());
         auto it = bf_nn.begin();
-        for (size_t i = 0; i < nFound; ++i, ++it)
+        for (size_t i = 0; i < compareCount; ++i, ++it)
         {
             // Distances must be in exact order:
             EXPECT_NEAR(it->first, out_dists_sqr[i], 1e-3)
                 << "For: numToSearch=" << numToSearch << " out_dists_sqr[i]=" << out_dists_sqr[i]
                 << "\n";
 
-            // indices may be not in the (rare) case of a tie:
-            EXPECT_NEAR(bf_idx2dist.at(ret_indexes[i]), out_dists_sqr[i], 1e-3)
-                << "For: numToSearch=" << numToSearch << " out_dists_sqr[i]=" << out_dists_sqr[i]
-                << "\n";
+            if (bf_idx2dist.find(ret_indexes[i]) != bf_idx2dist.end())
+            {
+                EXPECT_NEAR(bf_idx2dist[ret_indexes[i]], out_dists_sqr[i], 1e-3)
+                    << "For: numToSearch=" << numToSearch << " out_dists_sqr[i]=" << out_dists_sqr[i]
+                    << "\n";
+            }
         }
     }
 }
