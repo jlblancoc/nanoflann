@@ -92,6 +92,20 @@
 #define NANOFLANN_RESTRICT
 #endif
 
+// [[nodiscard]] support
+#if defined(__has_cpp_attribute) && __has_cpp_attribute(nodiscard)
+#define NANOFLANN_NODISCARD [[nodiscard]]
+#else
+#define NANOFLANN_NODISCARD
+#endif
+
+// [[fallthrough]] support for intentional switch fall-throughs
+#if defined(__has_cpp_attribute) && __has_cpp_attribute(fallthrough)
+#define NANOFLANN_FALLTHROUGH [[fallthrough]]
+#else
+#define NANOFLANN_FALLTHROUGH
+#endif
+
 // Memory alignment of KD-tree nodes:
 #ifndef NANOFLANN_NODE_ALIGNMENT
 #define NANOFLANN_NODE_ALIGNMENT 16
@@ -236,9 +250,9 @@ class KNNResultSet
         count   = 0;
     }
 
-    CountType size() const noexcept { return count; }
-    bool      empty() const noexcept { return count == 0; }
-    bool      full() const noexcept { return count == capacity; }
+    NANOFLANN_NODISCARD CountType size() const noexcept { return count; }
+    NANOFLANN_NODISCARD bool      empty() const noexcept { return count == 0; }
+    NANOFLANN_NODISCARD bool      full() const noexcept { return count == capacity; }
 
     /**
      * Called during search to add an element matching the criteria.
@@ -281,7 +295,7 @@ class KNNResultSet
 
     //! Returns the worst distance among found solutions if the search result is
     //! full, or the maximum possible distance, if not full yet.
-    DistanceType worstDist() const noexcept
+    NANOFLANN_NODISCARD DistanceType worstDist() const noexcept
     {
         return (count < capacity || !count) ? std::numeric_limits<DistanceType>::max()
                                             : dists[count - 1];
@@ -327,9 +341,9 @@ class RKNNResultSet
         if (capacity) dists[capacity - 1] = maximumSearchDistanceSquared;
     }
 
-    CountType size() const noexcept { return count; }
-    bool      empty() const noexcept { return count == 0; }
-    bool      full() const noexcept { return count == capacity; }
+    NANOFLANN_NODISCARD CountType size() const noexcept { return count; }
+    NANOFLANN_NODISCARD bool      empty() const noexcept { return count == 0; }
+    NANOFLANN_NODISCARD bool      full() const noexcept { return count == capacity; }
 
     /**
      * Called during search to add an element matching the criteria.
@@ -372,7 +386,7 @@ class RKNNResultSet
 
     //! Returns the worst distance among found solutions if the search result is
     //! full, or the maximum possible distance, if not full yet.
-    DistanceType worstDist() const noexcept
+    NANOFLANN_NODISCARD DistanceType worstDist() const noexcept
     {
         return (count < capacity || !count) ? maximumSearchDistanceSquared : dists[count - 1];
     }
@@ -408,9 +422,9 @@ class RadiusResultSet
     void init() { clear(); }
     void clear() { m_indices_dists.clear(); }
 
-    size_t size() const noexcept { return m_indices_dists.size(); }
-    bool   empty() const noexcept { return m_indices_dists.empty(); }
-    bool   full() const noexcept { return true; }
+    NANOFLANN_NODISCARD size_t size() const noexcept { return m_indices_dists.size(); }
+    NANOFLANN_NODISCARD bool   empty() const noexcept { return m_indices_dists.empty(); }
+    NANOFLANN_NODISCARD bool   full() const noexcept { return true; }
 
     /**
      * Called during search to add an element matching the criteria.
@@ -423,7 +437,7 @@ class RadiusResultSet
         return true;
     }
 
-    DistanceType worstDist() const noexcept { return radius; }
+    NANOFLANN_NODISCARD DistanceType worstDist() const noexcept { return radius; }
 
     /**
      * Find the worst result (farthest neighbor) without copying or sorting
@@ -513,14 +527,10 @@ struct L1_Adaptor
 
         for (d = 0; d < multof4; d += 4)
         {
-            const DistanceType diff0 =
-                std::abs(a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
-            const DistanceType diff1 =
-                std::abs(a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
-            const DistanceType diff2 =
-                std::abs(a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
-            const DistanceType diff3 =
-                std::abs(a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3));
+            const DistanceType diff0 = std::abs(a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
+            const DistanceType diff1 = std::abs(a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
+            const DistanceType diff2 = std::abs(a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
+            const DistanceType diff3 = std::abs(a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3));
             /* Parentheses break dependency chain: */
             result += (diff0 + diff1) + (diff2 + diff3);
         }
@@ -530,10 +540,13 @@ struct L1_Adaptor
         {
             case 3:
                 result += std::abs(a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
+                NANOFLANN_FALLTHROUGH;
             case 2:
                 result += std::abs(a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
+                NANOFLANN_FALLTHROUGH;
             case 1:
                 result += std::abs(a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
+                NANOFLANN_FALLTHROUGH;
             case 0:
                 break;
         }
@@ -591,12 +604,15 @@ struct L2_Adaptor
             case 3:
                 diff = a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2);
                 result += diff * diff;
+                NANOFLANN_FALLTHROUGH;
             case 2:
                 diff = a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1);
                 result += diff * diff;
+                NANOFLANN_FALLTHROUGH;
             case 1:
                 diff = a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0);
                 result += diff * diff;
+                NANOFLANN_FALLTHROUGH;
             case 0:
                 break;
         }
@@ -810,8 +826,8 @@ struct SearchParameters
 {
     SearchParameters(float eps_ = 0, bool sorted_ = true) : eps(eps_), sorted(sorted_) {}
 
-    float eps;  //!< search for eps-approximate neighbours (default: 0)
-    bool  sorted;  //!< only for radius search, require neighbours sorted by
+    float eps;  //!< search for eps-approximate neighbors (default: 0)
+    bool  sorted;  //!< only for radius search, require neighbors sorted by
                   //!< distance (default: true)
 };
 /** @} */
@@ -1070,7 +1086,7 @@ class KDTreeBaseClass
      * depending on "DIM" */
     using distance_vector_t = typename array_or_vector<DIM, DistanceType>::type;
 
-    /** The KD-tree used to find neighbours */
+    /** The KD-tree used to find neighbors */
     BoundingBox root_bbox_;
 
     /**
@@ -1522,7 +1538,7 @@ class KDTreeBaseClass
  * non-virtual, inlined methods):
  *
  *  \code
- *   // Must return the number of data poins
+ *   // Must return the number of data points
  *   size_t kdtree_get_point_count() const { ... }
  *
  *
@@ -1600,7 +1616,7 @@ class KDTreeSingleIndexAdaptor
      * Refer to docs in README.md or online in
      * https://github.com/jlblancoc/nanoflann
      *
-     * The KD-Tree point dimension (the length of each point in the datase, e.g.
+     * The KD-Tree point dimension (the length of each point in the dataset, e.g.
      * 3 for 3D points) is determined by means of:
      *  - The \a DIM template parameter if >0 (highest priority)
      *  - Otherwise, the \a dimensionality parameter of this constructor.
@@ -1717,7 +1733,7 @@ class KDTreeSingleIndexAdaptor
             throw std::runtime_error(
                 "[nanoflann] findNeighbors() called before building the "
                 "index.");
-        float epsError = 1 + searchParams.eps;
+        DistanceType epsError = 1 + static_cast<DistanceType>(searchParams.eps);
 
         // fixed or variable-sized container (depending on DIM)
         distance_vector_t dists;
@@ -1748,7 +1764,7 @@ class KDTreeSingleIndexAdaptor
      * \note The search is inclusive - points on the boundary are included.
      */
     template <typename RESULTSET>
-    Size findWithinBox(RESULTSET& result, const BoundingBox& bbox) const
+    NANOFLANN_NODISCARD Size findWithinBox(RESULTSET& result, const BoundingBox& bbox) const
     {
         if (this->size(*this) == 0) return 0;
         if (!Base::root_node_)
@@ -1783,8 +1799,8 @@ class KDTreeSingleIndexAdaptor
             else
             {
                 const Dimension idx        = node->node_type.sub.divfeat;
-                const auto low_bound  = node->node_type.sub.divlow;
-                const auto high_bound = node->node_type.sub.divhigh;
+                const auto      low_bound  = node->node_type.sub.divlow;
+                const auto      high_bound = node->node_type.sub.divhigh;
 
                 if (bbox[idx].low <= low_bound) stack.push(node->child1);
                 if (bbox[idx].high >= high_bound) stack.push(node->child2);
@@ -1809,7 +1825,7 @@ class KDTreeSingleIndexAdaptor
      *       will be valid. Return is less than `num_closest` only if the
      *       number of elements in the tree is less than `num_closest`.
      */
-    Size knnSearch(
+    NANOFLANN_NODISCARD Size knnSearch(
         const ElementType* query_point, const Size num_closest, IndexType* out_indices,
         DistanceType* out_distances) const
     {
@@ -1838,7 +1854,7 @@ class KDTreeSingleIndexAdaptor
      * \note If L2 norms are used, search radius and all returned distances
      *       are actually squared distances.
      */
-    Size radiusSearch(
+    NANOFLANN_NODISCARD Size radiusSearch(
         const ElementType* query_point, const DistanceType& radius,
         std::vector<ResultItem<IndexType, DistanceType>>& IndicesDists,
         const SearchParameters&                           searchParams = {}) const
@@ -1854,7 +1870,7 @@ class KDTreeSingleIndexAdaptor
      * a start point for your own classes. \sa radiusSearch
      */
     template <class SEARCH_CALLBACK>
-    Size radiusSearchCustomCallback(
+    NANOFLANN_NODISCARD Size radiusSearchCustomCallback(
         const ElementType* query_point, SEARCH_CALLBACK& resultSet,
         const SearchParameters& searchParams = {}) const
     {
@@ -1863,22 +1879,21 @@ class KDTreeSingleIndexAdaptor
     }
 
     /**
-     * Find the first N neighbors to \a query_point[0:dim-1] within a maximum
-     * radius. The output is given as a vector of pairs, of which the first
-     * element is a point index and the second the corresponding distance.
-     * Previous contents of \a IndicesDists are cleared.
+     * Find the N closest neighbors to \a query_point[0:dim-1] that are also
+     * within the given maximum radius. Results are stored in the provided
+     * output arrays; previous contents are overwritten.
      *
      * \sa radiusSearch, findNeighbors
-     * \return Number `N` of valid points in the result set.
+     * \return Number of valid points written (at most `num_closest`). May be
+     *         less if fewer than `num_closest` points lie within the radius.
      *
      * \note If L2 norms are used, all returned distances are actually squared
      *       distances.
      *
      * \note Only the first `N` entries in `out_indices` and `out_distances`
-     *       will be valid. Return is less than `num_closest` only if the
-     *       number of elements in the tree is less than `num_closest`.
+     *       will be valid.
      */
-    Size rknnSearch(
+    NANOFLANN_NODISCARD Size rknnSearch(
         const ElementType* query_point, const Size num_closest, IndexType* out_indices,
         DistanceType* out_distances, const DistanceType& radius) const
     {
@@ -1952,7 +1967,7 @@ class KDTreeSingleIndexAdaptor
     template <class RESULTSET>
     bool searchLevel(
         RESULTSET& result_set, const ElementType* vec, const NodePtr node, DistanceType mindist,
-        distance_vector_t& dists, const float epsError) const
+        distance_vector_t& dists, const DistanceType epsError) const
     {
         // If this is a leaf node, then do check and return.
         if (!node->child1)  // (if one node is nullptr, both are)
@@ -2047,7 +2062,7 @@ class KDTreeSingleIndexAdaptor
  * non-virtual, inlined methods):
  *
  *  \code
- *   // Must return the number of data poins
+ *   // Must return the number of data points
  *   size_t kdtree_get_point_count() const { ... }
  *
  *   // Must return the dim'th component of the idx'th point in the class:
@@ -2122,7 +2137,7 @@ class KDTreeSingleIndexDynamicAdaptor_
      * Refer to docs in README.md or online in
      * https://github.com/jlblancoc/nanoflann
      *
-     * The KD-Tree point dimension (the length of each point in the datase, e.g.
+     * The KD-Tree point dimension (the length of each point in the dataset, e.g.
      * 3 for 3D points) is determined by means of:
      *  - The \a DIM template parameter if >0 (highest priority)
      *  - Otherwise, the \a dimensionality parameter of this constructor.
@@ -2231,7 +2246,7 @@ class KDTreeSingleIndexDynamicAdaptor_
         assert(vec);
         if (this->size(*this) == 0) return false;
         if (!Base::root_node_) return false;
-        float epsError = 1 + searchParams.eps;
+        DistanceType epsError = 1 + static_cast<DistanceType>(searchParams.eps);
 
         // fixed or variable-sized container (depending on DIM)
         distance_vector_t dists;
@@ -2261,7 +2276,7 @@ class KDTreeSingleIndexDynamicAdaptor_
      *       will be valid. Return may be less than `num_closest` only if the
      *       number of elements in the tree is less than `num_closest`.
      */
-    Size knnSearch(
+    NANOFLANN_NODISCARD Size knnSearch(
         const ElementType* query_point, const Size num_closest, IndexType* out_indices,
         DistanceType* out_distances, const SearchParameters& searchParams = {}) const
     {
@@ -2290,13 +2305,13 @@ class KDTreeSingleIndexDynamicAdaptor_
      * \note If L2 norms are used, search radius and all returned distances
      *       are actually squared distances.
      */
-    Size radiusSearch(
+    NANOFLANN_NODISCARD Size radiusSearch(
         const ElementType* query_point, const DistanceType& radius,
         std::vector<ResultItem<IndexType, DistanceType>>& IndicesDists,
         const SearchParameters&                           searchParams = {}) const
     {
         RadiusResultSet<DistanceType, IndexType> resultSet(radius, IndicesDists);
-        const size_t nFound = radiusSearchCustomCallback(query_point, resultSet, searchParams);
+        const Size nFound = radiusSearchCustomCallback(query_point, resultSet, searchParams);
         return nFound;
     }
 
@@ -2306,7 +2321,7 @@ class KDTreeSingleIndexDynamicAdaptor_
      * a start point for your own classes. \sa radiusSearch
      */
     template <class SEARCH_CALLBACK>
-    Size radiusSearchCustomCallback(
+    NANOFLANN_NODISCARD Size radiusSearchCustomCallback(
         const ElementType* query_point, SEARCH_CALLBACK& resultSet,
         const SearchParameters& searchParams = {}) const
     {
@@ -2356,7 +2371,7 @@ class KDTreeSingleIndexDynamicAdaptor_
     template <class RESULTSET>
     void searchLevel(
         RESULTSET& result_set, const ElementType* vec, const NodePtr node, DistanceType mindist,
-        distance_vector_t& dists, const float epsError) const
+        distance_vector_t& dists, const DistanceType epsError) const
     {
         // If this is a leaf node, then do check and return.
         if (!node->child1)  // (if one node is nullptr, both are)
@@ -2432,7 +2447,7 @@ class KDTreeSingleIndexDynamicAdaptor_
     void loadIndex(std::istream& stream) { Base::loadIndex(*this, stream); }
 };
 
-/** kd-tree dynaimic index
+/** kd-tree dynamic index
  *
  * class to create multiple static index and merge their results to behave as
  * single dynamic index as proposed in Logarithmic Approach.
@@ -2521,7 +2536,7 @@ class KDTreeSingleIndexDynamicAdaptor
      * Refer to docs in README.md or online in
      * https://github.com/jlblancoc/nanoflann
      *
-     * The KD-Tree point dimension (the length of each point in the datase, e.g.
+     * The KD-Tree point dimension (the length of each point in the dataset, e.g.
      * 3 for 3D points) is determined by means of:
      *  - The \a DIM template parameter if >0 (highest priority)
      *  - Otherwise, the \a dimensionality parameter of this constructor.
@@ -2581,7 +2596,7 @@ class KDTreeSingleIndexDynamicAdaptor
 
             for (int i = 0; i < pos; i++)
             {
-                for (int j = 0; j < static_cast<int>(index_[i].vAcc_.size()); j++)
+                for (size_t j = 0; j < index_[i].vAcc_.size(); j++)
                 {
                     const IndexType e = index_[i].vAcc_[j];
                     index_[pos].vAcc_.push_back(e);
