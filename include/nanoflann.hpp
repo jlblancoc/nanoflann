@@ -56,6 +56,7 @@
 #include <cassert>
 #include <cmath>  // for abs()
 #include <cstdint>
+#include <cstdio>  // snprintf
 #include <cstdlib>  // for abs()
 #include <functional>  // std::reference_wrapper
 #include <future>
@@ -1487,34 +1488,134 @@ class KDTreeBaseClass
         }
     }
 
-    /**  Stores the index in a binary file.
-     *   IMPORTANT NOTE: The set of data points is NOT stored in the file, so
-     * when loading the index object it must be constructed associated to the
-     * same source of data points used while building it. See the example:
-     * examples/saveload_example.cpp \sa loadIndex  */
+    /** Magic number written at the start of every saveIndex() stream.
+     *  Spells 'NFLN' in ASCII. */
+    static constexpr uint32_t SAVE_MAGIC = 0x4E464C4E;
+
+    /** Stores the index in a binary stream.
+     *
+     * The set of data points is NOT stored; when reloading, the index object
+     * must be constructed with the same dataset. See: examples/saveload_example.cpp
+     *
+     * \note **Portability limitations** (by design -- fixing them would require
+     *   a breaking format change):
+     *   - Files are NOT portable across different endianness (e.g. x86 little-endian
+     *     vs. big-endian SPARC/PowerPC). No byte-swapping is performed.
+     *   - Files are NOT portable across 32-bit vs. 64-bit platforms (sizeof(size_t)
+     *     differs).
+     *   - Files are NOT portable across different nanoflann versions; loadIndex()
+     *     throws if the version in the file does not match the library.
+     *   - Files are NOT portable across different template instantiations (e.g.
+     *     float vs. double IndexType/ElementType); loadIndex() throws on mismatch.
+     *
+     * \sa loadIndex
+     */
     void saveIndex(const Derived& obj, std::ostream& stream) const
     {
+        // 10-byte header: magic | version | sizeof_size_t | sizeof_IndexType
+        //                 | sizeof_ElementType | sizeof_DistanceType
+        // Use local copies: passing a static constexpr by const-ref ODR-uses it
+        // in C++11/14, which requires an out-of-class definition we cannot provide
+        // in a header-only library.
+        const uint32_t hdr_magic   = SAVE_MAGIC;
+        const uint32_t hdr_version = static_cast<uint32_t>(NANOFLANN_VERSION);
+        const uint8_t  hdr_sz_st   = static_cast<uint8_t>(sizeof(size_t));
+        const uint8_t  hdr_sz_idx  = static_cast<uint8_t>(sizeof(IndexType));
+        const uint8_t  hdr_sz_elem = static_cast<uint8_t>(sizeof(ElementType));
+        const uint8_t  hdr_sz_dist = static_cast<uint8_t>(sizeof(DistanceType));
+        save_value(stream, hdr_magic);
+        save_value(stream, hdr_version);
+        save_value(stream, hdr_sz_st);
+        save_value(stream, hdr_sz_idx);
+        save_value(stream, hdr_sz_elem);
+        save_value(stream, hdr_sz_dist);
+
         save_value(stream, obj.size_);
         save_value(stream, obj.dim_);
         save_value(stream, obj.root_bbox_);
         save_value(stream, obj.leaf_max_size_);
         save_value(stream, obj.vAcc_);
-        if (obj.root_node_) save_tree(obj, stream, obj.root_node_);
+        if (obj.root_node_)
+        {
+            save_tree(obj, stream, obj.root_node_);
+        }
     }
 
-    /**  Loads a previous index from a binary file.
-     *   IMPORTANT NOTE: The set of data points is NOT stored in the file, so
-     * the index object must be constructed associated to the same source of
-     * data points used while building the index. See the example:
-     * examples/saveload_example.cpp \sa loadIndex  */
+    /** Loads an index previously saved with saveIndex() from a binary stream.
+     *
+     * The index object must be constructed associated to the same dataset that
+     * was used when building the saved index. See: examples/saveload_example.cpp
+     *
+     * \throws std::runtime_error if the stream does not start with the expected
+     *   magic number (wrong file or corrupt data), if the nanoflann version in
+     *   the file differs from the current library version, if the saved type
+     *   sizes (size_t, IndexType, ElementType, DistanceType) do not match the
+     *   current template instantiation, or if a read error occurs.
+     *
+     * \note See saveIndex() for portability limitations.
+     *
+     * \sa saveIndex
+     */
     void loadIndex(Derived& obj, std::istream& stream)
     {
+        // Validate header
+        uint32_t magic = 0;
+        load_value(stream, magic);
+        if (stream.fail() || magic != SAVE_MAGIC)
+        {
+            throw std::runtime_error(
+                "nanoflann loadIndex: invalid file (wrong magic number). "
+                "The stream was not written by nanoflann saveIndex().");
+        }
+
+        uint32_t file_version = 0;
+        load_value(stream, file_version);
+        if (file_version != static_cast<uint32_t>(NANOFLANN_VERSION))
+        {
+            char msg[200];
+            snprintf(
+                msg, sizeof(msg),
+                "nanoflann loadIndex: version mismatch "
+                "(file=0x%03X, library=0x%03X). Rebuild the index.",
+                file_version, static_cast<unsigned>(NANOFLANN_VERSION));
+            throw std::runtime_error(msg);
+        }
+
+        uint8_t sz_size_t = 0;
+        uint8_t sz_idx    = 0;
+        uint8_t sz_elem   = 0;
+        uint8_t sz_dist   = 0;
+        load_value(stream, sz_size_t);
+        load_value(stream, sz_idx);
+        load_value(stream, sz_elem);
+        load_value(stream, sz_dist);
+        if (sz_size_t != static_cast<uint8_t>(sizeof(size_t)) ||
+            sz_idx != static_cast<uint8_t>(sizeof(IndexType)) ||
+            sz_elem != static_cast<uint8_t>(sizeof(ElementType)) ||
+            sz_dist != static_cast<uint8_t>(sizeof(DistanceType)))
+        {
+            throw std::runtime_error(
+                "nanoflann loadIndex: type-size mismatch between saved index and "
+                "current template instantiation (sizeof size_t / IndexType / "
+                "ElementType / DistanceType differ). Rebuild the index.");
+        }
+
         load_value(stream, obj.size_);
         load_value(stream, obj.dim_);
         load_value(stream, obj.root_bbox_);
         load_value(stream, obj.leaf_max_size_);
         load_value(stream, obj.vAcc_);
-        if (obj.size_ > 0) load_tree(obj, stream, obj.root_node_);
+
+        if (obj.size_ > 0)
+        {
+            load_tree(obj, stream, obj.root_node_);
+        }
+
+        if (stream.fail())
+        {
+            throw std::runtime_error(
+                "nanoflann loadIndex: unexpected end of stream or read error.");
+        }
     }
 };
 

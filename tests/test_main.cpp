@@ -271,7 +271,8 @@ void rknn_L1_vs_bruteforce_test(
         for (size_t i = 0; i < nSamples; i++)
         {
             NUM dist = NUM(0.0);
-            for (size_t d = 0; d < DIM; d++) dist += static_cast<NUM>(std::abs(query_pt[d] - samples[i][d]));
+            for (size_t d = 0; d < DIM; d++)
+                dist += static_cast<NUM>(std::abs(query_pt[d] - samples[i][d]));
 
             if (dist < maxRadiusSqr) bf_nn.emplace(dist, i);
         }
@@ -286,7 +287,7 @@ void rknn_L1_vs_bruteforce_test(
     if (!bf_nn.empty())
     {
         const size_t compareCount = std::min<size_t>(nFound, bf_nn.size());
-        auto it = bf_nn.begin();
+        auto         it           = bf_nn.begin();
         for (size_t i = 0; i < compareCount; ++i, ++it)
         {
             // Distances must be in exact order:
@@ -297,8 +298,8 @@ void rknn_L1_vs_bruteforce_test(
             if (bf_idx2dist.find(ret_indexes[i]) != bf_idx2dist.end())
             {
                 EXPECT_NEAR(bf_idx2dist[ret_indexes[i]], out_dists_sqr[i], 1e-3)
-                    << "For: numToSearch=" << numToSearch << " out_dists_sqr[i]=" << out_dists_sqr[i]
-                    << "\n";
+                    << "For: numToSearch=" << numToSearch
+                    << " out_dists_sqr[i]=" << out_dists_sqr[i] << "\n";
             }
         }
     }
@@ -1413,4 +1414,60 @@ TEST(kdtree, dynamic_saveload_roundtrip)
 
     EXPECT_EQ(loaded_idx, expected_idx);
     EXPECT_NEAR(loaded_dist, expected_dist, 1e-10);
+}
+
+// loadIndex() must throw when the stream does not start with the nanoflann magic.
+TEST(kdtree, saveload_bad_magic)
+{
+    using num_t    = double;
+    using cloud_t  = PointCloud<num_t>;
+    using kdtree_t = KDTreeSingleIndexAdaptor<L2_Simple_Adaptor<num_t, cloud_t>, cloud_t, 3>;
+
+    cloud_t cloud;
+    generateRandomPointCloud(cloud, 100);
+
+    std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+    {
+        kdtree_t index(3, cloud, KDTreeSingleIndexAdaptorParams(10));
+        index.saveIndex(ss);
+    }
+
+    // Overwrite the first four bytes (magic) with garbage.
+    ss.seekp(0);
+    const uint32_t bad_magic = 0xDEADBEEF;
+    ss.write(reinterpret_cast<const char*>(&bad_magic), sizeof(bad_magic));
+    ss.seekg(0);
+
+    kdtree_t index(
+        3, cloud,
+        KDTreeSingleIndexAdaptorParams(10, KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
+    EXPECT_THROW(index.loadIndex(ss), std::runtime_error);
+}
+
+// loadIndex() must throw when the nanoflann version in the file differs.
+TEST(kdtree, saveload_version_mismatch)
+{
+    using num_t    = double;
+    using cloud_t  = PointCloud<num_t>;
+    using kdtree_t = KDTreeSingleIndexAdaptor<L2_Simple_Adaptor<num_t, cloud_t>, cloud_t, 3>;
+
+    cloud_t cloud;
+    generateRandomPointCloud(cloud, 100);
+
+    std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+    {
+        kdtree_t index(3, cloud, KDTreeSingleIndexAdaptorParams(10));
+        index.saveIndex(ss);
+    }
+
+    // Overwrite the version field (bytes 4-7) with a fake version.
+    ss.seekp(4);
+    const uint32_t bad_version = 0x000;
+    ss.write(reinterpret_cast<const char*>(&bad_version), sizeof(bad_version));
+    ss.seekg(0);
+
+    kdtree_t index(
+        3, cloud,
+        KDTreeSingleIndexAdaptorParams(10, KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
+    EXPECT_THROW(index.loadIndex(ss), std::runtime_error);
 }
