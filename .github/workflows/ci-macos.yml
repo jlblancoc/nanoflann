@@ -1,0 +1,55 @@
+name: CI macOS
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: ${{ matrix.name }} ${{ matrix.build_type }}
+    runs-on: ${{ matrix.os }}
+
+    env:
+      CTEST_OUTPUT_ON_FAILURE: ON
+      CTEST_PARALLEL_LEVEL: 1
+      CMAKE_BUILD_TYPE: ${{ matrix.build_type }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        name:
+          [
+            macos-14-clang,
+            macos-15-clang,
+          ]
+
+        build_type: [Release]
+        include:
+          - name: macos-14-clang
+            os: macos-14
+
+          - name: macos-15-clang
+            os: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+
+      - name: Git submodule
+        run: |
+          git submodule sync
+          git submodule update --init --recursive
+
+      - name: Install Dependencies
+        run: |
+          brew install cmake
+
+      - name: CMake configure
+        run: |
+          cmake -DCMAKE_VERBOSE_MAKEFILE=ON -S . -B build
+
+      - name: Build
+        run: |
+          cmake --build build --parallel
+
+      - name: Run tests
+        run: |
+          ctest --verbose --test-dir build

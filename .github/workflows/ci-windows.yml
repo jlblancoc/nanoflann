@@ -1,0 +1,62 @@
+name: CI Windows
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: ${{ matrix.name }} ${{ matrix.build_type }}
+    runs-on: ${{ matrix.os }}
+
+    env:
+      CTEST_OUTPUT_ON_FAILURE: ON
+      CTEST_PARALLEL_LEVEL: 1
+      CMAKE_BUILD_TYPE: ${{ matrix.build_type }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        name:
+          [
+            windows-2022-msvc,
+            windows-2022-clang-cl,
+          ]
+
+        build_type: [Release]
+        include:
+          - name: windows-2022-msvc
+            os: windows-2022
+            compiler: msvc
+
+          - name: windows-2022-clang-cl
+            os: windows-2022
+            compiler: clang-cl
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+
+      - name: Git submodule
+        run: |
+          git submodule sync
+          git submodule update --init --recursive
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: CMake configure (MSVC)
+        if: matrix.compiler == 'msvc'
+        run: |
+          cmake -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S . -B build
+
+      - name: CMake configure (clang-cl)
+        if: matrix.compiler == 'clang-cl'
+        run: |
+          cmake -G "Visual Studio 17 2022" -A x64 -T ClangCL -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S . -B build
+
+      - name: Build
+        run: |
+          cmake --build build --config ${{ matrix.build_type }} --parallel
+
+      - name: Run tests
+        run: |
+          ctest --verbose --test-dir build -C ${{ matrix.build_type }}
