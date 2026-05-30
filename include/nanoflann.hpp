@@ -1335,25 +1335,17 @@ class KDTreeBaseClass
             if (span > max_span) max_span = span;
         }
 
-        // Single-pass min/max computation for candidate dimensions
-        cutfeat                = 0;
-        ElementType max_spread = -1;
-        ElementType min_elem = 0, max_elem = 0;
+        // Two-pass: first find max_span (done above), then scan candidate dims
+        // inline — no heap allocation for a candidates vector.
+        cutfeat                      = 0;
+        ElementType       max_spread = -1;
+        ElementType       min_elem = 0, max_elem = 0;
+        const ElementType threshold = (1 - EPS) * max_span;
 
-        // Only check dimensions within (1-EPS) of max_span
-        std::vector<Dimension> candidates;
-        candidates.reserve(dims);
-        for (Dimension i = 0; i < dims; ++i)
+        for (Dimension dim = 0; dim < dims; ++dim)
         {
-            if (bbox[i].high - bbox[i].low >= (1 - EPS) * max_span)
-            {
-                candidates.push_back(i);
-            }
-        }
+            if (bbox[dim].high - bbox[dim].low < threshold) continue;
 
-        // Vectorized min/max for candidates
-        for (Dimension dim : candidates)
-        {
             ElementType local_min = dataset_get(obj, vAcc_[ind], dim);
             ElementType local_max = local_min;
 
@@ -1459,7 +1451,7 @@ class KDTreeBaseClass
                 dists[i] = obj.distance_.accum_dist(vec[i], obj.root_bbox_[i].low, i);
                 dist += dists[i];
             }
-            if (vec[i] > obj.root_bbox_[i].high)
+            else if (vec[i] > obj.root_bbox_[i].high)
             {
                 dists[i] = obj.distance_.accum_dist(vec[i], obj.root_bbox_[i].high, i);
                 dist += dists[i];
