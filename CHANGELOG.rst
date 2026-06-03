@@ -2,6 +2,20 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.0 (in progress)
+-------------------
+* New feature: **compile-time product-manifold topology** for *exact* nearest-neighbor
+  search on non-Euclidean state spaces (``KDTreeSingleIndexAdaptor`` only). Declare the
+  search space as a product of base manifolds at compile time:
+  ``nanoflann::Rn<N>``, ``nanoflann::SO2``, ``nanoflann::SO3``, ``nanoflann::SE2``,
+  ``nanoflann::SE3``, ``nanoflann::Torus<N>``, and arbitrary ``nanoflann::Product<...>``.
+  The synthesized ``nanoflann::Manifold_Adaptor<Space, T, Dataset>`` metric keeps the
+  KD-tree pruning admissible (wrap-aware for circular coordinates, antipodal
+  double-cover-aware for unit-quaternion blocks), so results are identical to an
+  exhaustive geodesic brute-force search. Requires C++17; the legacy C++11 metrics
+  and the Euclidean code path are completely unaffected (opt out with
+  ``NANOFLANN_NO_MANIFOLDS``). See ``examples/manifold_se3_example.cpp``.
+
 1.11.0 (2026-07-31)
 -------------------
 * Merge pull request `#309 <https://github.com/jlblancoc/nanoflann/issues/309>`_ from jlblancoc/feat/incremental-index-save-load

@@ -28,6 +28,7 @@ DefineExample(pointcloud_custom_metric)
 DefineExample(pointcloud_custom_resultset)
 DefineExample(SO3_adaptor_example)
 DefineExample(SO2_adaptor_example)
+DefineExample(manifold_se3_example)
 DefineExample(saveload_example)
 DefineExample(vector_of_vectors_example)
 

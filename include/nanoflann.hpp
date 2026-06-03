@@ -90,9 +90,9 @@
 #include <vector>
 
 /** Library version as a decimal string "MAJOR.MINOR.PATCH" */
-#define NANOFLANN_VERSION_STRING "1.11.0"
+#define NANOFLANN_VERSION_STRING "2.0.0"
 /** Library version: 0xMMmmPP (MM=Major, mm=minor, PP=patch) */
-#define NANOFLANN_VERSION 0x010B00
+#define NANOFLANN_VERSION 0x020000
 
 // Avoid conflicting declaration of min/max macros in Windows headers
 #if !defined(NOMINMAX) && (defined(_WIN32) || defined(_WIN32_) || defined(WIN32) || defined(_WIN64))
@@ -135,6 +135,16 @@
 #define NANOFLANN_NODE_ALIGNMENT 16
 #endif
 
+// Compile-time product-manifold topology support (nanoflann 2.0).
+// The variadic Product<>/metric_Manifold<> machinery requires C++17
+// (`if constexpr`, fold expressions). The legacy C++11 metrics and the whole
+// Euclidean code path are unaffected. Users can opt out with
+// NANOFLANN_NO_MANIFOLDS even under C++17.
+#if !defined(NANOFLANN_NO_MANIFOLDS) && defined(__cpp_if_constexpr) && \
+    (__cpp_if_constexpr >= 201606L)
+#define NANOFLANN_HAS_MANIFOLDS 1
+#endif
+
 namespace nanoflann
 {
 /** @addtogroup nanoflann_grp nanoflann C++ library for KD-trees
@@ -146,6 +156,17 @@ constexpr T pi_const()
 {
     return static_cast<T>(3.14159265358979323846);
 }
+
+/** Trait used by KDTreeBaseClass to decide, at compile time, whether a distance
+ *  functor implements the extended product-manifold interface (the per-coordinate
+ *  point-to-interval lower bound `pointToIntervalDist`). The primary template is
+ *  always available (also under C++11) and reports `false`, so the Euclidean
+ *  code path and codegen are completely unaffected. The Manifold_Adaptor
+ *  specializes it to `true` (see below, C++17 only). */
+template <class Distance>
+struct is_manifold_metric : std::false_type
+{
+};
 
 /**
  * Traits if object is resizable and assignable (typically has a resize | assign
@@ -831,6 +852,307 @@ struct metric_SO3 : public Metric
 
 /** @} */
 
+#if defined(NANOFLANN_HAS_MANIFOLDS)
+/** @addtogroup manifold_grp Compile-time product-manifold topology (C++17)
+ *
+ *  This block lets the user declare, at compile time, the topology of the search
+ *  space as a product manifold of base spaces (R^n, SO(2), SO(3), and arbitrary
+ *  products such as SE(2)=R^2 x SO(2) or SE(3)=R^3 x SO(3)). The synthesized
+ *  metric (`metric_Manifold<Space>`) honors the correct geodesic distance and,
+ *  crucially, keeps the KD-tree pruning *exact* by supplying an admissible
+ *  per-coordinate point-to-interval lower bound (see the lemma in the companion
+ *  paper). Only available under C++17 and only for the fixed single-tree index
+ *  `KDTreeSingleIndexAdaptor`.
+ *  @{ */
+
+/** Per-scalar-coordinate topology tag. */
+enum class CoordTopology : uint8_t
+{
+    /** Real line R^1: ordinary Euclidean coordinate (no wrap). */
+    Linear = 0,
+    /** Circle S^1 / SO(2): angle in [-pi, pi], wraps at +/-pi. */
+    Circular = 1,
+    /** One scalar of a 4-coordinate unit-quaternion block (SO(3)); the metric is
+     *  the chordal distance min(||p-q||^2, ||p+q||^2) handling the double cover
+     *  q ~ -q. Quaternion coordinates always come in contiguous groups of four. */
+    QuaternionBlock = 2
+};
+
+/** Shortest signed angular difference b-a, both assumed in [-pi, pi], result in
+ *  [-pi, pi]. Header-only, no <cmath> needed for the wrap. */
+template <typename Scalar>
+inline Scalar so2_signed_diff(const Scalar a, const Scalar b)
+{
+    const Scalar PI   = pi_const<Scalar>();
+    Scalar       diff = b - a;
+    if (diff > PI)
+        diff -= 2 * PI;
+    else if (diff < -PI)
+        diff += 2 * PI;
+    return diff;
+}
+
+/** @name Base-space traits
+ *  Each base space exposes a compile-time `ambient` (number of scalar
+ *  coordinates it occupies) and a `constexpr topology(i)` mapping a *local*
+ *  coordinate index to its CoordTopology tag.
+ *  @{ */
+
+/** Euclidean R^N base space (N linear coordinates). */
+template <unsigned N>
+struct Rn
+{
+    static constexpr unsigned      ambient = N;
+    static constexpr CoordTopology topology(unsigned /*i*/) { return CoordTopology::Linear; }
+};
+
+/** Circle S^1 / SO(2): a single circular coordinate (angle in [-pi, pi]). */
+struct SO2
+{
+    static constexpr unsigned      ambient = 1;
+    static constexpr CoordTopology topology(unsigned /*i*/) { return CoordTopology::Circular; }
+};
+
+/** 3D rotation SO(3) as a unit quaternion (4 coordinates, double cover). */
+struct SO3
+{
+    static constexpr unsigned      ambient = 4;
+    static constexpr CoordTopology topology(unsigned /*i*/)
+    {
+        return CoordTopology::QuaternionBlock;
+    }
+};
+
+/** Product manifold M = M_1 x ... x M_b. Concatenates the coordinate layouts of
+ *  its base spaces; `ambient` is the total scalar-coordinate count and
+ *  `topology(i)` dispatches to the owning base space. */
+template <class... Bs>
+struct Product;
+
+template <>
+struct Product<>
+{
+    static constexpr unsigned      ambient = 0;
+    static constexpr CoordTopology topology(unsigned /*i*/) { return CoordTopology::Linear; }
+};
+
+template <class B, class... Rest>
+struct Product<B, Rest...>
+{
+    static constexpr unsigned      ambient = B::ambient + Product<Rest...>::ambient;
+    static constexpr CoordTopology topology(unsigned i)
+    {
+        return i < B::ambient ? B::topology(i) : Product<Rest...>::topology(i - B::ambient);
+    }
+};
+
+/** SE(2) = R^2 x SO(2) (3 coordinates: x, y, theta). */
+using SE2 = Product<Rn<2>, SO2>;
+/** SE(3) = R^3 x SO(3) (7 coordinates: x, y, z, qx, qy, qz, qw). */
+using SE3 = Product<Rn<3>, SO3>;
+/** N-torus = SO(2)^N. */
+template <unsigned N>
+struct Torus;
+template <>
+struct Torus<0> : Product<>
+{
+};
+template <unsigned N>
+struct Torus : Product<SO2, Torus<N - 1>>
+{
+};
+/** @} */
+
+/** Flatten a Space into a compile-time array of per-coordinate topology tags. */
+template <class Space>
+constexpr std::array<CoordTopology, Space::ambient> make_topology_table()
+{
+    std::array<CoordTopology, Space::ambient> arr{};
+    for (unsigned i = 0; i < Space::ambient; ++i) arr[i] = Space::topology(i);
+    return arr;
+}
+
+/** Distance functor synthesized from a compile-time product-manifold
+ *  description `Space`. Provides the standard nanoflann distance interface
+ *  (`evalMetric`, `accum_dist`) plus the extended interface used by the
+ *  topology-aware pruning in KDTreeBaseClass:
+ *   - `pointToIntervalDist(v, low, high, coord)`: admissible lower bound on the
+ *     squared distance from query coordinate `v` to the per-coordinate interval
+ *     [low, high] of a tree-node region, honoring wrap (circular) and the
+ *     antipodal double cover (quaternion).
+ *
+ *  The squared product metric is  d^2 = sum over base spaces of d_M^2, with
+ *  per-coordinate contributions:
+ *   - Linear:    (a-b)^2
+ *   - Circular:  so2_diff(a,b)^2
+ *   - SO(3) 4-block: min(||p-q||^2, ||p+q||^2)  (chordal, double cover)
+ */
+template <
+    class Space, class T, class DataSource, typename _DistanceType = T, typename IndexType = size_t>
+struct Manifold_Adaptor
+{
+    using ElementType  = T;
+    using DistanceType = _DistanceType;
+    using SpaceType    = Space;
+
+    static constexpr unsigned ambient_dim = Space::ambient;
+
+    /** Compile-time per-coordinate topology table (implicitly inline in C++17). */
+    static constexpr std::array<CoordTopology, Space::ambient> topo_ = make_topology_table<Space>();
+
+    const DataSource& data_source;
+
+    Manifold_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
+
+    /** Full squared distance from query `a` to stored point `b_idx`. Walks the
+     *  topology table, treating each contiguous 4-coordinate quaternion block as
+     *  one chordal contribution with double-cover handling. */
+    inline DistanceType evalMetric(const T* a, const IndexType b_idx, size_t size) const
+    {
+        DistanceType result = DistanceType();
+        for (size_t i = 0; i < size;)
+        {
+            switch (topo_[i])
+            {
+                case CoordTopology::Linear:
+                {
+                    const DistanceType d = a[i] - data_source.kdtree_get_pt(b_idx, i);
+                    result += d * d;
+                    ++i;
+                    break;
+                }
+                case CoordTopology::Circular:
+                {
+                    const DistanceType d =
+                        so2_signed_diff<DistanceType>(a[i], data_source.kdtree_get_pt(b_idx, i));
+                    result += d * d;
+                    ++i;
+                    break;
+                }
+                case CoordTopology::QuaternionBlock:
+                {
+                    DistanceType s_minus = DistanceType();
+                    DistanceType s_plus  = DistanceType();
+                    for (size_t k = 0; k < 4; ++k)
+                    {
+                        const DistanceType bk = data_source.kdtree_get_pt(b_idx, i + k);
+                        const DistanceType dm = a[i + k] - bk;
+                        const DistanceType dp = a[i + k] + bk;
+                        s_minus += dm * dm;
+                        s_plus += dp * dp;
+                    }
+                    result += s_minus < s_plus ? s_minus : s_plus;
+                    i += 4;
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    /** Per-coordinate squared point-to-point contribution. */
+    template <typename U, typename V>
+    inline DistanceType accum_dist(const U a, const V b, const size_t idx) const
+    {
+        if (topo_[idx] == CoordTopology::Circular)
+        {
+            const DistanceType d = so2_signed_diff<DistanceType>(
+                static_cast<DistanceType>(a), static_cast<DistanceType>(b));
+            return d * d;
+        }
+        const DistanceType d = static_cast<DistanceType>(a) - static_cast<DistanceType>(b);
+        return d * d;
+    }
+
+    /** Admissible lower bound on the squared distance from query coordinate `v`
+     *  to the per-coordinate interval [low, high] of a node region.
+     *
+     *  - Linear / QuaternionBlock: standard point-to-interval squared distance on
+     *    the real line. For a quaternion coordinate this is combined with the
+     *    antipodal cover by taking the smaller of the bounds for `v` and `-v`;
+     *    summing the per-coordinate minima over the 4-block stays a valid (looser)
+     *    lower bound of min(||p-q||^2, ||p+q||^2) because
+     *    sum_i min(a_i, b_i) <= min(sum a_i, sum b_i).
+     *  - Circular: wrap-aware distance from `v` to the direct arc [low, high]
+     *    (low <= high, both in [-pi, pi]); 0 inside, else the smaller wrapped
+     *    distance to either endpoint, squared. */
+    inline DistanceType pointToIntervalDist(
+        const T v, const T low, const T high, const size_t idx) const
+    {
+        switch (topo_[idx])
+        {
+            case CoordTopology::Linear:
+            {
+                return axisIntervalDist(v, low, high);
+            }
+            case CoordTopology::QuaternionBlock:
+            {
+                const DistanceType dp = axisIntervalDist(v, low, high);
+                const DistanceType dn = axisIntervalDist(-v, low, high);
+                return dp < dn ? dp : dn;
+            }
+            case CoordTopology::Circular:
+            {
+                if (v >= low && v <= high) return DistanceType();
+                const DistanceType d1 = so2_signed_diff<DistanceType>(v, low);
+                const DistanceType d2 = so2_signed_diff<DistanceType>(v, high);
+                const DistanceType a1 = d1 < 0 ? -d1 : d1;
+                const DistanceType a2 = d2 < 0 ? -d2 : d2;
+                const DistanceType m  = a1 < a2 ? a1 : a2;
+                return m * m;
+            }
+        }
+        return DistanceType();  // unreachable
+    }
+
+   private:
+    static inline DistanceType axisIntervalDist(const T v, const T low, const T high)
+    {
+        if (v < low)
+        {
+            const DistanceType d = static_cast<DistanceType>(low) - static_cast<DistanceType>(v);
+            return d * d;
+        }
+        if (v > high)
+        {
+            const DistanceType d = static_cast<DistanceType>(v) - static_cast<DistanceType>(high);
+            return d * d;
+        }
+        return DistanceType();
+    }
+};
+
+/** Mark Manifold_Adaptor as implementing the extended manifold interface so the
+ *  KD-tree base class selects the topology-aware (wrap- and cover-correct)
+ *  pruning path for it. */
+template <class Space, class T, class DataSource, typename DT, typename IndexType>
+struct is_manifold_metric<Manifold_Adaptor<Space, T, DataSource, DT, IndexType>> : std::true_type
+{
+};
+
+/** Metaprogramming helper traits class for a compile-time product manifold.
+ *  Usage:
+ *  \code
+ *    using StateSpace = nanoflann::SE3;  // R^3 x SO(3)
+ *    using kdtree_t = nanoflann::KDTreeSingleIndexAdaptor<
+ *        nanoflann::metric_Manifold<StateSpace>::traits<double, Dataset>::distance_t,
+ *        Dataset, StateSpace::ambient>;
+ *  \endcode
+ *  or, more conveniently, via the `metric_Manifold<Space>` tag passed directly to
+ *  KDTreeSingleIndexAdaptor's Distance slot. */
+template <class Space>
+struct metric_Manifold : public Metric
+{
+    template <class T, class DataSource, typename IndexType = size_t>
+    struct traits
+    {
+        using distance_t = Manifold_Adaptor<Space, T, DataSource, T, IndexType>;
+    };
+};
+
+/** @} */  // end manifold_grp
+#endif  // NANOFLANN_HAS_MANIFOLDS
+
 /** @addtogroup param_grp Parameter structs
  * @{ */
 
@@ -1306,6 +1628,96 @@ class KDTreeBaseClass
         return true;
     }
 
+#if defined(NANOFLANN_HAS_MANIFOLDS)
+    /**
+     * Exact search variant for product-manifold metrics. Identical in structure
+     * to searchLevel(), but it carries the running per-coordinate node region
+     * `region` down the recursion so that the far-child contribution can be the
+     * topology-aware point-to-interval lower bound against the *full* child
+     * interval (both edges). This is required for correctness on a circle, where
+     * the single near-edge cut value used by the Euclidean path can overestimate
+     * the distance to a far child that wraps around +/-pi (over-pruning the true
+     * neighbor). For linear coordinates the bound coincides exactly with the
+     * Euclidean accum_dist(val, cutedge), so the descent behavior is unchanged.
+     */
+    template <class RESULTSET>
+    bool searchLevelManifold(
+        RESULTSET& result_set, const ElementType* vec, const NodePtr node, DistanceType mindist,
+        distance_vector_t& dists, BoundingBox& region, const DistanceType epsError) const
+    {
+        const Derived& obj = static_cast<const Derived&>(*this);
+        if (!node->child1)
+        {
+            const Size dim = veclen(obj);
+            for (Offset i = node->node_type.lr.left; i < node->node_type.lr.right; ++i)
+            {
+                const IndexType accessor = vAcc_[i];
+                if (!obj.isActive(accessor)) continue;
+                DistanceType dist = obj.distance_.evalMetric(vec, accessor, dim);
+                if (dist < result_set.worstDist())
+                {
+                    if (!result_set.addPoint(
+                            static_cast<typename RESULTSET::DistanceType>(dist),
+                            static_cast<typename RESULTSET::IndexType>(accessor)))
+                        return false;
+                }
+            }
+            return true;
+        }
+
+        const Dimension   idx     = node->node_type.sub.divfeat;
+        const ElementType val     = vec[idx];
+        const ElementType divlow  = node->node_type.sub.divlow;
+        const ElementType divhigh = node->node_type.sub.divhigh;
+
+        // Per-coordinate intervals of the two children (the parent interval split
+        // at the gap [divlow, divhigh]).
+        const Interval cur   = region[idx];
+        const Interval loReg = {cur.low, divlow};
+        const Interval hiReg = {divhigh, cur.high};
+
+        // Choose the child whose region is closer to the query coordinate.
+        const DistanceType dLo = obj.distance_.pointToIntervalDist(val, loReg.low, loReg.high, idx);
+        const DistanceType dHi = obj.distance_.pointToIntervalDist(val, hiReg.low, hiReg.high, idx);
+
+        NodePtr  bestChild, otherChild;
+        Interval nearReg, farReg;
+        if (dLo <= dHi)
+        {
+            bestChild  = node->child1;
+            otherChild = node->child2;
+            nearReg    = loReg;
+            farReg     = hiReg;
+        }
+        else
+        {
+            bestChild  = node->child2;
+            otherChild = node->child1;
+            nearReg    = hiReg;
+            farReg     = loReg;
+        }
+
+        region[idx] = nearReg;
+        if (!searchLevelManifold(result_set, vec, bestChild, mindist, dists, region, epsError))
+            return false;
+
+        const DistanceType cut_dist =
+            obj.distance_.pointToIntervalDist(val, farReg.low, farReg.high, idx);
+        const DistanceType dst = dists[idx];
+        mindist                = mindist + cut_dist - dst;
+        dists[idx]             = cut_dist;
+        region[idx]            = farReg;
+        if (mindist * epsError <= result_set.worstDist())
+        {
+            if (!searchLevelManifold(result_set, vec, otherChild, mindist, dists, region, epsError))
+                return false;
+        }
+        dists[idx]  = dst;
+        region[idx] = cur;
+        return true;
+    }
+#endif  // NANOFLANN_HAS_MANIFOLDS
+
     /**
      * Create a tree node that subdivides the list of vecs from vind[first]
      * to vind[last].  The routine is called recursively on each sublist.
@@ -1603,6 +2015,21 @@ class KDTreeBaseClass
         DistanceType dist = DistanceType();
 
         const Dimension dims = static_cast<Dimension>(veclen(obj));
+#if defined(NANOFLANN_HAS_MANIFOLDS)
+        if constexpr (is_manifold_metric<Distance>::value)
+        {
+            // Topology-aware initial bound: each coordinate contributes its
+            // admissible point-to-interval lower bound (wrap-aware for circular
+            // coordinates, double-cover-aware for quaternion blocks).
+            for (Dimension i = 0; i < dims; ++i)
+            {
+                dists[i] = obj.distance_.pointToIntervalDist(
+                    vec[i], obj.root_bbox_[i].low, obj.root_bbox_[i].high, i);
+                dist += dists[i];
+            }
+            return dist;
+        }
+#endif
         for (Dimension i = 0; i < dims; ++i)
         {
             if (vec[i] < obj.root_bbox_[i].low)
@@ -2004,7 +2431,19 @@ class KDTreeSingleIndexAdaptor
         auto zero = static_cast<typename RESULTSET::DistanceType>(0);
         assign(dists, this->veclen(*this), zero);
         DistanceType dist = this->computeInitialDistances(*this, vec, dists);
-        this->searchLevel(result, vec, Base::root_node_, dist, dists, epsError);
+#if defined(NANOFLANN_HAS_MANIFOLDS)
+        if constexpr (is_manifold_metric<Distance>::value)
+        {
+            // Carry a mutable copy of the root region down the recursion so the
+            // pruning bound is computed against full per-coordinate child arcs.
+            typename Base::BoundingBox region(Base::root_bbox_);
+            this->searchLevelManifold(result, vec, Base::root_node_, dist, dists, region, epsError);
+        }
+        else
+#endif
+        {
+            this->searchLevel(result, vec, Base::root_node_, dist, dists, epsError);
+        }
 
         if (searchParams.sorted) result.sort();
 
