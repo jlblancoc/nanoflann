@@ -856,8 +856,9 @@ struct metric_SO3 : public Metric
 /** @addtogroup manifold_grp Compile-time product-manifold topology (C++17)
  *
  *  This block lets the user declare, at compile time, the topology of the search
- *  space as a product manifold of base spaces (R^n, SO(2), SO(3), and arbitrary
- *  products such as SE(2)=R^2 x SO(2) or SE(3)=R^3 x SO(3)). The synthesized
+ *  space as a product manifold of base spaces (R^n, SO(2), SO(3), the unit
+ *  sphere S^N / S^2, and arbitrary products such as SE(2)=R^2 x SO(2),
+ *  SE(3)=R^3 x SO(3), or R^3 x S^2 for oriented points). The synthesized
  *  metric (`metric_Manifold<Space>`) honors the correct geodesic distance and,
  *  crucially, keeps the KD-tree pruning *exact* by supplying an admissible
  *  per-coordinate point-to-interval lower bound (see the lemma in the companion
@@ -892,6 +893,28 @@ inline Scalar so2_signed_diff(const Scalar a, const Scalar b)
     return diff;
 }
 
+/** Convert a chordal squared distance on the unit sphere (or the SO(3)
+ *  quaternion block) to the geodesic angle in radians: theta = 2 asin(sqrt(d)/2).
+ *  The argument is clamped to [0, 1] against rounding noise. */
+template <typename Scalar>
+inline Scalar chord_sq_to_angle(const Scalar d_ch_sq)
+{
+    Scalar s = std::sqrt(d_ch_sq) / static_cast<Scalar>(2);
+    if (s < static_cast<Scalar>(0)) s = static_cast<Scalar>(0);
+    if (s > static_cast<Scalar>(1)) s = static_cast<Scalar>(1);
+    return static_cast<Scalar>(2) * std::asin(s);
+}
+
+/** Inverse of chord_sq_to_angle: convert an angular radius (radians) to the
+ *  chordal squared search radius d = 4 sin^2(theta/2), for use with
+ *  radiusSearch on S^N / S^2. */
+template <typename Scalar>
+inline Scalar angle_to_chord_sq(const Scalar theta)
+{
+    const Scalar s = std::sin(theta / static_cast<Scalar>(2));
+    return static_cast<Scalar>(4) * s * s;
+}
+
 /** @name Base-space traits
  *  Each base space exposes a compile-time `ambient` (number of scalar
  *  coordinates it occupies) and a `constexpr topology(i)` mapping a *local*
@@ -922,6 +945,30 @@ struct SO3
         return CoordTopology::QuaternionBlock;
     }
 };
+
+/** Unit sphere S^N embedded in R^{N+1} (N+1 coordinates, must be unit-norm).
+ *
+ *  Metric: chordal squared distance ||p-q||^2 = 2 - 2<p,q> = 4 sin^2(theta/2),
+ *  a strictly increasing function of the geodesic angle theta in [0, pi], so the
+ *  NN / k-NN *ranking* is identical to the geodesic one. The chordal metric is
+ *  literally the ambient L2 metric, so every coordinate is a plain `Linear` tag:
+ *  no new switch cases are needed in Manifold_Adaptor, and pruning by raw
+ *  axis-aligned boxes (supersets of the sphere patch) stays admissible. Unlike
+ *  SO(3) = RP^3, antipodal unit vectors are *distinct* directions, so S^N needs
+ *  no double-cover handling (it is strictly simpler than the quaternion block).
+ *  Inputs (stored points and queries) must be normalized to unit length.
+ *
+ *  (S^1 is handled intrinsically by `SO2` because the circle admits a global
+ *  separable 1-coordinate chart; S^N for N>=2 has no such chart, hence the
+ *  embedding route here.) */
+template <unsigned N>
+struct Sn
+{
+    static constexpr unsigned      ambient = N + 1;
+    static constexpr CoordTopology topology(unsigned /*i*/) { return CoordTopology::Linear; }
+};
+/** Unit sphere S^2: 3D directions / bearings as unit vectors in R^3. */
+using S2 = Sn<2>;
 
 /** Product manifold M = M_1 x ... x M_b. Concatenates the coordinate layouts of
  *  its base spaces; `ambient` is the total scalar-coordinate count and
