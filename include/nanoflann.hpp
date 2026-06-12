@@ -996,6 +996,19 @@ struct Manifold_Adaptor
     /** Compile-time per-coordinate topology table (implicitly inline in C++17). */
     static constexpr std::array<CoordTopology, Space::ambient> topo_ = make_topology_table<Space>();
 
+    /** True if the space contains at least one SO(3) quaternion block. Used to
+     *  gate the (slightly more expensive) block-level chordal pruning bound so
+     *  spaces without rotations pay nothing for it. */
+    static constexpr bool computeHasQuaternionBlock()
+    {
+        for (unsigned i = 0; i < Space::ambient; ++i)
+        {
+            if (topo_[i] == CoordTopology::QuaternionBlock) return true;
+        }
+        return false;
+    }
+    static constexpr bool hasQuaternionBlock = computeHasQuaternionBlock();
+
     const DataSource& data_source;
 
     Manifold_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
@@ -1099,6 +1112,50 @@ struct Manifold_Adaptor
             }
         }
         return DistanceType();  // unreachable
+    }
+
+    /** Block-level tightening of the SO(3) chordal lower bound, for use by the
+     *  pruning gate. The per-coordinate `pointToIntervalDist` returns, for a
+     *  quaternion coordinate, min(d+, d-) of the two antipodal covers; summing
+     *  those per-coordinate minima gives the *loose* block bound
+     *  sum_i min(d+_i, d-_i). The *tight* block bound is
+     *  min(sum_i d+_i, sum_i d-_i) = min(dist(q, Box4), dist(-q, Box4)), which is
+     *  always >= the loose one (since sum min <= min sum) and still admissible
+     *  (Box4 is a superset of the subtree's quaternions). This returns, summed
+     *  over every quaternion block of the space,
+     *  (tight block bound) - (loose block bound stored in `dists`), i.e. the
+     *  amount by which the running `mindist` may be safely increased.
+     *
+     *  `dists[i]` must hold the loose per-coordinate contributions and `region`
+     *  the current per-coordinate node intervals (both as maintained by
+     *  searchLevelManifold). Cost is O(#quaternion coords); only called for
+     *  spaces with `hasQuaternionBlock`. */
+    template <class IntervalArray, class DistArray>
+    inline DistanceType quaternionBlockTightening(
+        const T* v, const IntervalArray& region, const DistArray& dists, const size_t dim) const
+    {
+        DistanceType delta = DistanceType();
+        for (size_t i = 0; i < dim;)
+        {
+            if (topo_[i] != CoordTopology::QuaternionBlock)
+            {
+                ++i;
+                continue;
+            }
+            DistanceType loose = DistanceType();
+            DistanceType s_pos = DistanceType();
+            DistanceType s_neg = DistanceType();
+            for (size_t k = 0; k < 4; ++k)
+            {
+                loose += static_cast<DistanceType>(dists[i + k]);
+                s_pos += axisIntervalDist(v[i + k], region[i + k].low, region[i + k].high);
+                s_neg += axisIntervalDist(-v[i + k], region[i + k].low, region[i + k].high);
+            }
+            const DistanceType tight = s_pos < s_neg ? s_pos : s_neg;
+            delta += tight - loose;
+            i += 4;
+        }
+        return delta;
     }
 
    private:
@@ -1719,7 +1776,20 @@ class KDTreeBaseClass
         mindist                = mindist + cut_dist - dst;
         dists[idx]             = cut_dist;
         region[idx]            = farReg;
-        if (mindist * epsError <= result_set.worstDist())
+
+        // For spaces with SO(3) blocks, tighten the prune test by replacing the
+        // (loose) sum of per-coordinate antipodal minima with the block-level
+        // chordal bound min(dist(q, Box4), dist(-q, Box4)). This is admissible
+        // and >= the loose bound, so it prunes more without ever missing a true
+        // neighbor. The recursion keeps carrying the loose `mindist`; each deeper
+        // node re-tightens its own gate.
+        DistanceType gateMindist = mindist;
+        if constexpr (std::decay_t<decltype(obj.distance_)>::hasQuaternionBlock)
+        {
+            gateMindist +=
+                obj.distance_.quaternionBlockTightening(vec, region, dists, veclen(obj));
+        }
+        if (gateMindist * epsError <= result_set.worstDist())
         {
             if (!searchLevelManifold(result_set, vec, otherChild, mindist, dists, region, epsError))
                 return false;
@@ -4409,7 +4479,16 @@ class KDTreeSingleIndexIncrementalAdaptor
             const DistanceType dst    = dists[axis];
             const DistanceType newmin = mindist + farCut - dst;
             dists[axis]               = farCut;
-            if (newmin * epsError <= rs.worstDist())
+
+            // SO(3): tighten the gate with the block-level chordal bound against
+            // the far child's per-subtree box (same idea as the static tree, but
+            // using the box the incremental index already maintains).
+            DistanceType gateMin = newmin;
+            if constexpr (std::decay_t<decltype(distance_)>::hasQuaternionBlock)
+            {
+                gateMin += distance_.quaternionBlockTightening(vec, farChild->box, dists, dim);
+            }
+            if (gateMin * epsError <= rs.worstDist())
                 searchLevelIncManifold(rs, vec, farChild, newmin, dists, epsError, dim);
             dists[axis] = dst;
         }
