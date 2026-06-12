@@ -5,16 +5,29 @@ Changelog for package nanoflann
 2.0.0 (in progress)
 -------------------
 * New feature: **compile-time product-manifold topology** for *exact* nearest-neighbor
-  search on non-Euclidean state spaces (``KDTreeSingleIndexAdaptor`` only). Declare the
+  search on non-Euclidean state spaces. Declare the
   search space as a product of base manifolds at compile time:
   ``nanoflann::Rn<N>``, ``nanoflann::SO2``, ``nanoflann::SO3``, ``nanoflann::SE2``,
-  ``nanoflann::SE3``, ``nanoflann::Torus<N>``, and arbitrary ``nanoflann::Product<...>``.
+  ``nanoflann::SE3``, ``nanoflann::Torus<N>``, the unit sphere
+  ``nanoflann::Sn<N>`` / ``nanoflann::S2`` (3D directions / bearings as unit
+  vectors, chordal metric, no double cover), and arbitrary
+  ``nanoflann::Product<...>`` (e.g. ``Product<Rn<3>, S2>`` for oriented points).
   The synthesized ``nanoflann::Manifold_Adaptor<Space, T, Dataset>`` metric keeps the
   KD-tree pruning admissible (wrap-aware for circular coordinates, antipodal
   double-cover-aware for unit-quaternion blocks), so results are identical to an
-  exhaustive geodesic brute-force search. Requires C++17; the legacy C++11 metrics
+  exhaustive geodesic brute-force search. Helpers ``chord_sq_to_angle`` /
+  ``angle_to_chord_sq`` convert between chordal-squared distances and geodesic
+  angles for S^N and SO(3). Both the static ``KDTreeSingleIndexAdaptor`` and the
+  incremental ``KDTreeSingleIndexIncrementalAdaptor`` (plus its multi-threaded
+  wrapper) support these metrics; the incremental index stays exact under
+  insert/remove churn and background rebuilds, reusing its per-subtree bounding
+  boxes as the admissible region supersets. Box-region deletes
+  (``removeBox`` / ``removeOutsideBox``) operate on raw coordinates and do not
+  wrap. Requires C++17; the legacy C++11 metrics
   and the Euclidean code path are completely unaffected (opt out with
-  ``NANOFLANN_NO_MANIFOLDS``). See ``examples/manifold_se3_example.cpp``.
+  ``NANOFLANN_NO_MANIFOLDS``). See ``examples/manifold_se3_example.cpp``,
+  ``examples/manifold_s2_example.cpp``, and
+  ``examples/manifold_se3_incremental_example.cpp``.
 
 1.11.0 (2026-07-31)
 -------------------

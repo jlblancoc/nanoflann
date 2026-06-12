@@ -132,13 +132,27 @@ Refer to the examples below or to the C++ API of [nanoflann::KDTreeSingleIndexAd
       * `metric_SO2`: Absolute angular diference.
     * `SO(3)`: 3D rotational group (better suppport to be provided in future releases)
       * `metric_SO3`: Inner product between quaternions.
+    * **Compile-time product manifolds** [New, C++17]: declare the search space
+      as a product of base manifolds and get *exact* nearest neighbors honoring
+      the correct geodesic metric and pruning. Base spaces: `nanoflann::Rn<N>`,
+      `SO2`, `SO3`, `SE2`, `SE3`, `Torus<N>`, the unit sphere `Sn<N>` / `S2`
+      (3D directions / bearings), and arbitrary `Product<...>` (e.g.
+      `Product<Rn<3>, S2>` for oriented points). Use the synthesized
+      `nanoflann::Manifold_Adaptor<Space, T, Dataset>` (or `metric_Manifold<Space>`)
+      as the distance type. Supported by both the static `KDTreeSingleIndexAdaptor`
+      and the incremental `KDTreeSingleIndexIncrementalAdaptor` (and its MT
+      wrapper). See `examples/manifold_se3_example.cpp`,
+      `examples/manifold_s2_example.cpp`, and
+      `examples/manifold_se3_incremental_example.cpp`. Opt out with
+      `NANOFLANN_NO_MANIFOLDS`.
   * Saves and load the built indices to disk.
   * GUI based support for benchmarking multiple kd-tree libraries namely nanoflann, flann, fastann and libkdtree.
 
 ### 1.6. What can't *nanoflann* do?
 
-  * Use other distance metrics apart from L1, L2, SO2 and SO3.
-  * Support for SE(3) groups.
+  * Use other distance metrics apart from L1, L2, the legacy SO2/SO3 metrics,
+    and the compile-time product manifolds (R^n, SO(2), SO(3), SE(2), SE(3),
+    S^N, tori, and products).
   * Only the C++ interface exists: there is no support for C, MATLAB or Python.
   * There is no automatic algorithm configuration (as described in the original Muja & Lowe's paper).
 

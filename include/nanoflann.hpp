@@ -3251,6 +3251,15 @@ struct KDTreeIncrementalIndexParams
  *       per-node bounding box is then a stack std::array and no per-node heap
  *       allocation occurs. With DIM=-1 each node's box is a std::vector.
  *
+ * \note Metrics: besides the Euclidean L1/L2/L2_Simple metrics, under C++17 this
+ *       index also accepts the compile-time product-manifold metrics
+ *       (Manifold_Adaptor / metric_Manifold<Space>) and returns *exact* nearest
+ *       neighbors on non-Euclidean state spaces (SO(2), SO(3), SE(2), SE(3),
+ *       S^2, tori, and products). The topology-aware pruning reuses the
+ *       per-subtree boxes this index already maintains as the region supersets
+ *       required by the admissibility lemma, so it is no costlier to obtain than
+ *       in the static tree (see the companion paper).
+ *
  * \tparam Distance The distance metric (nanoflann::metric_L2_Simple, etc).
  * \tparam DatasetAdaptor The user-provided dataset adaptor.
  * \tparam DIM Dimensionality of the data points (e.g. 3), or -1 for runtime.
@@ -3435,7 +3444,12 @@ class KDTreeSingleIndexIncrementalAdaptor
         syncRootBox();
     }
 
-    /** Remove every live point lying inside the axis-aligned box \a box. */
+    /** Remove every live point lying inside the axis-aligned box \a box.
+     *  \note For manifold metrics the box is interpreted in raw coordinates and
+     *        does *not* wrap: circular / quaternion coordinates are compared by
+     *        their stored scalar value. For an SE(3) sliding-window trim, bound
+     *        the translation dims and set the quaternion dims to [-1, 1] (and
+     *        circular dims to [-pi, pi]) to keep the whole rotation block. */
     void removeBox(const BoundingBox& box)
     {
         if (iroot_) removeBoxRec(iroot_, box);
@@ -3562,7 +3576,12 @@ class KDTreeSingleIndexIncrementalAdaptor
         distance_vector_t dists;
         assign(dists, this->veclen(*this), static_cast<typename distance_vector_t::value_type>(0));
         const DistanceType dist = this->computeInitialDistances(*this, vec, dists);
-        searchLevelInc(result, vec, iroot_, dist, dists, epsError, this->veclen(*this));
+#if defined(NANOFLANN_HAS_MANIFOLDS)
+        if constexpr (is_manifold_metric<Distance>::value)
+            searchLevelIncManifold(result, vec, iroot_, dist, dists, epsError, this->veclen(*this));
+        else
+#endif
+            searchLevelInc(result, vec, iroot_, dist, dists, epsError, this->veclen(*this));
         if (searchParams.sorted) result.sort();
         return result.full();
     }
@@ -4306,7 +4325,10 @@ class KDTreeSingleIndexIncrementalAdaptor
             // as a sum of per-axis accum_dist contributions. This avoids the
             // dataset_get() indirection and is ~12% faster on KNN, but is only
             // valid for *additive* (axis-decomposable) metrics — L1, L2,
-            // L2_Simple. Do NOT enable it for SO2/SO3.
+            // L2_Simple. Manifold metrics never reach here: findNeighbors
+            // dispatches them to searchLevelIncManifold (which always uses
+            // evalMetric), so the wrap / quaternion-block cases are safe even
+            // when this opt-in is defined.
             DistanceType d = DistanceType();
             if (kCacheCoords)
                 for (Size i = 0; i < dim; ++i)
@@ -4350,6 +4372,80 @@ class KDTreeSingleIndexIncrementalAdaptor
             searchLevelInc(rs, vec, farChild, newmin, dists, epsError, dim);
         dists[axis] = dst;
     }
+
+#if defined(NANOFLANN_HAS_MANIFOLDS)
+    /** Topology-aware twin of searchLevelInc for manifold metrics (C++17).
+     *
+     *  Same recursion, but (i) the in-node distance always uses evalMetric (the
+     *  per-axis cache is invalid for wrap / quaternion blocks, so this also makes
+     *  the NANOFLANN_INCREMENTAL_INNODE_DISTANCE opt-in safe for manifolds), and
+     *  (ii) the far-child lower bound is the admissible point-to-interval
+     *  distance against that child's *own* per-subtree AABB (`box`), which the
+     *  incremental tree already maintains. The box is a raw-coordinate superset
+     *  of every (live or tombstoned) point in the subtree, so the bound is
+     *  admissible (see Lemma 1 / the incremental-index remark in the paper); the
+     *  Euclidean hot path searchLevelInc is left byte-identical. */
+    template <typename RESULTSET>
+    void searchLevelIncManifold(
+        RESULTSET& rs, const ElementType* vec, const INode* node, DistanceType mindist,
+        distance_vector_t& dists, const DistanceType epsError, const Size dim) const
+    {
+        if (!node) return;
+        if (node->invalid_count == node->subtree_size) return;  // whole subtree dead
+
+        if (!node->deleted)
+        {
+            const DistanceType d = distance_.evalMetric(vec, node->ptIdx, dim);
+            if (d < rs.worstDist())
+                rs.addPoint(
+                    static_cast<typename RESULTSET::DistanceType>(d),
+                    static_cast<typename RESULTSET::IndexType>(node->ptIdx));
+        }
+
+        const Dimension   axis = node->divfeat;
+        const ElementType val  = vec[axis];
+
+        const INode* const c1 = node->child1;
+        const INode* const c2 = node->child2;
+
+        // Lower bound on the distance to each child's region (wrap- and
+        // cover-aware), using the child's per-subtree box on the split axis.
+        const DistanceType d1 =
+            c1 ? distance_.pointToIntervalDist(val, c1->box[axis].low, c1->box[axis].high, axis)
+               : DistanceType();
+        const DistanceType d2 =
+            c2 ? distance_.pointToIntervalDist(val, c2->box[axis].low, c2->box[axis].high, axis)
+               : DistanceType();
+
+        const INode* nearChild;
+        const INode* farChild;
+        DistanceType farCut;
+        if (d1 <= d2)
+        {
+            nearChild = c1;
+            farChild  = c2;
+            farCut    = d2;
+        }
+        else
+        {
+            nearChild = c2;
+            farChild  = c1;
+            farCut    = d1;
+        }
+
+        searchLevelIncManifold(rs, vec, nearChild, mindist, dists, epsError, dim);
+
+        if (farChild)
+        {
+            const DistanceType dst    = dists[axis];
+            const DistanceType newmin = mindist + farCut - dst;
+            dists[axis]               = farCut;
+            if (newmin * epsError <= rs.worstDist())
+                searchLevelIncManifold(rs, vec, farChild, newmin, dists, epsError, dim);
+            dists[axis] = dst;
+        }
+    }
+#endif  // NANOFLANN_HAS_MANIFOLDS
 
     template <typename RESULTSET>
     void findWithinBoxRec(RESULTSET& result, const INode* node, const BoundingBox& bbox) const

@@ -30,6 +30,7 @@ DefineExample(SO3_adaptor_example)
 DefineExample(SO2_adaptor_example)
 DefineExample(manifold_se3_example)
 DefineExample(manifold_s2_example)
+DefineExample(manifold_se3_incremental_example)
 DefineExample(saveload_example)
 DefineExample(vector_of_vectors_example)
 
