@@ -169,38 +169,6 @@ TEST(kdtree, L2_vs_bruteforce_rknn)
     }
 }
 
-TEST(kdtree, SO3_vs_bruteforce)
-{
-    srand(static_cast<unsigned int>(time(nullptr)));
-    for (int i = 0; i < 10; i++)
-    {
-        SO3_vs_bruteforce_test<float>(5);
-
-        SO3_vs_bruteforce_test<float>(100);
-        SO3_vs_bruteforce_test<float>(100);
-        SO3_vs_bruteforce_test<float>(100);
-
-        SO3_vs_bruteforce_test<double>(100);
-        SO3_vs_bruteforce_test<double>(100);
-        SO3_vs_bruteforce_test<double>(100);
-    }
-}
-
-TEST(kdtree, SO2_vs_bruteforce)
-{
-    srand(static_cast<unsigned int>(time(nullptr)));
-    for (int i = 0; i < 10; i++)
-    {
-        SO2_vs_bruteforce_test<float>(100);
-        SO2_vs_bruteforce_test<float>(100);
-        SO2_vs_bruteforce_test<float>(100);
-
-        SO2_vs_bruteforce_test<double>(100);
-        SO2_vs_bruteforce_test<double>(100);
-        SO2_vs_bruteforce_test<double>(100);
-    }
-}
-
 TEST(kdtree, L2_concurrent_build_vs_bruteforce)
 {
     srand(static_cast<unsigned int>(time(nullptr)));

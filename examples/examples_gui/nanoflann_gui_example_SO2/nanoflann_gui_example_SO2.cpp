@@ -139,9 +139,11 @@ HeadingsDataset generateRandomSamples(const size_t N)
     return d;
 }
 
+// Exact wrap-aware NN on SO(2) via the compile-time product-manifold metric
+// (replaces the legacy nanoflann::SO2_Adaptor removed in 2.0).
 using my_kd_tree_t = nanoflann::KDTreeSingleIndexAdaptor<
-    nanoflann::SO2_Adaptor<double, HeadingsDataset>, HeadingsDataset,
-    1 /* dim */
+    nanoflann::Manifold_Adaptor<nanoflann::SO2, double, HeadingsDataset>, HeadingsDataset,
+    nanoflann::SO2::ambient /* = 1 */
     >;
 
 void kdtree_demo(const size_t N)

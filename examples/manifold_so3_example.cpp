@@ -26,12 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *************************************************************************/
 
+// Example: exact nearest-neighbor search on SO(3) (3D rotations as unit
+// quaternions in R^4, with the antipodal double cover q ~ -q) using the
+// compile-time product-manifold topology feature of nanoflann 2.0. This
+// replaces the legacy nanoflann::SO3_Adaptor (removed in 2.0), which was plain
+// L2 on 4 coordinates and ignored the double cover (treating q and -q, the same
+// rotation, as far apart).
+
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
 #include <nanoflann.hpp>
 
 #include "utils.h"
+
+#if !defined(NANOFLANN_HAS_MANIFOLDS)
+int main()
+{
+    std::cerr << "This example requires C++17 (product-manifold topology).\n";
+    return 0;
+}
+#else
 
 namespace
 {
@@ -46,14 +61,15 @@ void kdtree_demo(const size_t N)
 
     num_t query_pt[4] = {0.5, 0.5, 0.5, 0.5};
 
-    // construct a kd-tree index:
+    // Declare the state-space topology once, at compile time:
+    using StateSpace   = nanoflann::SO3;  // unit quaternion, 4 coords, q ~ -q
+    using metric_t     = nanoflann::Manifold_Adaptor<StateSpace, num_t, PointCloud_Quat<num_t>>;
     using my_kd_tree_t = nanoflann::KDTreeSingleIndexAdaptor<
-        nanoflann::SO3_Adaptor<num_t, PointCloud_Quat<num_t>>, PointCloud_Quat<num_t>, 4 /* dim */
-        >;
+        metric_t, PointCloud_Quat<num_t>, StateSpace::ambient /* = 4 */>;
 
     dump_mem_usage();
 
-    my_kd_tree_t index(4 /*dim*/, cloud, {10 /* max leaf */});
+    my_kd_tree_t index(StateSpace::ambient, cloud, {10 /* max leaf */});
 
     dump_mem_usage();
     {
@@ -87,3 +103,4 @@ int main()
         return 1;
     }
 }
+#endif  // NANOFLANN_HAS_MANIFOLDS

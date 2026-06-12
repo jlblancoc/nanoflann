@@ -78,8 +78,8 @@ $ make && make test
   * KD-tree look-up with `knnSearch()` and `radiusSearch()`: [pointcloud_kdd_radius.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_kdd_radius.cpp)
   * KD-tree look-up on a point cloud dataset: [pointcloud_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_example.cpp)
   * KD-tree look-up on a dynamic point cloud dataset: [dynamic_pointcloud_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/dynamic_pointcloud_example.cpp)
-  * KD-tree look-up on a rotation group (SO2): [SO2_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/SO2_adaptor_example.cpp)
-  * KD-tree look-up on a rotation group (SO3): [SO3_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/SO3_adaptor_example.cpp)
+  * Exact KD-tree look-up on a rotation group (SO2), C++17: [manifold_so2_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/manifold_so2_example.cpp)
+  * Exact KD-tree look-up on a rotation group (SO3), C++17: [manifold_so3_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/manifold_so3_example.cpp)
   * KD-tree look-up on a point cloud dataset with an external adaptor class: [pointcloud_adaptor_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_adaptor_example.cpp)
   * KD-tree look-up directly on an `Eigen::Matrix<>`: [matrix_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/matrix_example.cpp)
   * KD-tree look-up directly on `std::vector<std::vector<T> >` or `std::vector<Eigen::VectorXd>`: [vector_of_vectors_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/vector_of_vectors_example.cpp)
@@ -128,10 +128,11 @@ Refer to the examples below or to the C++ API of [nanoflann::KDTreeSingleIndexAd
       * `L1` (Manhattan)
       * `L2` (**squared** Euclidean norm, favoring SSE2 optimization).
       * `L2_Simple` (**squared** Euclidean norm, for low-dimensionality data sets like point clouds).
-    * `SO(2)`: 2D rotational group
-      * `metric_SO2`: Absolute angular diference.
-    * `SO(3)`: 3D rotational group (better suppport to be provided in future releases)
-      * `metric_SO3`: Inner product between quaternions.
+    * `SO(2)` / `SO(3)` rotational groups and other non-Euclidean spaces are now
+      handled exactly by the compile-time product-manifold metrics below. (The
+      legacy `metric_SO2` / `metric_SO3` adaptors were removed in 2.0: they kept
+      Euclidean pruning (wrong across the +/-pi seam) and ignored the quaternion
+      double cover. Use `metric_Manifold<SO2>` / `metric_Manifold<SO3>` instead.)
     * **Compile-time product manifolds** [New, C++17]: declare the search space
       as a product of base manifolds and get *exact* nearest neighbors honoring
       the correct geodesic metric and pruning. Base spaces: `nanoflann::Rn<N>`,
@@ -150,9 +151,8 @@ Refer to the examples below or to the C++ API of [nanoflann::KDTreeSingleIndexAd
 
 ### 1.6. What can't *nanoflann* do?
 
-  * Use other distance metrics apart from L1, L2, the legacy SO2/SO3 metrics,
-    and the compile-time product manifolds (R^n, SO(2), SO(3), SE(2), SE(3),
-    S^N, tori, and products).
+  * Use other distance metrics apart from L1, L2, and the compile-time product
+    manifolds (R^n, SO(2), SO(3), SE(2), SE(3), S^N, tori, and products).
   * Only the C++ interface exists: there is no support for C, MATLAB or Python.
   * There is no automatic algorithm configuration (as described in the original Muja & Lowe's paper).
 

@@ -6,6 +6,9 @@ find_package(mrpt-gui REQUIRED)
 
 add_executable(${PROJECT_NAME} ${PROJECT_NAME}.cpp)
 
+# The product-manifold metric (nanoflann::Manifold_Adaptor) requires C++17:
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+
 # optimized build:
 if (CMAKE_COMPILER_IS_GNUCXX)
 	target_compile_options(${PROJECT_NAME} PRIVATE -O2 -mtune=native)

@@ -727,81 +727,6 @@ struct L2_Simple_Adaptor
     }
 };
 
-/** SO2 distance functor
- *  Corresponding distance traits: nanoflann::metric_SO2
- *
- * \tparam T Type of the elements (e.g. double, float, uint8_t)
- * \tparam DataSource Source of the data, i.e. where the vectors are stored
- * \tparam _DistanceType Type of distance variables (must be signed) (e.g.
- * float, double) orientation is constrained to be in [-pi, pi]
- * \tparam IndexType Type of the arguments with which the data can be
- * accessed (e.g. float, double, int64_t, T*)
- */
-template <class T, class DataSource, typename _DistanceType = T, typename IndexType = size_t>
-struct SO2_Adaptor
-{
-    using ElementType  = T;
-    using DistanceType = _DistanceType;
-
-    const DataSource& data_source;
-
-    SO2_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
-
-    inline DistanceType evalMetric(const T* a, const IndexType b_idx, size_t size) const
-    {
-        return accum_dist(a[size - 1], data_source.kdtree_get_pt(b_idx, size - 1), size - 1);
-    }
-
-    /** Returns the absolute shortest angular distance between a and b,
-     *  assuming both are in [-pi, pi].  The result is in [0, pi], which
-     *  satisfies the non-negativity requirement of a kd-tree metric and
-     *  gives correct nearest-neighbour pruning.
-     */
-    template <typename U, typename V>
-    inline DistanceType accum_dist(const U a, const V b, const size_t) const
-    {
-        DistanceType       diff = static_cast<DistanceType>(b) - static_cast<DistanceType>(a);
-        const DistanceType PI   = pi_const<DistanceType>();
-        if (diff > PI)
-            diff -= 2 * PI;
-        else if (diff < -PI)
-            diff += 2 * PI;
-        return diff < DistanceType(0) ? -diff : diff;  // abs without <cmath> dependency
-    }
-};
-
-/** SO3 distance functor (Uses L2_Simple)
- *  Corresponding distance traits: nanoflann::metric_SO3
- *
- * \tparam T Type of the elements (e.g. double, float, uint8_t)
- * \tparam DataSource Source of the data, i.e. where the vectors are stored
- * \tparam _DistanceType Type of distance variables (must be signed) (e.g.
- * float, double)
- * \tparam IndexType Type of the arguments with which the data can be
- * accessed (e.g. float, double, int64_t, T*)
- */
-template <class T, class DataSource, typename _DistanceType = T, typename IndexType = size_t>
-struct SO3_Adaptor
-{
-    using ElementType  = T;
-    using DistanceType = _DistanceType;
-
-    L2_Simple_Adaptor<T, DataSource, DistanceType, IndexType> distance_L2_Simple;
-
-    SO3_Adaptor(const DataSource& _data_source) : distance_L2_Simple(_data_source) {}
-
-    inline DistanceType evalMetric(const T* a, const IndexType b_idx, size_t size) const
-    {
-        return distance_L2_Simple.evalMetric(a, b_idx, size);
-    }
-
-    template <typename U, typename V>
-    inline DistanceType accum_dist(const U a, const V b, const size_t idx) const
-    {
-        return distance_L2_Simple.accum_dist(a, b, idx);
-    }
-};
-
 /** Metaprogramming helper traits class for the L1 (Manhattan) metric */
 struct metric_L1 : public Metric
 {
@@ -829,24 +754,6 @@ struct metric_L2_Simple : public Metric
     struct traits
     {
         using distance_t = L2_Simple_Adaptor<T, DataSource, T, IndexType>;
-    };
-};
-/** Metaprogramming helper traits class for the SO3_InnerProdQuat metric */
-struct metric_SO2 : public Metric
-{
-    template <class T, class DataSource, typename IndexType = size_t>
-    struct traits
-    {
-        using distance_t = SO2_Adaptor<T, DataSource, T, IndexType>;
-    };
-};
-/** Metaprogramming helper traits class for the SO3_InnerProdQuat metric */
-struct metric_SO3 : public Metric
-{
-    template <class T, class DataSource, typename IndexType = size_t>
-    struct traits
-    {
-        using distance_t = SO3_Adaptor<T, DataSource, T, IndexType>;
     };
 };
 

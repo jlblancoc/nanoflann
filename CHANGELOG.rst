@@ -28,6 +28,19 @@ Changelog for package nanoflann
   ``NANOFLANN_NO_MANIFOLDS``). See ``examples/manifold_se3_example.cpp``,
   ``examples/manifold_s2_example.cpp``, and
   ``examples/manifold_se3_incremental_example.cpp``.
+* **Removed (breaking)**: the legacy ``SO2_Adaptor`` / ``metric_SO2`` and
+  ``SO3_Adaptor`` / ``metric_SO3`` metrics. They are superseded by, and were
+  approximate/incorrect compared to, the new exact manifold metrics: the legacy
+  SO(2) metric only adjusted the per-coordinate distance while the KD-tree
+  pruning stayed Euclidean, so searches near the +/-pi seam could over-prune the
+  true neighbor; the legacy SO(3) metric was plain L2 on 4 coordinates and
+  ignored the antipodal double cover (treating q and -q, the same rotation, as
+  far apart). Migration (requires C++17): ``metric_SO2`` ->
+  ``metric_Manifold<SO2>`` (or ``Manifold_Adaptor<SO2, ...>``); ``metric_SO3`` ->
+  ``metric_Manifold<SO3>`` (or ``Manifold_Adaptor<SO3, ...>``). Note SO(3)
+  distances are now chordal-squared and double-cover-aware. C++11 users needing
+  the old behavior should pin nanoflann 1.x. The ported examples are
+  ``examples/manifold_so2_example.cpp`` and ``examples/manifold_so3_example.cpp``.
 
 1.11.0 (2026-07-31)
 -------------------
