@@ -134,6 +134,10 @@
 #ifndef NANOFLANN_NODE_ALIGNMENT
 #define NANOFLANN_NODE_ALIGNMENT 16
 #endif
+static_assert(
+    NANOFLANN_NODE_ALIGNMENT >= 8 &&
+        (NANOFLANN_NODE_ALIGNMENT & (NANOFLANN_NODE_ALIGNMENT - 1)) == 0,
+    "NANOFLANN_NODE_ALIGNMENT must be a power of two and >= 8");
 
 // Compile-time product-manifold topology support (nanoflann 2.0).
 // The variadic Product<>/metric_Manifold<> machinery requires C++17
@@ -394,7 +398,13 @@ class RKNNResultSet
         indices = indices_;
         dists   = dists_;
         count   = 0;
-        if (capacity) dists[capacity - 1] = maximumSearchDistanceSquared;
+        // Seed the last slot with the radius cap so worstDist() bounds the
+        // search before the buffer fills (shared addPointToSortedResultSet then
+        // maintains it). Kept distinct from KNNResultSet for this reason.
+        if (capacity)
+        {
+            dists[capacity - 1] = maximumSearchDistanceSquared;
+        }
     }
 
     NANOFLANN_NODISCARD CountType size() const noexcept { return count; }
@@ -426,6 +436,12 @@ class RKNNResultSet
 
 /**
  * A result-set class used when performing a radius based search.
+ *
+ * \note The boundary is **exclusive**: a candidate is accepted only when its
+ *       (squared) distance is *strictly less than* the search radius
+ *       (`dist < radius`). A point lying exactly at the radius is not returned.
+ *       This matches the long-standing FLANN/nanoflann 1.x behavior and is kept
+ *       for backwards compatibility.
  */
 template <typename _DistanceType, typename _IndexType = size_t>
 class RadiusResultSet
@@ -460,7 +476,11 @@ class RadiusResultSet
      */
     bool addPoint(DistanceType dist, IndexType index)
     {
-        if (dist < radius) m_indices_dists.emplace_back(index, dist);
+        // Exclusive boundary (dist < radius); see the class doc note.
+        if (dist < radius)
+        {
+            m_indices_dists.emplace_back(index, dist);
+        }
         return true;
     }
 
@@ -545,8 +565,29 @@ void load_value(std::istream& stream, T& value)
 template <typename T>
 void load_value(std::istream& stream, std::vector<T>& value)
 {
-    size_t size;
+    size_t size = 0;
     stream.read(reinterpret_cast<char*>(&size), sizeof(size_t));
+    if (!stream.good())
+    {
+        throw std::runtime_error("[nanoflann] Corrupt stream: failed to read vector size.");
+    }
+    // Guard against a corrupt/truncated stream whose stored size would trigger
+    // an unbounded resize (multi-GB allocation / bad_alloc). If the stream is
+    // seekable, require that `size` elements actually fit in the bytes left.
+    const std::streampos cur = stream.tellg();
+    if (cur != std::streampos(-1))
+    {
+        stream.seekg(0, std::ios::end);
+        const std::streampos end = stream.tellg();
+        stream.seekg(cur, std::ios::beg);
+        const std::uintmax_t remaining = static_cast<std::uintmax_t>(end - cur);
+        if (size > remaining / sizeof(T))
+        {
+            throw std::runtime_error(
+                "[nanoflann] Corrupt stream: stored vector size exceeds the "
+                "number of bytes remaining.");
+        }
+    }
     value.resize(size);
     stream.read(reinterpret_cast<char*>(value.data()), sizeof(T) * size);
 }
@@ -708,7 +749,8 @@ struct L2_Simple_Adaptor
 
     L2_Simple_Adaptor(const DataSource& _data_source) : data_source(_data_source) {}
 
-    inline DistanceType evalMetric(const T* a, const IndexType b_idx, size_t size) const
+    inline DistanceType evalMetric(
+        const T* NANOFLANN_RESTRICT a, const IndexType b_idx, size_t size) const
     {
         DistanceType result = DistanceType();
         for (size_t i = 0; i < size; ++i)
@@ -1176,7 +1218,12 @@ struct SearchParameters
  */
 class PooledAllocator
 {
-    static constexpr size_t WORDSIZE  = 16;  // WORDSIZE must >= 8
+    // Every allocation is aligned to WORDSIZE. It must be at least the node
+    // alignment so that nodes declared `alignas(NANOFLANN_NODE_ALIGNMENT)` are
+    // actually returned aligned (the default 16 also matches alignof(max_align_t)
+    // on common platforms; larger values, e.g. 32/64 for AVX, are honored too).
+    static constexpr size_t WORDSIZE =
+        (NANOFLANN_NODE_ALIGNMENT > 16) ? size_t(NANOFLANN_NODE_ALIGNMENT) : size_t(16);
     static constexpr size_t BLOCKSIZE = 8192;
 
     /* We maintain memory alignment to word boundaries by requiring that all
@@ -1245,8 +1292,13 @@ class PooledAllocator
         {
             wastedMemory += remaining_;
 
-            /* Allocate new storage. */
-            const Size blocksize = size > BLOCKSIZE ? size + WORDSIZE : BLOCKSIZE + WORDSIZE;
+            /* Allocate new storage. The first machine word holds a pointer to
+               the previous block (for free_all()); the usable region starts at
+               the first WORDSIZE-aligned address past it. We over-allocate by
+               2*WORDSIZE to guarantee room for that alignment padding even when
+               WORDSIZE > alignof(max_align_t) (e.g. AVX-512 node alignment). */
+            const Size payload   = size > BLOCKSIZE ? size : BLOCKSIZE;
+            const Size blocksize = payload + 2 * WORDSIZE;
 
             // use the standard C malloc to allocate memory
             void* m = ::malloc(blocksize);
@@ -1259,8 +1311,14 @@ class PooledAllocator
             static_cast<void**>(m)[0] = base_;
             base_                     = m;
 
-            remaining_ = blocksize - WORDSIZE;
-            loc_       = static_cast<char*>(m) + WORDSIZE;
+            /* Round the first usable byte (just past the prev-block pointer) up
+               to a WORDSIZE boundary so every returned chunk is WORDSIZE-aligned. */
+            const std::uintptr_t raw = reinterpret_cast<std::uintptr_t>(m) + sizeof(void*);
+            const std::uintptr_t aligned =
+                (raw + (WORDSIZE - 1)) & ~static_cast<std::uintptr_t>(WORDSIZE - 1);
+            loc_ = reinterpret_cast<void*>(aligned);
+            remaining_ =
+                blocksize - static_cast<Size>(aligned - reinterpret_cast<std::uintptr_t>(m));
         }
         void* rloc = loc_;
         loc_       = static_cast<char*>(loc_) + size;
@@ -1672,15 +1730,6 @@ class KDTreeBaseClass
     }
 #endif  // NANOFLANN_HAS_MANIFOLDS
 
-    /**
-     * Create a tree node that subdivides the list of vecs from vind[first]
-     * to vind[last].  The routine is called recursively on each sublist.
-     *
-     * @param left index of the first vector
-     * @param right index of the last vector
-     * @param bbox bounding box used as input for splitting and output for
-     * parent node
-     */
     /**
      * Initialize a freshly-allocated node while building the tree: either turn
      * it into a leaf node (computing the leaf bounding-box) or compute the
@@ -2880,7 +2929,6 @@ class KDTreeSingleIndexDynamicAdaptor_
     /** @} */
 
    public:
-   public:
     /**  Stores the index in a binary file.
      *   IMPORTANT NOTE: The set of data points is NOT stored in the file, so
      * when loading the index object it must be constructed associated to the
@@ -3098,9 +3146,18 @@ class KDTreeSingleIndexDynamicAdaptor
     bool findNeighbors(
         RESULTSET& result, const ElementType* vec, const SearchParameters& searchParams = {}) const
     {
+        // The result set is shared (accumulated) across all sub-trees, so a
+        // radius search must be sorted only once, at the very end, rather than
+        // re-sorting the cumulative vector inside each sub-tree's findNeighbors.
+        SearchParameters unsortedParams = searchParams;
+        unsortedParams.sorted           = false;
         for (size_t i = 0; i < treeCount_; i++)
         {
-            index_[i].findNeighbors(result, &vec[0], searchParams);
+            index_[i].findNeighbors(result, &vec[0], unsortedParams);
+        }
+        if (searchParams.sorted)
+        {
+            result.sort();
         }
         return result.full();
     }
@@ -4004,6 +4061,11 @@ class KDTreeSingleIndexIncrementalAdaptor
     INode* findDeletionScapegoat(INode* node) const
     {
         if (!node) return nullptr;
+        // `invalid_count` is cumulative over the subtree, so a subtree with no
+        // tombstones cannot contain any scapegoat: prune the whole descent.
+        // This collapses the post-removal walk to the dirty path only (O(N) ->
+        // O(touched)), the main win for high-rate removeBox/removeOutsideBox.
+        if (node->invalid_count == 0) return nullptr;
         if (isDeletionScapegoat(node)) return node;  // highest wins
         if (INode* l = findDeletionScapegoat(node->child1)) return l;
         return findDeletionScapegoat(node->child2);
@@ -4826,7 +4888,7 @@ class KDTreeSingleIndexIncrementalAdaptorMT
  *
  * const int max_leaf = 10;
  * my_kd_tree_t mat_index(mat, max_leaf);
- * mat_index.index->...
+ * mat_index.index_->...
  * \endcode
  *
  *  \tparam DIM If set to >0, it specifies a compile-time fixed dimensionality

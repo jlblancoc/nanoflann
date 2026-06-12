@@ -327,6 +327,40 @@ TEST(kdtree, saveload_nonempty_index)
     }
 }
 
+// Regression test: a truncated/corrupt stream whose stored vector size passes
+// the header check must throw rather than trigger an unbounded resize() (which
+// could attempt a multi-GB allocation / bad_alloc). See load_value(vector).
+TEST(kdtree, loadindex_corrupt_vector_size_throws)
+{
+    srand(42);
+
+    using num_t    = double;
+    using cloud_t  = PointCloud<num_t>;
+    using kdtree_t = KDTreeSingleIndexAdaptor<L2_Simple_Adaptor<num_t, cloud_t>, cloud_t, 3>;
+
+    cloud_t cloud;
+    generateRandomPointCloud(cloud, 1000);
+
+    std::string blob;
+    {
+        std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+        kdtree_t          index(3, cloud, KDTreeSingleIndexAdaptorParams(10));
+        index.saveIndex(ss);
+        blob = ss.str();
+    }
+
+    // Truncate the serialized index to half its length: the header still parses,
+    // but a vector size read later now claims more elements than bytes remain.
+    ASSERT_GT(blob.size(), 64u);
+    blob.resize(blob.size() / 2);
+
+    std::stringstream ss(blob, std::ios::in | std::ios::out | std::ios::binary);
+    kdtree_t          index(
+                 3, cloud,
+                 KDTreeSingleIndexAdaptorParams(10, KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
+    EXPECT_ANY_THROW(index.loadIndex(ss));
+}
+
 // Regression test: saveIndex/loadIndex on KDTreeSingleIndexDynamicAdaptor_ used
 // to recurse infinitely because the 1-arg method name-hid Base::saveIndex and
 // called itself instead of Base::saveIndex(*this, stream).

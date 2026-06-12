@@ -41,6 +41,29 @@ Changelog for package nanoflann
   distances are now chordal-squared and double-cover-aware. C++11 users needing
   the old behavior should pin nanoflann 1.x. The ported examples are
   ``examples/manifold_so2_example.cpp`` and ``examples/manifold_so3_example.cpp``.
+* Fix: ``PooledAllocator`` now honors ``NANOFLANN_NODE_ALIGNMENT > 16``. Previously
+  nodes declared ``alignas(NANOFLANN_NODE_ALIGNMENT)`` could be returned
+  underaligned (the documented 32/64 AVX values were silently broken, undefined
+  behavior with aligned SIMD loads). The pool word size now tracks the node
+  alignment and each block is aligned accordingly; a ``static_assert`` enforces a
+  power-of-two value ``>= 8``.
+* Fix: ``load_value`` for ``std::vector`` now validates the stored element count
+  against the bytes remaining in the stream (when seekable), throwing on a
+  truncated/corrupt index instead of attempting an unbounded allocation.
+* Performance: the incremental index's post-deletion scapegoat search now prunes
+  whole subtrees with no tombstones, turning the per-``removePoint`` walk from
+  O(N) into O(touched) (big win for high-rate ``removeBox``/``removeOutsideBox``).
+* Performance: ``KDTreeSingleIndexDynamicAdaptor`` (Bentley-Saxe forest) radius
+  searches now sort the cumulative result once at the end instead of once per
+  sub-tree.
+* Performance: ``L2_Simple_Adaptor::evalMetric`` marks the query pointer
+  ``NANOFLANN_RESTRICT`` (matching ``L1``/``L2``).
+* New example: ``examples/pointcloud_incremental_example.cpp`` (plain Euclidean
+  sliding-window map with the incremental index: ``addPoints`` +
+  ``removeOutsideBox`` + slot recycling, plus a multithreaded-wrapper sketch).
+* Docs: documented the exclusive (``dist < radius``) radius-search boundary, the
+  ``NANOFLANN_NO_MANIFOLDS`` / ``NANOFLANN_INCREMENTAL_*`` macros, and fixed the
+  stale ``CHANGELOG.md`` link and the ``KDTreeEigenMatrixAdaptor`` usage snippet.
 
 1.11.0 (2026-07-31)
 -------------------
