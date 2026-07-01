@@ -46,6 +46,8 @@
 #include <random>
 #include <vector>
 
+#include "../examples/KDTreeVectorOfVectorsAdaptor.h"
+
 namespace
 {
 // Build an Eigen matrix + KDTreeEigenMatrixAdaptor for the given layout and
@@ -176,6 +178,34 @@ TEST(eigen_adaptor, dimensionality_mismatch_throws)
     using fixed_adaptor_t = nanoflann::KDTreeEigenMatrixAdaptor<matrix_t, 4 /* fixed DIM */>;
     // Matrix has 3 columns but the compile-time DIM is 4:
     EXPECT_THROW({ fixed_adaptor_t bad(3, std::cref(mat), 10); }, std::runtime_error);
+}
+
+// Documented-but-previously-untested container variant:
+// KDTreeVectorOfVectorsAdaptor over std::vector<Eigen::VectorXd>.
+TEST(eigen_adaptor, vector_of_eigen_vectors)
+{
+    using num_t = double;
+
+    auto mk = [](num_t a, num_t b, num_t c)
+    {
+        Eigen::VectorXd v(3);
+        v << a, b, c;
+        return v;
+    };
+    std::vector<Eigen::VectorXd> pts = {mk(0, 0, 0), mk(1, 0, 0), mk(0, 5, 0), mk(9, 9, 9)};
+
+    using kdtree_t = KDTreeVectorOfVectorsAdaptor<std::vector<Eigen::VectorXd>, num_t, 3>;
+    kdtree_t index(3 /*dim*/, pts, 10 /* max leaf */);
+
+    const num_t                    q[3] = {0.9, 0.1, 0.0};
+    size_t                         idx  = 0;
+    num_t                          d2   = 0;
+    nanoflann::KNNResultSet<num_t> rs(1);
+    rs.init(&idx, &d2);
+    index.index->findNeighbors(rs, q);
+
+    EXPECT_EQ(idx, 1u);  // (1,0,0) is nearest to (0.9,0.1,0)
+    EXPECT_NEAR(d2, 0.01 + 0.01, 1e-12);
 }
 
 #endif  // NANOFLANN_HAS_EIGEN

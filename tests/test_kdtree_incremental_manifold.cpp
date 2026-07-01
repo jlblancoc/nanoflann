@@ -146,7 +146,7 @@ struct PointGen
                     q[k] = nd(rng);
                     n += q[k] * q[k];
                 }
-                n            = std::sqrt(n);
+                n = std::sqrt(n);
                 if (n < T(1e-9)) n = T(1);
                 const T sign = (nd(rng) < T(0)) ? T(-1) : T(1);
                 for (unsigned k = 0; k < 4; ++k) out.push_back(sign * q[k] / n);
@@ -238,7 +238,7 @@ void run_incr_build_check(const size_t N, const size_t nQueries, const unsigned 
     const T tol = std::is_same<T, float>::value ? T(1e-3) : T(1e-7);
     for (size_t q = 0; q < nQueries; ++q)
     {
-        const std::vector<T> query = random_point<Space, T>(rng);
+        const std::vector<T>  query = random_point<Space, T>(rng);
         std::vector<uint32_t> idx(K);
         std::vector<T>        d2(K);
         const size_t          n = index.knnSearch(query.data(), K, idx.data(), d2.data());
@@ -263,13 +263,13 @@ void run_incr_vs_static(const size_t N, const size_t nQueries, const unsigned K)
     incr_tree_t<Space, T> incr(Dim, cloud);
     incr.addPoints(0, static_cast<uint32_t>(N) - 1);
 
-    using static_t =
-        KDTreeSingleIndexAdaptor<Manifold_Adaptor<Space, T, ManifoldCloud<T>>, ManifoldCloud<T>, Dim>;
+    using static_t = KDTreeSingleIndexAdaptor<
+        Manifold_Adaptor<Space, T, ManifoldCloud<T>>, ManifoldCloud<T>, Dim>;
     static_t stat(Dim, cloud, {10});
 
     for (size_t q = 0; q < nQueries; ++q)
     {
-        const std::vector<T> query = random_point<Space, T>(rng);
+        const std::vector<T>  query = random_point<Space, T>(rng);
         std::vector<uint32_t> ia(K);
         std::vector<T>        da(K);
         incr.knnSearch(query.data(), K, ia.data(), da.data());
@@ -336,6 +336,47 @@ void run_incr_churn(const size_t N)
     // The churn must have triggered at least one rebuild (tombstone reclamation).
     EXPECT_LT(index.physicalSize(), 3 * index.size());
 }
+
+// Radius-bounded k-NN (rknnSearch) under the product metric vs brute force.
+template <class Space, typename T>
+void run_incr_rknn_check(const size_t N, const size_t nQueries, const unsigned K, const T radius2)
+{
+    constexpr int    Dim = static_cast<int>(Space::ambient);
+    ManifoldCloud<T> cloud;
+    std::mt19937     rng(0x5EEDu);
+    for (size_t i = 0; i < N; ++i) cloud.pts.push_back(random_point<Space, T>(rng));
+
+    incr_tree_t<Space, T> index(Dim, cloud);
+    index.addPoints(0, static_cast<uint32_t>(N) - 1);
+    std::set<uint32_t> live;
+    for (uint32_t i = 0; i < N; ++i) live.insert(i);
+
+    const T tol = std::is_same<T, float>::value ? T(1e-3) : T(1e-7);
+    for (size_t q = 0; q < nQueries; ++q)
+    {
+        const std::vector<T>  query = random_point<Space, T>(rng);
+        std::vector<uint32_t> idx(K);
+        std::vector<T>        d2(K);
+        const size_t          n = index.rknnSearch(query.data(), K, idx.data(), d2.data(), radius2);
+
+        // Brute-force: the answer is the K nearest whose distance is within the
+        // (exclusive) radius.
+        const std::vector<T> bf     = bruteforce_sorted<Space, T>(cloud, live, query);
+        size_t               within = 0;
+        for (const T dv : bf)
+            if (dv < radius2) ++within;
+        const size_t expected = std::min<size_t>(K, within);
+
+        ASSERT_EQ(n, expected) << "dim=" << Dim << " query #" << q;
+        for (size_t k = 0; k < n; ++k)
+        {
+            ASSERT_LT(static_cast<double>(d2[k]), static_cast<double>(radius2));
+            ASSERT_NEAR(
+                static_cast<double>(bf[k]), static_cast<double>(d2[k]), static_cast<double>(tol))
+                << "dim=" << Dim << " query #" << q << " neighbor #" << k;
+        }
+    }
+}
 }  // namespace incr_manifold_test
 
 using namespace incr_manifold_test;
@@ -368,6 +409,20 @@ TEST(incr_manifold, churn_vs_bruteforce)
     run_incr_churn<SE2, double>(2000);
     run_incr_churn<SE3, double>(2000);
     run_incr_churn<S2, double>(2000);
+}
+
+TEST(incr_manifold, rknn_vs_bruteforce)
+{
+    // Radii are in the metric's squared units; moderate values keep a partial
+    // in-radius neighbor set so both the "capped by K" and "capped by radius"
+    // branches are exercised.
+    run_incr_rknn_check<SO2, double>(2000, 200, 5, 0.5);
+    run_incr_rknn_check<SE2, double>(2000, 200, 5, 2.0);
+    run_incr_rknn_check<SO3, double>(2000, 200, 5, 0.5);
+    run_incr_rknn_check<SE3, double>(2000, 200, 5, 2.0);
+    run_incr_rknn_check<S2, double>(2000, 200, 5, 0.5);
+    run_incr_rknn_check<Product<SO3, SO3>, double>(1500, 150, 5, 1.0);
+    run_incr_rknn_check<SE3, float>(2000, 200, 5, 2.0f);
 }
 
 // Incremental twin of the static SO2 wrap-around regression: a query near +pi
@@ -416,7 +471,7 @@ TEST(incr_manifold, SO3_double_cover)
     index.addPoints(0, static_cast<uint32_t>(cloud.pts.size()) - 1);
 
     // Directed antipodal query.
-    const std::vector<double>& q = cloud.pts[0];
+    const std::vector<double>& q    = cloud.pts[0];
     std::vector<double>        negq = {-q[0], -q[1], -q[2], -q[3]};
     uint32_t                   ri;
     double                     rd;
