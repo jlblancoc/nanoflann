@@ -169,6 +169,10 @@ TEST(kdtree, L2_vs_bruteforce_rknn)
     }
 }
 
+// The concurrent (multi-threaded) build path is compiled out under
+// NANOFLANN_NO_THREADS (requesting n_thread_build != 1 then throws), so these
+// tests only apply when threading is enabled.
+#ifndef NANOFLANN_NO_THREADS
 TEST(kdtree, L2_concurrent_build_vs_bruteforce)
 {
     srand(static_cast<unsigned int>(time(nullptr)));
@@ -198,6 +202,7 @@ TEST(kdtree, L2_concurrent_build_vs_L2)
         L2_concurrent_build_vs_L2_test<double>(100, 7);
     }
 }
+#endif  // NANOFLANN_NO_THREADS
 
 TEST(kdtree, same_points)
 {

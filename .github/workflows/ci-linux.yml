@@ -57,6 +57,28 @@ jobs:
             build_type: Coverage
             cxx_std: 11
 
+          # Compile-time configuration macros (guard the documented build knobs)
+          - name: ubuntu-24.04-gcc-no-threads
+            os: ubuntu-24.04
+            compiler: gcc
+            cxx_std: 11
+            extra_defines: "-DNANOFLANN_NO_THREADS"
+          - name: ubuntu-24.04-gcc-no-manifolds
+            os: ubuntu-24.04
+            compiler: gcc
+            cxx_std: 17
+            extra_defines: "-DNANOFLANN_NO_MANIFOLDS"
+          - name: ubuntu-24.04-gcc-no-coord-cache
+            os: ubuntu-24.04
+            compiler: gcc
+            cxx_std: 17
+            extra_defines: "-DNANOFLANN_INCREMENTAL_NO_COORD_CACHE"
+          - name: ubuntu-24.04-gcc-innode-distance
+            os: ubuntu-24.04
+            compiler: gcc
+            cxx_std: 17
+            extra_defines: "-DNANOFLANN_INCREMENTAL_INNODE_DISTANCE"
+
     steps:
       - name: Checkout
         uses: actions/checkout@master
@@ -90,6 +112,7 @@ jobs:
           cmake -DCMAKE_VERBOSE_MAKEFILE=ON \
                 -DCMAKE_CXX_STANDARD=${{ matrix.cxx_std }} \
                 -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+                -DCMAKE_CXX_FLAGS="${{ matrix.extra_defines }}" \
                 -H. -Bbuild
 
       - name: Build
