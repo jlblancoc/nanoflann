@@ -25,12 +25,24 @@ endif()
 add_executable(nanoflann_unit_tests
   test_kdtree_basic.cpp
   test_kdtree_dynamic.cpp
+  test_kdtree_eigen.cpp
   test_kdtree_incremental.cpp
   test_kdtree_manifold.cpp
   test_kdtree_incremental_manifold.cpp
   test_main.cpp
 )
 set_target_properties(nanoflann_unit_tests PROPERTIES FOLDER "./")
+
+# Optional: enable the KDTreeEigenMatrixAdaptor tests when Eigen3 is available.
+# Without Eigen, test_kdtree_eigen.cpp compiles to an empty translation unit.
+find_package(Eigen3 QUIET)
+if(EIGEN3_FOUND OR Eigen3_FOUND)
+    message(STATUS "nanoflann tests: Eigen3 found, enabling Eigen adaptor tests")
+    target_compile_definitions(nanoflann_unit_tests PRIVATE NANOFLANN_HAS_EIGEN)
+    target_include_directories(nanoflann_unit_tests SYSTEM PRIVATE ${EIGEN3_INCLUDE_DIR})
+else()
+    message(STATUS "nanoflann tests: Eigen3 NOT found, Eigen adaptor tests disabled")
+endif()
 
 if(MSVC)
     target_compile_options(nanoflann_unit_tests PRIVATE /W4)

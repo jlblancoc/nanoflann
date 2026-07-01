@@ -5002,8 +5002,9 @@ struct KDTreeEigenMatrixAdaptor
         metric_t, self_t, row_major ? MatrixType::ColsAtCompileTime : MatrixType::RowsAtCompileTime,
         IndexType>;
 
-    index_t* index_;  //! The kd-tree index for the user to call its methods as
-                      //! usual with any other FLANN index.
+    std::unique_ptr<index_t> index_;  //! The kd-tree index for the user to call
+                                      //! its methods as usual with any other
+                                      //! FLANN index (e.g. `index_->...`).
 
     using Offset    = typename index_t::Offset;
     using Size      = typename index_t::Size;
@@ -5024,10 +5025,12 @@ struct KDTreeEigenMatrixAdaptor
             throw std::runtime_error(
                 "Data set dimensionality does not match the 'DIM' template "
                 "argument");
-        index_ = new index_t(
+        // Note: std::unique_ptr::reset(new ...) rather than std::make_unique to
+        // keep the header compilable under C++11 (make_unique is C++14).
+        index_.reset(new index_t(
             static_cast<Dimension>(dims), *this /* adaptor */,
             nanoflann::KDTreeSingleIndexAdaptorParams(
-                leaf_max_size, nanoflann::KDTreeSingleIndexAdaptorFlags::None, n_thread_build));
+                leaf_max_size, nanoflann::KDTreeSingleIndexAdaptorFlags::None, n_thread_build)));
     }
 
    public:
@@ -5037,12 +5040,12 @@ struct KDTreeEigenMatrixAdaptor
 
     /** Move operations are deleted: the owned index_ stores a reference back to
      * this adaptor object (passed as the dataset adaptor at construction), so
-     * moving would leave that reference dangling. Deleting them also prevents
-     * a double-free of the raw index_ pointer. */
+     * moving would leave that reference dangling. */
     KDTreeEigenMatrixAdaptor(self_t&&) = delete;
     self_t& operator=(self_t&&)        = delete;
 
-    ~KDTreeEigenMatrixAdaptor() { delete index_; }
+    // index_ is a std::unique_ptr, so the default destructor releases it.
+    ~KDTreeEigenMatrixAdaptor() = default;
 
     const std::reference_wrapper<const MatrixType> m_data_matrix;
 
