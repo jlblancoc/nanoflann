@@ -20,7 +20,7 @@
 
 ## 1. About
 
-*nanoflann* is a **C++11 [header-only](http://en.wikipedia.org/wiki/Header-only) library** for building KD-Trees of datasets with different topologies: R<sup>2</sup>, R<sup>3</sup> (point clouds), SO(2) and SO(3) (2D and 3D rotation groups). No support for approximate NN is provided. *nanoflann* does not require compiling or installing. You just need to `#include <nanoflann.hpp>` in your code.
+*nanoflann* is a **header-only [C++ library](http://en.wikipedia.org/wiki/Header-only)** for building KD-Trees of datasets with different topologies. The Euclidean core (R<sup>2</sup>, R<sup>3</sup>, R<sup>N</sup> point clouds) is **C++11**; the optional **compile-time product-manifold** metrics — SO(2), SO(3), SE(2), SE(3), the unit sphere S<sup>2</sup>/S<sup>N</sup>, tori, and arbitrary products — require **C++17** (see §1.5). It also provides **incremental / dynamic** KD-tree indices for point clouds that change over time (e.g. sliding-window LiDAR maps). *nanoflann* returns *exact* nearest neighbors by default (an optional `eps`-approximate mode is available via `SearchParameters::eps`). It does not require compiling or installing: you just need to `#include <nanoflann.hpp>` in your code.
 
 This library is a *fork* of the [flann library](https://github.com/flann-lib/flann) by Marius Muja and David G. Lowe, and born as a child project of [MRPT](https://www.mrpt.org/). Following the original license terms, *nanoflann* is distributed under the BSD license. Please, for bugs use the issues button or fork and open a pull request.
 
@@ -77,9 +77,15 @@ $ make && make test
 
   * KD-tree look-up with `knnSearch()` and `radiusSearch()`: [pointcloud_kdd_radius.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_kdd_radius.cpp)
   * KD-tree look-up on a point cloud dataset: [pointcloud_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_example.cpp)
-  * KD-tree look-up on a dynamic point cloud dataset: [dynamic_pointcloud_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/dynamic_pointcloud_example.cpp)
+  * KD-tree look-up on a dynamic point cloud dataset (Bentley–Saxe forest): [dynamic_pointcloud_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/dynamic_pointcloud_example.cpp)
+  * Incremental / sliding-window point cloud index (`addPoints` + box trimming): [pointcloud_incremental_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_incremental_example.cpp)
   * Exact KD-tree look-up on a rotation group (SO2), C++17: [manifold_so2_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/manifold_so2_example.cpp)
   * Exact KD-tree look-up on a rotation group (SO3), C++17: [manifold_so3_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/manifold_so3_example.cpp)
+  * Exact KD-tree look-up on SE(3) poses, C++17: [manifold_se3_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/manifold_se3_example.cpp)
+  * Exact KD-tree look-up on the unit sphere S<sup>2</sup> (3D directions), C++17: [manifold_s2_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/manifold_s2_example.cpp)
+  * Incremental KD-tree on SE(3) poses (manifold + churn), C++17: [manifold_se3_incremental_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/manifold_se3_incremental_example.cpp)
+  * Custom user-defined distance metric: [pointcloud_custom_metric.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_custom_metric.cpp)
+  * Custom user-defined result set (callback-style collection): [pointcloud_custom_resultset.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_custom_resultset.cpp)
   * KD-tree look-up on a point cloud dataset with an external adaptor class: [pointcloud_adaptor_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_adaptor_example.cpp)
   * KD-tree look-up directly on an `Eigen::Matrix<>`: [matrix_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/matrix_example.cpp)
   * KD-tree look-up directly on `std::vector<std::vector<T> >` or `std::vector<Eigen::VectorXd>`: [vector_of_vectors_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/vector_of_vectors_example.cpp)
@@ -108,7 +114,7 @@ Refer to the examples below or to the C++ API of [nanoflann::KDTreeSingleIndexAd
 
 ### 1.5. What can *nanoflann* do?
 
-  * Building KD-trees with a single index (no randomized KD-trees, no approximate searches).
+  * Building KD-trees with a single index (no randomized KD-trees). Searches return *exact* nearest neighbors by default; an optional `eps`-approximate pruning mode is available via `SearchParameters::eps`.
   * Fast, thread-safe querying for closest neighbors on KD-trees. The entry points are:
     * [nanoflann::KDTreeSingleIndexAdaptor<>](https://jlblancoc.github.io/nanoflann/classnanoflann_1_1KDTreeSingleIndexAdaptor.html)`::knnSearch()`
       * Finds the `num_closest` nearest neighbors to `query_point[0:dim-1]`. Their indices are stored inside the result object. See an [example usage code](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_kdd_radius.cpp#L119).

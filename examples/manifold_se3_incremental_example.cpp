@@ -63,7 +63,7 @@ template <typename num_t>
 struct KeyframeDB
 {
     std::vector<std::array<num_t, 7>> poses;
-    inline size_t kdtree_get_point_count() const { return poses.size(); }
+    inline size_t                     kdtree_get_point_count() const { return poses.size(); }
     inline num_t kdtree_get_pt(const size_t idx, const size_t dim) const { return poses[idx][dim]; }
     template <class BBOX>
     bool kdtree_get_bbox(BBOX&) const
@@ -99,14 +99,14 @@ int main()
     KeyframeDB<num_t> db;
 
     using metric_t = nanoflann::Manifold_Adaptor<Space, num_t, KeyframeDB<num_t>>;
-    using kdtree_t = nanoflann::
-        KDTreeSingleIndexIncrementalAdaptor<metric_t, KeyframeDB<num_t>, Space::ambient, uint32_t>;
+    using kdtree_t = nanoflann::KDTreeSingleIndexIncrementalAdaptor<
+        metric_t, KeyframeDB<num_t>, Space::ambient, uint32_t>;
 
     kdtree_t index(Space::ambient, db);
 
     // Stream keyframes in; for each, query the database built so far.
-    const size_t nFrames = 5000;
-    const num_t  radius2 = num_t(25.0);  // chordal-squared search radius
+    const size_t nFrames         = 5000;
+    const num_t  radius2         = num_t(25.0);  // chordal-squared search radius
     size_t       totalCandidates = 0;
     for (uint32_t f = 0; f < nFrames; ++f)
     {
@@ -114,7 +114,7 @@ int main()
 
         if (f > 0)
         {
-            const auto& q = db.poses.back();
+            const auto&                                         q = db.poses.back();
             std::vector<nanoflann::ResultItem<uint32_t, num_t>> matches;
             const size_t n = index.radiusSearch(q.data(), radius2, matches);
             totalCandidates += n;

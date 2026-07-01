@@ -102,8 +102,8 @@ void s2_demo(const size_t N)
     using StateSpace = nanoflann::S2;  // = Sn<2>, 3 unit-vector coords
 
     using metric_t = nanoflann::Manifold_Adaptor<StateSpace, num_t, DirectionCloud<num_t>>;
-    using kdtree_t = nanoflann::
-        KDTreeSingleIndexAdaptor<metric_t, DirectionCloud<num_t>, StateSpace::ambient /* = 3 */>;
+    using kdtree_t = nanoflann::KDTreeSingleIndexAdaptor<
+        metric_t, DirectionCloud<num_t>, StateSpace::ambient /* = 3 */>;
 
     kdtree_t index(StateSpace::ambient, cloud, {10 /* max leaf */});
 
@@ -139,8 +139,8 @@ template <typename num_t>
 struct SurfelCloud
 {
     std::vector<std::array<num_t, 6>> rows;
-    inline size_t kdtree_get_point_count() const { return rows.size(); }
-    inline num_t  kdtree_get_pt(const size_t i, const size_t d) const { return rows[i][d]; }
+    inline size_t                     kdtree_get_point_count() const { return rows.size(); }
+    inline num_t kdtree_get_pt(const size_t i, const size_t d) const { return rows[i][d]; }
     template <class BBOX>
     bool kdtree_get_bbox(BBOX&) const
     {
@@ -166,7 +166,8 @@ void surfel_demo(const size_t N)
     }
 
     using metric_t = nanoflann::Manifold_Adaptor<Space, num_t, SurfelCloud<num_t>>;
-    using kdtree_t = nanoflann::KDTreeSingleIndexAdaptor<metric_t, SurfelCloud<num_t>, Space::ambient>;
+    using kdtree_t =
+        nanoflann::KDTreeSingleIndexAdaptor<metric_t, SurfelCloud<num_t>, Space::ambient>;
     kdtree_t index(Space::ambient, cloud, {10});
 
     std::array<num_t, 6>       q;

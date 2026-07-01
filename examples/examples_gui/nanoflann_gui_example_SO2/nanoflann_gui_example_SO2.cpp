@@ -71,8 +71,7 @@ struct Heading
 #ifdef SHOW_GUI
 mrpt::math::TPoint3D bearing_to_point(const Heading& b)
 {
-    const auto R = mrpt::poses::CPose3D::FromYawPitchRoll(
-                       b.yaw, 0.0 /*pitch*/, 0.0 /*roll*/)
+    const auto R = mrpt::poses::CPose3D::FromYawPitchRoll(b.yaw, 0.0 /*pitch*/, 0.0 /*roll*/)
                        .getRotationMatrix();
     return {R(0, 0), R(1, 0), R(2, 0)};
 }
@@ -166,8 +165,7 @@ void kdtree_demo(const size_t N)
         auto glPts = pc_to_viz(data);
         scene->insert(glPts);
         scene->insert(mrpt::opengl::stock_objects::CornerXYZSimple());
-        auto glAxis =
-            mrpt::opengl::CAxis::Create(-1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 0.25);
+        auto glAxis = mrpt::opengl::CAxis::Create(-1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 0.25);
         glAxis->setTextScale(0.1);
         scene->insert(glAxis);
 
@@ -205,13 +203,12 @@ void kdtree_demo(const size_t N)
 
         mrpt::system::CTimeLoggerEntry tle2(profiler, "query");
 
-        const auto numNN = index.knnSearch(
-            queryPt, NUM_NEIGHBORS, nn_indices.data(), nn_distances.data());
+        const auto numNN =
+            index.knnSearch(queryPt, NUM_NEIGHBORS, nn_indices.data(), nn_distances.data());
 
         tle2.stop();
 
-        std::cout << "\nQuery point: (" << queryPt[0] << ") => " << numNN
-                  << " results.\n";
+        std::cout << "\nQuery point: (" << queryPt[0] << ") => " << numNN << " results.\n";
 
 #ifdef SHOW_GUI
         bool stop = false;
@@ -229,8 +226,7 @@ void kdtree_demo(const size_t N)
             glFoundPts->clear();
             for (size_t i = 0; i < numNN; i++)
             {
-                const auto pt =
-                    bearing_to_point(data.samples.at(nn_indices[i]));
+                const auto pt = bearing_to_point(data.samples.at(nn_indices[i]));
                 glFoundPts->insertPoint(pt.x, pt.y, pt.z);
             }
 

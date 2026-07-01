@@ -44,7 +44,18 @@
  *  - NANOFLANN_FIRST_MATCH: If defined, in case of a tie in distances the item
  *    with the smallest index will be returned.
  *  - NANOFLANN_NODE_ALIGNMENT: The memory alignment, in bytes, for kd-tree
- *    nodes. Default: 16.
+ *    nodes. Must be a power of two and >= 8. Default: 16 (also good for AVX; use
+ *    32/64 for AVX/AVX-512 aligned loads). The pool allocator honors it.
+ *  - NANOFLANN_NO_MANIFOLDS: If defined, disables the C++17 product-manifold
+ *    topology support (Manifold_Adaptor, Product<>, SO2/SO3/SE2/SE3/Sn/Torus,
+ *    metric_Manifold<>). Auto-enabled under C++17; the C++11 Euclidean core is
+ *    unaffected.
+ *  - NANOFLANN_INCREMENTAL_NO_COORD_CACHE: If defined, the incremental index
+ *    does not keep a per-node contiguous copy of point coordinates (trades
+ *    query speed for memory).
+ *  - NANOFLANN_INCREMENTAL_INNODE_DISTANCE: If defined, the (Euclidean)
+ *    incremental index reuses the per-axis coordinate cache for the in-node
+ *    distance. No effect for manifold metrics, which always use evalMetric.
  *
  *  Macros defined internally by nanoflann (not meant to be set by the user):
  *  - NANOFLANN_RESTRICT: Expands to the compiler-specific `restrict` pointer
@@ -1786,8 +1797,7 @@ class KDTreeBaseClass
         DistanceType gateMindist = mindist;
         if constexpr (std::decay_t<decltype(obj.distance_)>::hasQuaternionBlock)
         {
-            gateMindist +=
-                obj.distance_.quaternionBlockTightening(vec, region, dists, veclen(obj));
+            gateMindist += obj.distance_.quaternionBlockTightening(vec, region, dists, veclen(obj));
         }
         if (gateMindist * epsError <= result_set.worstDist())
         {
