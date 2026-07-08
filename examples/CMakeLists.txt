@@ -1,4 +1,6 @@
-find_package(Eigen3 QUIET) # optional, for examples only
+find_package(Eigen3 REQUIRED) # optional, for examples only
+
+set(INSTALL_EXAMPLES_DIR "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/examples" CACHE STRING "Example install folder")
 
 # examples:
 macro(DefineExample _NAME)
@@ -11,6 +13,8 @@ macro(DefineExample _NAME)
 	else()
 		target_compile_options(${_NAME} PRIVATE /W4)
 	endif()
+	install(TARGETS ${_NAME}
+		DESTINATION ${INSTALL_EXAMPLES_DIR})
 endmacro()
 
 DefineExample(dynamic_pointcloud_example)
