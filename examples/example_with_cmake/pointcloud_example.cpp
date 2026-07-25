@@ -67,9 +67,9 @@ void kdtree_demo(const size_t N)
     }
     {
         // Unsorted radius search:
-        const num_t                               radius = 1;
-        std::vector<nanoflann::ResultItem<size_t, num_t>>     indices_dists;
-        nanoflann::RadiusResultSet<num_t, size_t> resultSet(radius, indices_dists);
+        const num_t                                       radius = 1;
+        std::vector<nanoflann::ResultItem<size_t, num_t>> indices_dists;
+        nanoflann::RadiusResultSet<num_t, size_t>         resultSet(radius, indices_dists);
 
         index.findNeighbors(resultSet, query_pt, nanoflann::SearchParameters());
 
