@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)
 project(nanoflann_gui_example_SO2)
 
 find_package(nanoflann REQUIRED)
