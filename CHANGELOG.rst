@@ -2,8 +2,8 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.11.0 (2026-07-31)
+-------------------
 * Merge pull request `#309 <https://github.com/jlblancoc/nanoflann/issues/309>`_ from jlblancoc/feat/incremental-index-save-load
   Add saveIndex()/loadIndex() to the incremental k-d tree index
 * Tests: cover loadIndex()'s remaining validation branches
