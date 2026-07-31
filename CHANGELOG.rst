@@ -2,6 +2,42 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#309 <https://github.com/jlblancoc/nanoflann/issues/309>`_ from jlblancoc/feat/incremental-index-save-load
+  Add saveIndex()/loadIndex() to the incremental k-d tree index
+* Tests: cover loadIndex()'s remaining validation branches
+  Version mismatch, type-size mismatch, dimensionality mismatch, and
+  truncated/EOF node data, each isolated by corrupting exactly the field the
+  corresponding check inspects. Addresses the patch-coverage gaps left by the
+  previous commit.
+* Add saveIndex()/loadIndex() to the incremental k-d tree index
+  KDTreeSingleIndexIncrementalAdaptor could not previously be persisted:
+  it never populates the base class's root_node\_/vAcc\_, so the inherited
+  saveIndex()/loadIndex() were silent no-ops for it.
+  Serialize the tree topology explicitly, field by field, instead of a
+  raw struct byte-dump (safe regardless of DIM being compile-time fixed
+  or runtime): per node, only ptIdx, divfeat, deleted, treeDeleted and
+  child-presence bits are written. Bounding box, subtree_size,
+  invalid_count, the coordinate cache and parent links are all
+  structural invariants, so they are recomputed on load instead of
+  trusted from the file. Uses a magic number distinct from the static
+  index's SAVE_MAGIC so loading the wrong kind of file fails fast.
+  The multithreaded KDTreeSingleIndexIncrementalAdaptorMT variant gets
+  forwarding saveIndex()/loadIndex() that block on any in-flight
+  background rebuild first.
+* Merge pull request `#308 <https://github.com/jlblancoc/nanoflann/issues/308>`_ from icyveins7/master
+  Fix: correct SearchParams->SearchParameters and other data types in examples/example_with_cmake
+* Apply clang-format-14 to example_with_cmake fix
+  Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+* fix: correct SearchParams->SearchParameters and other data types in examples/example_with_cmake
+  was probably missed when they changed type names in a4fac39
+* Update README with new build status badges
+* Fix arm64 badge link for ROS 2 Lyrical
+* docs: fix rolling URIs
+* docs: extend badge tables
+* Contributors: Jose Luis Blanco-Claraco, icyveins7
+
 1.10.1 (2026-06-09)
 -------------------
 * Merge pull request `#303 <https://github.com/jlblancoc/nanoflann/issues/303>`_ from jlblancoc/refactor/tests-smaller-files
