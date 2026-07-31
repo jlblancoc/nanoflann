@@ -32,6 +32,8 @@
 //  Tests for KDTreeSingleIndexIncrementalAdaptor (single self-balancing tree)
 // ===========================================================================
 
+#include <sstream>
+
 #include "test_helpers.h"
 
 TEST(kdtree_incremental, add_knn_vs_bruteforce)
@@ -425,6 +427,211 @@ TEST(kdtree_incremental, pushdown_delete_into_killed_region)
     EXPECT_EQ(ri, newIdx);
     EXPECT_NEAR(rd, 0.0, 1e-9);
 }
+
+// ===========================================================================
+//  Tests for saveIndex()/loadIndex() (tree-topology persistence)
+// ===========================================================================
+
+// Round-trips a tree that has been through inserts, point removals AND a
+// box-trim (so it exercises both makeLeaf's depth-based divfeat and
+// buildBalanced's data-dependent widest-axis divfeat), and checks that a
+// freshly constructed index loaded from the saved stream returns identical
+// query results to the original for many random queries.
+TEST(kdtree_incremental, save_load_roundtrip_matches_queries)
+{
+    srand(2026);
+    inc_cloud_t  cloud;
+    inc_tree_t   index(3, cloud);
+    const size_t N = 3000;
+    for (size_t i = 0; i < N; ++i)
+        cloud.pts.push_back(
+            {20.0 * (rand() % 1000) / 1000.0 - 10.0, 20.0 * (rand() % 1000) / 1000.0 - 10.0,
+             20.0 * (rand() % 1000) / 1000.0 - 10.0});
+    index.addPoints(0, static_cast<uint32_t>(N) - 1);
+
+    // Remove ~15% of points at random (lazy tombstones, no full rebuild).
+    std::vector<uint32_t> order;
+    for (uint32_t i = 0; i < N; ++i) order.push_back(i);
+    std::mt19937 g(11);
+    std::shuffle(order.begin(), order.end(), g);
+    for (size_t i = 0; i < order.size() * 15 / 100; ++i) index.removePoint(order[i]);
+
+    // Trim a box (removeOutsideBox), which triggers scapegoat rebuilds
+    // (buildBalanced, data-dependent divfeat) on some subtrees.
+    inc_tree_t::BoundingBox keep;
+    for (int d = 0; d < 3; ++d)
+    {
+        keep[d].low  = -8;
+        keep[d].high = 8;
+    }
+    index.removeOutsideBox(keep);
+
+    ASSERT_GT(index.size(), 0u);
+
+    std::ostringstream oss(std::ios::binary);
+    index.saveIndex(oss);
+
+    // A fresh index attached to the very same dataset, per loadIndex()'s
+    // documented precondition.
+    inc_tree_t         loaded(3, cloud);
+    std::istringstream iss(oss.str(), std::ios::binary);
+    loaded.loadIndex(iss);
+
+    EXPECT_EQ(loaded.size(), index.size());
+    EXPECT_EQ(loaded.physicalSize(), index.physicalSize());
+
+    for (int t = 0; t < 300; ++t)
+    {
+        const double q[3] = {
+            20.0 * (rand() % 1000) / 1000.0 - 10.0, 20.0 * (rand() % 1000) / 1000.0 - 10.0,
+            20.0 * (rand() % 1000) / 1000.0 - 10.0};
+
+        uint32_t     ri_orig, ri_loaded;
+        double       rd_orig, rd_loaded;
+        const size_t n_orig   = index.knnSearch(q, 1, &ri_orig, &rd_orig);
+        const size_t n_loaded = loaded.knnSearch(q, 1, &ri_loaded, &rd_loaded);
+        ASSERT_EQ(n_orig, n_loaded);
+        if (n_orig == 0) continue;
+        EXPECT_EQ(ri_orig, ri_loaded);
+        EXPECT_NEAR(rd_orig, rd_loaded, 1e-9);
+
+        std::vector<nanoflann::ResultItem<uint32_t, double>> rad_orig, rad_loaded;
+        (void)index.radiusSearch(q, 2.0, rad_orig);
+        (void)loaded.radiusSearch(q, 2.0, rad_loaded);
+        EXPECT_EQ(rad_orig.size(), rad_loaded.size());
+    }
+}
+
+// A tree that was bulk-built with buildFromIndices() (no incremental inserts
+// at all): every internal node's divfeat comes from the widest-spread-axis
+// rule, never the depth-based default, so this exercises that path in
+// isolation.
+TEST(kdtree_incremental, save_load_after_buildFromIndices)
+{
+    inc_cloud_t  cloud;
+    inc_tree_t   index(3, cloud);
+    const size_t N = 500;
+    for (size_t i = 0; i < N; ++i)
+        cloud.pts.push_back(
+            {static_cast<double>(i % 10), static_cast<double>((i / 10) % 10),
+             static_cast<double>(i / 100)});
+    std::vector<uint32_t> idxs;
+    for (uint32_t i = 0; i < N; i += 2) idxs.push_back(i);  // even only
+    index.buildFromIndices(idxs);
+
+    std::ostringstream oss(std::ios::binary);
+    index.saveIndex(oss);
+
+    inc_tree_t         loaded(3, cloud);
+    std::istringstream iss(oss.str(), std::ios::binary);
+    loaded.loadIndex(iss);
+
+    EXPECT_EQ(loaded.size(), index.size());
+    for (uint32_t i = 0; i < N; ++i)
+    {
+        const double q[3] = {cloud.pts[i].x, cloud.pts[i].y, cloud.pts[i].z};
+        uint32_t     ri_orig, ri_loaded;
+        double       rd_orig, rd_loaded;
+        ASSERT_EQ(index.knnSearch(q, 1, &ri_orig, &rd_orig), 1u);
+        ASSERT_EQ(loaded.knnSearch(q, 1, &ri_loaded, &rd_loaded), 1u);
+        EXPECT_EQ(ri_orig, ri_loaded);
+    }
+}
+
+// Edge cases: an empty tree and a single-point tree must round-trip too.
+TEST(kdtree_incremental, save_load_empty_and_single_point)
+{
+    {
+        inc_cloud_t        cloud;
+        inc_tree_t         index(3, cloud);  // never populated
+        std::ostringstream oss(std::ios::binary);
+        index.saveIndex(oss);
+
+        inc_tree_t         loaded(3, cloud);
+        std::istringstream iss(oss.str(), std::ios::binary);
+        loaded.loadIndex(iss);
+        EXPECT_EQ(loaded.size(), 0u);
+        EXPECT_TRUE(loaded.empty());
+    }
+    {
+        inc_cloud_t cloud;
+        cloud.pts.push_back({1.0, 2.0, 3.0});
+        inc_tree_t index(3, cloud);
+        index.addPoint(0);
+
+        std::ostringstream oss(std::ios::binary);
+        index.saveIndex(oss);
+
+        inc_tree_t         loaded(3, cloud);
+        std::istringstream iss(oss.str(), std::ios::binary);
+        loaded.loadIndex(iss);
+        EXPECT_EQ(loaded.size(), 1u);
+
+        const double q[3] = {1.0, 2.0, 3.0};
+        uint32_t     ri;
+        double       rd;
+        ASSERT_EQ(loaded.knnSearch(q, 1, &ri, &rd), 1u);
+        EXPECT_EQ(ri, 0u);
+        EXPECT_NEAR(rd, 0.0, 1e-12);
+    }
+}
+
+// loadIndex() must reject a stream that was not written by saveIndex()
+// (wrong magic number), instead of silently misinterpreting the bytes.
+TEST(kdtree_incremental, load_index_wrong_magic_throws)
+{
+    inc_cloud_t cloud;
+    cloud.pts.push_back({0.0, 0.0, 0.0});
+    inc_tree_t index(3, cloud);
+    index.addPoint(0);
+
+    std::istringstream garbage(std::string(64, '\xAB'), std::ios::binary);
+    EXPECT_THROW(index.loadIndex(garbage), std::runtime_error);
+}
+
+#ifndef NANOFLANN_NO_THREADS
+// The MT wrapper's saveIndex()/loadIndex() must block on any in-flight
+// background rebuild and (de)serialize the active tree transparently.
+TEST(kdtree_incremental, async_mt_save_load_roundtrip)
+{
+    using mt_tree_t = nanoflann::KDTreeSingleIndexIncrementalAdaptorMT<
+        nanoflann::L2_Simple_Adaptor<double, inc_cloud_t>, inc_cloud_t, 3, uint32_t>;
+
+    inc_cloud_t cloud;
+    cloud.pts.reserve(200000);
+    mt_tree_t index(3, cloud, nanoflann::KDTreeIncrementalIndexParams(0.8f, 0.5f), 1.3, 2000);
+
+    std::mt19937                           g(4321);
+    std::uniform_real_distribution<double> U(0.0, 10.0);
+    for (int frame = 0; frame < 10; ++frame)
+    {
+        const uint32_t start = static_cast<uint32_t>(cloud.pts.size());
+        for (int i = 0; i < 1500; ++i) cloud.pts.push_back({U(g), U(g), U(g)});
+        const uint32_t end = static_cast<uint32_t>(cloud.pts.size()) - 1;
+        index.addPoints(start, end);  // large enough batches to trigger a background rebuild
+    }
+
+    std::ostringstream oss(std::ios::binary);
+    index.saveIndex(oss);  // blocks on any pending rebuild internally
+
+    mt_tree_t loaded(3, cloud, nanoflann::KDTreeIncrementalIndexParams(0.8f, 0.5f), 1.3, 2000);
+    std::istringstream iss(oss.str(), std::ios::binary);
+    loaded.loadIndex(iss);
+
+    EXPECT_EQ(loaded.size(), index.size());
+
+    for (int t = 0; t < 200; ++t)
+    {
+        const double q[3] = {U(g), U(g), U(g)};
+        uint32_t     ri_orig, ri_loaded;
+        double       rd_orig, rd_loaded;
+        ASSERT_EQ(index.knnSearch(q, 1, &ri_orig, &rd_orig), 1u);
+        ASSERT_EQ(loaded.knnSearch(q, 1, &ri_loaded, &rd_loaded), 1u);
+        EXPECT_EQ(ri_orig, ri_loaded);
+        EXPECT_NEAR(rd_orig, rd_loaded, 1e-9);
+    }
+}
+#endif  // NANOFLANN_NO_THREADS
 
 #ifndef NANOFLANN_NO_THREADS
 TEST(kdtree_incremental, async_mt_vs_bruteforce_under_churn)
