@@ -3127,6 +3127,142 @@ class KDTreeSingleIndexIncrementalAdaptor
 
     /** @} */
 
+    /** \name Persistence (index topology only; the dataset is NOT stored)
+     * @{ */
+
+    /** Magic number written at the start of every saveIndex() stream of this
+     *  incremental index. Distinct from the static KDTreeSingleIndexAdaptor's
+     *  SAVE_MAGIC so that loading the wrong kind of file fails fast with a
+     *  clear error instead of silently misinterpreting the bytes.
+     *  Spells 'NFLI' (nanoflann incremental) in ASCII. */
+    static constexpr uint32_t INCREMENTAL_SAVE_MAGIC = 0x4E464C49;
+
+    /** Serializes the tree *topology* (split axis, tombstone flags, and the
+     *  live/dead tree shape) to a binary stream. Point coordinates are NOT
+     *  stored: as with the static index's saveIndex(), the object must be
+     *  reattached to a dataset with the very same content before loadIndex()
+     *  is called on it.
+     *
+     *  Every other per-node field (bounding box, subtree size, tombstone
+     *  counts, coordinate cache, parent pointer) is recomputed on load instead
+     *  of stored, since they are all structural invariants derivable from the
+     *  fields above; this keeps the format independent of DIM being
+     *  compile-time fixed or runtime, unlike a raw struct byte-dump.
+     *
+     * \note Portability limitations as in the static index's saveIndex(): not
+     *   portable across endianness, 32- vs 64-bit size_t, nanoflann versions,
+     *   or IndexType/ElementType/DistanceType instantiations (checked, throws
+     *   on mismatch).
+     *
+     * \sa loadIndex
+     */
+    void saveIndex(std::ostream& stream) const
+    {
+        const uint32_t hdr_magic   = INCREMENTAL_SAVE_MAGIC;
+        const uint32_t hdr_version = static_cast<uint32_t>(NANOFLANN_VERSION);
+        const uint8_t  hdr_sz_st   = static_cast<uint8_t>(sizeof(size_t));
+        const uint8_t  hdr_sz_idx  = static_cast<uint8_t>(sizeof(IndexType));
+        const uint8_t  hdr_sz_elem = static_cast<uint8_t>(sizeof(ElementType));
+        const uint8_t  hdr_sz_dist = static_cast<uint8_t>(sizeof(DistanceType));
+        save_value(stream, hdr_magic);
+        save_value(stream, hdr_version);
+        save_value(stream, hdr_sz_st);
+        save_value(stream, hdr_sz_idx);
+        save_value(stream, hdr_sz_elem);
+        save_value(stream, hdr_sz_dist);
+
+        const Dimension dims = static_cast<Dimension>(this->veclen(*this));
+        save_value(stream, dims);
+
+        const uint8_t hasRoot = iroot_ ? 1 : 0;
+        save_value(stream, hasRoot);
+        if (iroot_) saveNode(stream, iroot_);
+    }
+
+    /** Loads a tree topology previously saved with saveIndex().
+     *
+     * \note Must be called on a freshly constructed index (mirrors the static
+     *   index's loadIndex() precondition): loading into an already-populated
+     *   tree is not supported and would leak its nodes. The object must
+     *   already be attached (via the constructor) to a dataset holding the
+     *   very same points that were indexed when saveIndex() was called.
+     *
+     * \throws std::runtime_error on a magic-number/version/type-size/
+     *   dimensionality mismatch, or a stream read error.
+     *
+     * \sa saveIndex
+     */
+    void loadIndex(std::istream& stream)
+    {
+        uint32_t magic = 0;
+        load_value(stream, magic);
+        if (stream.fail() || magic != INCREMENTAL_SAVE_MAGIC)
+        {
+            throw std::runtime_error(
+                "KDTreeSingleIndexIncrementalAdaptor::loadIndex: invalid file (wrong magic "
+                "number). The stream was not written by this class' saveIndex(), or was written "
+                "by the static KDTreeSingleIndexAdaptor instead.");
+        }
+
+        uint32_t file_version = 0;
+        load_value(stream, file_version);
+        if (file_version != static_cast<uint32_t>(NANOFLANN_VERSION))
+        {
+            char msg[200];
+            snprintf(
+                msg, sizeof(msg),
+                "KDTreeSingleIndexIncrementalAdaptor::loadIndex: version mismatch "
+                "(file=0x%03X, library=0x%03X). Rebuild the index.",
+                file_version, static_cast<unsigned>(NANOFLANN_VERSION));
+            throw std::runtime_error(msg);
+        }
+
+        uint8_t sz_size_t = 0;
+        uint8_t sz_idx    = 0;
+        uint8_t sz_elem   = 0;
+        uint8_t sz_dist   = 0;
+        load_value(stream, sz_size_t);
+        load_value(stream, sz_idx);
+        load_value(stream, sz_elem);
+        load_value(stream, sz_dist);
+        if (sz_size_t != static_cast<uint8_t>(sizeof(size_t)) ||
+            sz_idx != static_cast<uint8_t>(sizeof(IndexType)) ||
+            sz_elem != static_cast<uint8_t>(sizeof(ElementType)) ||
+            sz_dist != static_cast<uint8_t>(sizeof(DistanceType)))
+        {
+            throw std::runtime_error(
+                "KDTreeSingleIndexIncrementalAdaptor::loadIndex: type-size mismatch between "
+                "saved index and current template instantiation (sizeof size_t / IndexType / "
+                "ElementType / DistanceType differ). Rebuild the index.");
+        }
+
+        Dimension dims = 0;
+        load_value(stream, dims);
+        if (dims != static_cast<Dimension>(this->veclen(*this)))
+        {
+            throw std::runtime_error(
+                "KDTreeSingleIndexIncrementalAdaptor::loadIndex: dimensionality mismatch "
+                "between the saved index and this object's dataset.");
+        }
+
+        uint8_t hasRoot = 0;
+        load_value(stream, hasRoot);
+        iroot_ = hasRoot ? loadNode(stream, nullptr) : nullptr;
+
+        if (stream.fail())
+        {
+            throw std::runtime_error(
+                "KDTreeSingleIndexIncrementalAdaptor::loadIndex: unexpected end of stream or "
+                "read error.");
+        }
+
+        totalCount_ = iroot_ ? iroot_->subtree_size : 0;
+        liveCount_  = iroot_ ? iroot_->subtree_size - iroot_->invalid_count : 0;
+        syncRootBox();
+    }
+
+    /** @} */
+
    private:
     // --------------------------------------------------------------------
     //  Node allocation (bump-allocate from the pool, recycle via free-list)
@@ -3527,6 +3663,72 @@ class KDTreeSingleIndexIncrementalAdaptor
         collectAllRec(node->child2, out);
     }
 
+    // --------------------------------------------------------------------
+    //  Persistence (see saveIndex()/loadIndex())
+    // --------------------------------------------------------------------
+    /** Writes one node and its subtree. Only the fields that cannot be
+     *  derived from the rest are stored; see loadNode(). */
+    void saveNode(std::ostream& stream, const INode* n) const
+    {
+        save_value(stream, n->ptIdx);
+        save_value(stream, n->divfeat);
+        save_value(stream, n->deleted);
+        save_value(stream, n->treeDeleted);
+
+        const uint8_t hasChild1 = n->child1 ? 1 : 0;
+        save_value(stream, hasChild1);
+        if (n->child1) saveNode(stream, n->child1);
+
+        const uint8_t hasChild2 = n->child2 ? 1 : 0;
+        save_value(stream, hasChild2);
+        if (n->child2) saveNode(stream, n->child2);
+    }
+
+    /** Loads one node and its subtree. Reconstructs every field not written
+     *  by saveNode() (box, subtree_size, invalid_count, coordinate cache,
+     *  parent link, and the idx->node map entry) from invariants that hold
+     *  regardless of how the tree was originally built:
+     *   - subtree_size is always 1 + the children's (0 if absent).
+     *   - invalid_count equals subtree_size for a treeDeleted node (see
+     *     killSubtree()), otherwise it is this node's own deleted flag plus
+     *     the children's invalid_count.
+     *   - box is this node's point, unioned with the children's boxes.
+     */
+    INode* loadNode(std::istream& stream, INode* parent)
+    {
+        INode* n = allocNode();
+        load_value(stream, n->ptIdx);
+        load_value(stream, n->divfeat);
+        load_value(stream, n->deleted);
+        load_value(stream, n->treeDeleted);
+        n->parent = parent;
+
+        uint8_t hasChild1 = 0;
+        load_value(stream, hasChild1);
+        n->child1 = hasChild1 ? loadNode(stream, n) : nullptr;
+
+        uint8_t hasChild2 = 0;
+        load_value(stream, hasChild2);
+        n->child2 = hasChild2 ? loadNode(stream, n) : nullptr;
+
+        n->subtree_size = 1 + (n->child1 ? n->child1->subtree_size : 0) +
+                          (n->child2 ? n->child2->subtree_size : 0);
+        n->invalid_count = n->treeDeleted ? n->subtree_size
+                                          : static_cast<Size>(n->deleted ? 1 : 0) +
+                                                (n->child1 ? n->child1->invalid_count : 0) +
+                                                (n->child2 ? n->child2->invalid_count : 0);
+
+        initBoxToPoint(n);
+        unionBox(n, n->child1);
+        unionBox(n, n->child2);
+        cacheCoords(n);
+
+        ensureNodeMap(n->ptIdx);
+        nodeOfPoint_[n->ptIdx] = n;
+
+        return n;
+    }
+
     /** Build a balanced subtree over buf[lo,hi) (median split on widest axis). */
     INode* buildBalanced(
         std::vector<IndexType>& buf, size_t lo, size_t hi, Dimension depth, INode* parent)
@@ -3815,6 +4017,29 @@ class KDTreeSingleIndexIncrementalAdaptorMT
 
     /** Access the underlying active tree (e.g. for further query types). */
     const Inner& activeIndex() const { return *active_; }
+    /** @} */
+
+    /** \name Persistence (see the synchronous index's saveIndex()/loadIndex())
+     * @{ */
+
+    /** Blocks until any in-flight background rebuild is integrated (see
+     *  sync()), then serializes the active tree's topology. */
+    void saveIndex(std::ostream& stream)
+    {
+        sync();
+        active_->saveIndex(stream);
+    }
+
+    /** Blocks until any in-flight background rebuild is integrated, then loads
+     *  a previously saved topology into the active tree (see the synchronous
+     *  index's loadIndex() precondition: the active tree must be freshly
+     *  constructed / empty). */
+    void loadIndex(std::istream& stream)
+    {
+        sync();
+        active_->loadIndex(stream);
+        lastBuildLive_ = active_->size();
+    }
     /** @} */
 
     /** Set a callback invoked **on the background worker thread** on each freshly
