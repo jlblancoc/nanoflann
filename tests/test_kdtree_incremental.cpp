@@ -589,6 +589,102 @@ TEST(kdtree_incremental, load_index_wrong_magic_throws)
     EXPECT_THROW(index.loadIndex(garbage), std::runtime_error);
 }
 
+// loadIndex()'s remaining header/stream validation branches: version
+// mismatch, type-size mismatch, dimensionality mismatch, and truncated
+// (EOF) node data. Each is triggered in isolation by corrupting exactly the
+// field the corresponding check inspects, starting from an otherwise-valid
+// saved stream (or, for the dimensionality check, a hand-built minimal
+// header) so no other check fires first.
+TEST(kdtree_incremental, load_index_version_mismatch_throws)
+{
+    inc_cloud_t cloud;
+    cloud.pts.push_back({1.0, 2.0, 3.0});
+    inc_tree_t index(3, cloud);
+    index.addPoint(0);
+
+    std::ostringstream oss(std::ios::binary);
+    index.saveIndex(oss);
+    std::string blob = oss.str();
+
+    // Bytes [4,8) hold the uint32_t library version; flipping them all
+    // guarantees a different (and, for any sane build, invalid) value.
+    ASSERT_GE(blob.size(), 8u);
+    for (size_t i = 4; i < 8; ++i) blob[i] = static_cast<char>(~blob[i]);
+
+    inc_tree_t         loaded(3, cloud);
+    std::istringstream iss(blob, std::ios::binary);
+    EXPECT_THROW(loaded.loadIndex(iss), std::runtime_error);
+}
+
+TEST(kdtree_incremental, load_index_type_size_mismatch_throws)
+{
+    inc_cloud_t cloud;
+    cloud.pts.push_back({1.0, 2.0, 3.0});
+    inc_tree_t index(3, cloud);
+    index.addPoint(0);
+
+    std::ostringstream oss(std::ios::binary);
+    index.saveIndex(oss);
+    std::string blob = oss.str();
+
+    // Byte [8] holds sizeof(size_t) as written by the saver; 0xFF cannot be a
+    // real size_t width.
+    ASSERT_GE(blob.size(), 9u);
+    blob[8] = '\xFF';
+
+    inc_tree_t         loaded(3, cloud);
+    std::istringstream iss(blob, std::ios::binary);
+    EXPECT_THROW(loaded.loadIndex(iss), std::runtime_error);
+}
+
+TEST(kdtree_incremental, load_index_dimensionality_mismatch_throws)
+{
+    // A hand-built minimal, empty-tree header (magic, version, the four
+    // size bytes, a wrong `dims`, hasRoot=0) isolates the dimensionality
+    // check from every other one, which all see correct values.
+    std::ostringstream oss(std::ios::binary);
+    const uint32_t     magic =
+        inc_tree_t::INCREMENTAL_SAVE_MAGIC;  // avoid ODR-using the static constexpr
+    nanoflann::save_value(oss, magic);
+    nanoflann::save_value(oss, static_cast<uint32_t>(NANOFLANN_VERSION));
+    nanoflann::save_value(oss, static_cast<uint8_t>(sizeof(size_t)));
+    nanoflann::save_value(oss, static_cast<uint8_t>(sizeof(uint32_t)));  // IndexType
+    nanoflann::save_value(oss, static_cast<uint8_t>(sizeof(double)));  // ElementType
+    nanoflann::save_value(oss, static_cast<uint8_t>(sizeof(double)));  // DistanceType
+    nanoflann::save_value(oss, static_cast<inc_tree_t::Dimension>(99));  // wrong dims (!= 3)
+    nanoflann::save_value(oss, static_cast<uint8_t>(0));  // hasRoot = false
+
+    inc_cloud_t        cloud;
+    inc_tree_t         loaded(3, cloud);
+    std::istringstream iss(oss.str(), std::ios::binary);
+    EXPECT_THROW(loaded.loadIndex(iss), std::runtime_error);
+}
+
+TEST(kdtree_incremental, load_index_truncated_node_data_throws)
+{
+    inc_cloud_t cloud;
+    for (int i = 0; i < 20; ++i) cloud.pts.push_back({double(i), double(i), double(i)});
+    inc_tree_t index(3, cloud);
+    index.addPoints(0, 19);
+
+    std::ostringstream oss(std::ios::binary);
+    index.saveIndex(oss);
+    std::string blob = oss.str();
+
+    // The header (through hasRoot) is: magic + version + 4 size bytes + dims
+    // + hasRoot. Keep it intact (so every prior check passes and hasRoot=1
+    // is read correctly), but cut off a few bytes into the first node's
+    // data, so loadNode()'s recursive reads eventually hit EOF.
+    const size_t headerSize = sizeof(uint32_t) + sizeof(uint32_t) + 4 * sizeof(uint8_t) +
+                              sizeof(inc_tree_t::Dimension) + sizeof(uint8_t);
+    ASSERT_GT(blob.size(), headerSize + 3);
+    blob.resize(headerSize + 3);
+
+    inc_tree_t         loaded(3, cloud);
+    std::istringstream iss(blob, std::ios::binary);
+    EXPECT_THROW(loaded.loadIndex(iss), std::runtime_error);
+}
+
 #ifndef NANOFLANN_NO_THREADS
 // The MT wrapper's saveIndex()/loadIndex() must block on any in-flight
 // background rebuild and (de)serialize the active tree transparently.
