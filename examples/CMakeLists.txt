@@ -1,5 +1,8 @@
 find_package(Eigen3 QUIET) # optional, for examples only
 
+option(NANOFLANN_INSTALL_EXAMPLES "Install the example binaries" OFF)
+set(INSTALL_EXAMPLES_DIR "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/examples" CACHE STRING "Example install folder")
+
 # examples:
 macro(DefineExample _NAME)
 	add_executable(${_NAME} ${_NAME}.cpp)
@@ -10,6 +13,10 @@ macro(DefineExample _NAME)
 			-Wall -Wextra -Wpedantic -Wconversion -Wshadow)
 	else()
 		target_compile_options(${_NAME} PRIVATE /W4)
+	endif()
+	if(NANOFLANN_INSTALL_EXAMPLES)
+		install(TARGETS ${_NAME}
+			DESTINATION ${INSTALL_EXAMPLES_DIR})
 	endif()
 endmacro()
 
