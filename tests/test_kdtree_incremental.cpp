@@ -616,6 +616,53 @@ TEST(kdtree_incremental, load_index_version_mismatch_throws)
     EXPECT_THROW(loaded.loadIndex(iss), std::runtime_error);
 }
 
+// A caller computing `static_cast<IndexType>(n - 1)` without special-casing an
+// empty dataset asks for the whole index space at once: the point->node map
+// would be grown to 2^32 entries (32 GB with the default uint32_t) and the
+// [start,end] loop would wrap around forever. Report it instead of dying by OOM.
+TEST(kdtree_incremental, max_index_value_throws_instead_of_exhausting_memory)
+{
+    constexpr uint32_t kMaxIdx = (std::numeric_limits<uint32_t>::max)();
+
+    inc_cloud_t empty;
+    {
+        inc_tree_t index(3, empty);
+        EXPECT_THROW(
+            index.addPoints(0, static_cast<uint32_t>(empty.pts.size() - 1)), std::invalid_argument);
+    }
+    {
+        inc_tree_t index(3, empty);
+        EXPECT_THROW(index.addPoint(kMaxIdx), std::invalid_argument);
+    }
+    {
+        // ...also on the path that takes an explicit index list, which must
+        // reject the index before discarding the tree it already holds:
+        inc_cloud_t cloud;
+        for (size_t i = 0; i < 20; i++) cloud.pts.push_back({double(i), double(i), double(i)});
+
+        inc_tree_t index(3, cloud);
+        index.addPoints(0, 19);
+
+        EXPECT_THROW(index.buildFromIndices({kMaxIdx}), std::invalid_argument);
+
+        EXPECT_EQ(index.size(), 20u);
+        EXPECT_EQ(index.physicalSize(), 20u);
+
+        const double q[3] = {7.0, 7.0, 7.0};
+        uint32_t     ri   = 0;
+        double       rd   = 0;
+        ASSERT_EQ(index.knnSearch(q, 1, &ri, &rd), 1u);
+        EXPECT_EQ(ri, 7u);
+    }
+
+    // An empty range is still a no-op, not an error:
+    inc_cloud_t cloud;
+    cloud.pts.push_back({1.0, 2.0, 3.0});
+    inc_tree_t index(3, cloud);
+    EXPECT_NO_THROW(index.addPoints(1, 0));
+    EXPECT_EQ(index.size(), 0u);
+}
+
 TEST(kdtree_incremental, load_index_type_size_mismatch_throws)
 {
     inc_cloud_t cloud;

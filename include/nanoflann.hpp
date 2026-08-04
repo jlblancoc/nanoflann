@@ -69,18 +69,22 @@
 #include <cassert>
 #include <chrono>  // std::chrono (async incremental index polling)
 #include <cmath>  // for abs()
+#include <condition_variable>  // rebuild worker of the async incremental index
 #include <cstdint>
 #include <cstdio>  // snprintf
 #include <cstdlib>  // for abs()
+#include <exception>  // std::exception_ptr (async incremental index)
 #include <functional>  // std::reference_wrapper
 #include <future>
 #include <istream>
 #include <limits>  // std::numeric_limits
 #include <memory>  // std::unique_ptr (async incremental index)
+#include <mutex>  // rebuild worker of the async incremental index
 #include <new>  // placement new (incremental index node pool)
 #include <ostream>
 #include <stack>
 #include <stdexcept>
+#include <thread>
 #include <type_traits>  // std::is_trivially_destructible
 #include <unordered_map>
 #include <vector>
@@ -3004,15 +3008,18 @@ class KDTreeSingleIndexIncrementalAdaptor
      *  given point indices. O(M log M). Reuses recycled nodes via the pool. */
     void buildFromIndices(const std::vector<IndexType>& idxs)
     {
+        // Validate (and grow the point->node map) before touching the current
+        // tree, so a rejected index list leaves the index untouched.
+        IndexType maxIdx = 0;
+        for (IndexType v : idxs) maxIdx = std::max(maxIdx, v);
+        if (!idxs.empty()) ensureNodeMap(maxIdx);
+
         if (iroot_)
         {
             buildBuf_.clear();
             collectLiveAndFree(iroot_, buildBuf_);  // recycle existing nodes
             iroot_ = nullptr;
         }
-        IndexType maxIdx = 0;
-        for (IndexType v : idxs) maxIdx = std::max(maxIdx, v);
-        if (!idxs.empty()) ensureNodeMap(maxIdx);
         buildBuf_.assign(idxs.begin(), idxs.end());
         iroot_      = buildBalanced(buildBuf_, 0, buildBuf_.size(), 0, nullptr);
         liveCount_  = buildBuf_.size();
@@ -3343,6 +3350,20 @@ class KDTreeSingleIndexIncrementalAdaptor
 
     void ensureNodeMap(IndexType idx)
     {
+        // The point->node map is grown to hold `idx`, so a bogus index is not a
+        // wrong result but an out-of-memory: the maximum IndexType value alone
+        // asks for a 2^32-entry (32 GB) map on the default uint32_t. That value
+        // is what `static_cast<IndexType>(n - 1)` produces when a caller forgets
+        // to special-case an empty (n == 0) dataset, and it would additionally
+        // make the [start,end] loops of addPoints() wrap around forever, so
+        // reject it here, where every index-taking entry point passes through.
+        if (idx == (std::numeric_limits<IndexType>::max)())
+        {
+            throw std::invalid_argument(
+                "[nanoflann] KDTreeSingleIndexIncrementalAdaptor: point index equal to the "
+                "maximum IndexType value; this is almost certainly an underflowed 'size - 1' "
+                "on an empty dataset.");
+        }
         if (idx >= nodeOfPoint_.size()) nodeOfPoint_.resize(static_cast<size_t>(idx) + 1, nullptr);
     }
 
@@ -3869,6 +3890,12 @@ class KDTreeSingleIndexIncrementalAdaptor
  *     a snapshot of its live point indices is taken and a background thread
  *     bulk-builds a fresh, balanced tree from it. Foreground operations meanwhile
  *     keep mutating the active tree and are appended to a small op-log.
+ *     That background thread is **one persistent worker** started on the first
+ *     rebuild and reused for every later one, not one thread per rebuild: a
+ *     long-running incremental map triggers rebuilds continuously, and a thread
+ *     per rebuild would make the host process churn through thousands of OS
+ *     threads, multiplying every per-thread cost it carries (malloc arenas,
+ *     sanitizer bookkeeping) for no benefit.
  *   - At the next foreground call after the build finishes, the op-log is
  *     replayed onto the fresh tree and it atomically replaces the active tree.
  *
@@ -3921,7 +3948,9 @@ class KDTreeSingleIndexIncrementalAdaptorMT
 
     ~KDTreeSingleIndexIncrementalAdaptorMT()
     {
-        if (fut_.valid()) fut_.wait();  // let the worker finish before teardown
+        // Lets any in-flight build finish before teardown: the worker reads the
+        // caller's dataset, which is typically freed right after this returns.
+        stopWorker();
     }
 
     /** \name Modifiers @{ */
@@ -4011,7 +4040,11 @@ class KDTreeSingleIndexIncrementalAdaptorMT
     /** Block until any in-flight background rebuild has been integrated. */
     void sync()
     {
-        if (building_ && fut_.valid()) fut_.wait();
+        if (building_)
+        {
+            std::unique_lock<std::mutex> lk(workerMtx_);
+            workerCvDone_.wait(lk, [this] { return resultReady_; });
+        }
         integrateIfReady();
     }
 
@@ -4096,35 +4129,130 @@ class KDTreeSingleIndexIncrementalAdaptorMT
         const Size base = lastBuildLive_ ? lastBuildLive_ : Size(1);
         if (static_cast<double>(phys) < rebuildGrowth_ * static_cast<double>(base)) return;
 
-        // Snapshot the live indices on the foreground thread, then build a fresh
-        // balanced tree from them on a background thread.
+        // Snapshot the live indices on the foreground thread, then hand them to
+        // the background worker, which bulk-builds a fresh balanced tree.
         auto snapshot = std::make_shared<std::vector<IndexType>>();
         active_->snapshotLiveIndices(*snapshot);
 
-        const DatasetAdaptor&        ds = dataset_;
-        const Dimension              d  = dim_;
-        KDTreeIncrementalIndexParams p  = params_;
-        std::function<void(Inner&)>  cb = rebuildCallback_;
-        fut_                            = std::async(
-                                       std::launch::async,
-                                       [snapshot, &ds, d, p, cb]() -> std::unique_ptr<Inner>
-                                       {
-                std::unique_ptr<Inner> t(new Inner(d, ds, p));
-                t->setInlineRebuild(false);
-                t->buildFromIndices(*snapshot);
-                if (cb) cb(*t);  // background post-rebuild hook (e.g. recompute covariances)
-                return t;
-            });
+        // Started on the first rebuild only, so an index that never rebuilds
+        // costs no thread at all:
+        if (!workerThread_.joinable())
+        {
+            workerThread_ = std::thread(&KDTreeSingleIndexIncrementalAdaptorMT::workerLoop, this);
+        }
+
+        {
+            std::lock_guard<std::mutex> lk(workerMtx_);
+            pendingJob_ = std::move(snapshot);
+            // Copied per job, so the worker never reads rebuildCallback_ while
+            // setRebuildCallback() writes it:
+            pendingCallback_ = rebuildCallback_;
+            builtTree_.reset();
+            buildError_  = nullptr;
+            resultReady_ = false;
+        }
+        workerCvJob_.notify_one();
+
         building_ = true;
         log_.clear();
     }
 
+    /** Body of the single persistent rebuild worker: wait for a job, bulk-build
+     *  a balanced tree from it, publish the result, repeat. */
+    void workerLoop()
+    {
+        for (;;)
+        {
+            std::shared_ptr<std::vector<IndexType>> job;
+            std::function<void(Inner&)>             cb;
+            {
+                std::unique_lock<std::mutex> lk(workerMtx_);
+                workerCvJob_.wait(lk, [this] { return workerStop_ || pendingJob_ != nullptr; });
+                // A job already handed over is always finished before stopping:
+                // the destructor relies on that to keep the caller's dataset
+                // alive for as long as the build reads it.
+                if (workerStop_ && !pendingJob_) return;
+                job = std::move(pendingJob_);
+                cb  = std::move(pendingCallback_);
+            }
+
+            // dim_, dataset_ and params_ are set at construction and never
+            // mutated, so the worker reads them without synchronization.
+            std::unique_ptr<Inner> t;
+            std::exception_ptr     err;
+            try
+            {
+                t.reset(new Inner(dim_, dataset_, params_));
+                t->setInlineRebuild(false);
+                t->buildFromIndices(*job);
+                if (cb) cb(*t);  // background post-rebuild hook (e.g. recompute covariances)
+            }
+            catch (...)
+            {
+                // Handed to the foreground thread instead of terminating the
+                // process; see integrateIfReady().
+                err = std::current_exception();
+                t.reset();
+            }
+
+            {
+                std::lock_guard<std::mutex> lk(workerMtx_);
+                builtTree_   = std::move(t);
+                buildError_  = err;
+                resultReady_ = true;
+            }
+            workerCvDone_.notify_all();
+        }
+    }
+
+    /** Stops the worker once its current build (if any) is done, and joins it. */
+    void stopWorker()
+    {
+        if (!workerThread_.joinable()) return;
+        {
+            std::lock_guard<std::mutex> lk(workerMtx_);
+            workerStop_ = true;
+        }
+        workerCvJob_.notify_all();
+        workerThread_.join();
+    }
+
     void integrateIfReady()
     {
-        if (!building_ || !fut_.valid()) return;
-        if (fut_.wait_for(std::chrono::seconds(0)) != std::future_status::ready) return;
+        if (!building_) return;
 
-        std::unique_ptr<Inner> fresh = fut_.get();
+        std::unique_ptr<Inner> fresh;
+        std::exception_ptr     err;
+        {
+            std::lock_guard<std::mutex> lk(workerMtx_);
+            if (!resultReady_) return;  // the rebuild is still running
+            resultReady_ = false;
+            fresh        = std::move(builtTree_);
+            err          = buildError_;
+            buildError_  = nullptr;
+        }
+
+        // However this attempt ends (integrated, failed build, or a failed
+        // replay below), it is over: return to the "not rebuilding" state so a
+        // later rebuild can be triggered again. Latching `building_` would
+        // silently disable rebuilding for good, and with it the reclaiming of
+        // tombstoned nodes and of the dataset slots reported by
+        // acquireRemovedPoints() (i.e. unbounded growth), and it would make a
+        // later sync() wait forever for a result nobody is producing.
+        struct EndOfRebuild
+        {
+            KDTreeSingleIndexIncrementalAdaptorMT& self;
+            ~EndOfRebuild()
+            {
+                self.log_.clear();
+                self.building_ = false;
+            }
+        } endOfRebuild{*this};
+
+        // The build failed (e.g. std::bad_alloc). The active tree was never
+        // touched by it, so it is still correct: just drop the attempt.
+        if (err) std::rethrow_exception(err);
+
         fresh->setInlineRebuild(false);
         // Replay the operations buffered while the background build was running.
         for (const auto& op : log_)
@@ -4145,7 +4273,6 @@ class KDTreeSingleIndexIncrementalAdaptorMT
                     break;
             }
         }
-        log_.clear();
         // Dataset slots referenced by the OLD tree but not by the fresh one are
         // now free for the caller to recycle (no node references them anymore).
         if (collectRemoved_)
@@ -4157,7 +4284,6 @@ class KDTreeSingleIndexIncrementalAdaptorMT
         }
         active_        = std::move(fresh);
         lastBuildLive_ = active_->size();
-        building_      = false;
     }
 
     const DatasetAdaptor&        dataset_;
@@ -4166,11 +4292,30 @@ class KDTreeSingleIndexIncrementalAdaptorMT
     double                       rebuildGrowth_;
     Size                         minRebuildSize_;
 
-    std::unique_ptr<Inner>              active_;
-    std::future<std::unique_ptr<Inner>> fut_;
-    bool                                building_      = false;
-    Size                                lastBuildLive_ = 0;
-    std::vector<LoggedOp>               log_;
+    std::unique_ptr<Inner> active_;
+    /// Foreground-only: a rebuild has been handed to the worker and not
+    /// integrated back yet.
+    bool                  building_      = false;
+    Size                  lastBuildLive_ = 0;
+    std::vector<LoggedOp> log_;
+
+    /** @name Background rebuild worker
+     *  One persistent thread, created on the first rebuild (see
+     *  maybeTriggerRebuild()) and joined by the destructor. Everything below is
+     *  guarded by workerMtx_, except workerThread_ itself, which is only
+     *  touched by the foreground thread.
+     *  @{ */
+    std::thread                             workerThread_;
+    std::mutex                              workerMtx_;
+    std::condition_variable                 workerCvJob_;  // foreground -> worker
+    std::condition_variable                 workerCvDone_;  // worker -> foreground
+    std::shared_ptr<std::vector<IndexType>> pendingJob_;  // live indices to build from
+    std::function<void(Inner&)>             pendingCallback_;
+    std::unique_ptr<Inner>                  builtTree_;  // result of the last build
+    std::exception_ptr                      buildError_;  // ...or how it failed
+    bool                                    resultReady_ = false;
+    bool                                    workerStop_  = false;
+    /** @} */
 
     bool                        collectRemoved_ = false;
     std::vector<IndexType>      removedSink_;
