@@ -3008,15 +3008,18 @@ class KDTreeSingleIndexIncrementalAdaptor
      *  given point indices. O(M log M). Reuses recycled nodes via the pool. */
     void buildFromIndices(const std::vector<IndexType>& idxs)
     {
+        // Validate (and grow the point->node map) before touching the current
+        // tree, so a rejected index list leaves the index untouched.
+        IndexType maxIdx = 0;
+        for (IndexType v : idxs) maxIdx = std::max(maxIdx, v);
+        if (!idxs.empty()) ensureNodeMap(maxIdx);
+
         if (iroot_)
         {
             buildBuf_.clear();
             collectLiveAndFree(iroot_, buildBuf_);  // recycle existing nodes
             iroot_ = nullptr;
         }
-        IndexType maxIdx = 0;
-        for (IndexType v : idxs) maxIdx = std::max(maxIdx, v);
-        if (!idxs.empty()) ensureNodeMap(maxIdx);
         buildBuf_.assign(idxs.begin(), idxs.end());
         iroot_      = buildBalanced(buildBuf_, 0, buildBuf_.size(), 0, nullptr);
         liveCount_  = buildBuf_.size();
@@ -4219,29 +4222,36 @@ class KDTreeSingleIndexIncrementalAdaptorMT
         if (!building_) return;
 
         std::unique_ptr<Inner> fresh;
+        std::exception_ptr     err;
         {
-            std::unique_lock<std::mutex> lk(workerMtx_);
+            std::lock_guard<std::mutex> lk(workerMtx_);
             if (!resultReady_) return;  // the rebuild is still running
             resultReady_ = false;
             fresh        = std::move(builtTree_);
-
-            if (buildError_)
-            {
-                const std::exception_ptr err = buildError_;
-                buildError_                  = nullptr;
-                lk.unlock();
-                // The build failed (e.g. std::bad_alloc). The active tree was
-                // never touched by it, so it is still correct: drop the attempt
-                // and return to the "not rebuilding" state so a later rebuild
-                // can be triggered again. Latching `building_` here would
-                // silently disable rebuilding for good, and with it the
-                // reclaiming of tombstoned nodes and of the dataset slots
-                // reported by acquireRemovedPoints(), i.e. unbounded growth.
-                log_.clear();
-                building_ = false;
-                std::rethrow_exception(err);
-            }
+            err          = buildError_;
+            buildError_  = nullptr;
         }
+
+        // However this attempt ends (integrated, failed build, or a failed
+        // replay below), it is over: return to the "not rebuilding" state so a
+        // later rebuild can be triggered again. Latching `building_` would
+        // silently disable rebuilding for good, and with it the reclaiming of
+        // tombstoned nodes and of the dataset slots reported by
+        // acquireRemovedPoints() (i.e. unbounded growth), and it would make a
+        // later sync() wait forever for a result nobody is producing.
+        struct EndOfRebuild
+        {
+            KDTreeSingleIndexIncrementalAdaptorMT& self;
+            ~EndOfRebuild()
+            {
+                self.log_.clear();
+                self.building_ = false;
+            }
+        } endOfRebuild{*this};
+
+        // The build failed (e.g. std::bad_alloc). The active tree was never
+        // touched by it, so it is still correct: just drop the attempt.
+        if (err) std::rethrow_exception(err);
 
         fresh->setInlineRebuild(false);
         // Replay the operations buffered while the background build was running.
@@ -4263,7 +4273,6 @@ class KDTreeSingleIndexIncrementalAdaptorMT
                     break;
             }
         }
-        log_.clear();
         // Dataset slots referenced by the OLD tree but not by the fresh one are
         // now free for the caller to recycle (no node references them anymore).
         if (collectRemoved_)
@@ -4275,7 +4284,6 @@ class KDTreeSingleIndexIncrementalAdaptorMT
         }
         active_        = std::move(fresh);
         lastBuildLive_ = active_->size();
-        building_      = false;
     }
 
     const DatasetAdaptor&        dataset_;

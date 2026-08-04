@@ -635,9 +635,24 @@ TEST(kdtree_incremental, max_index_value_throws_instead_of_exhausting_memory)
         EXPECT_THROW(index.addPoint(kMaxIdx), std::invalid_argument);
     }
     {
-        // ...also on the path that takes an explicit index list:
-        inc_tree_t index(3, empty);
+        // ...also on the path that takes an explicit index list, which must
+        // reject the index before discarding the tree it already holds:
+        inc_cloud_t cloud;
+        for (size_t i = 0; i < 20; i++) cloud.pts.push_back({double(i), double(i), double(i)});
+
+        inc_tree_t index(3, cloud);
+        index.addPoints(0, 19);
+
         EXPECT_THROW(index.buildFromIndices({kMaxIdx}), std::invalid_argument);
+
+        EXPECT_EQ(index.size(), 20u);
+        EXPECT_EQ(index.physicalSize(), 20u);
+
+        const double q[3] = {7.0, 7.0, 7.0};
+        uint32_t     ri   = 0;
+        double       rd   = 0;
+        ASSERT_EQ(index.knnSearch(q, 1, &ri, &rd), 1u);
+        EXPECT_EQ(ri, 7u);
     }
 
     // An empty range is still a no-op, not an error:
