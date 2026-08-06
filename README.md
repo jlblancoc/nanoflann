@@ -273,7 +273,29 @@ These performance tests are only representative of our testing. If you want to r
 
 ----
 
-## 4. Other KD-tree projects
+## 4. Releasing a new version (maintainers only)
+
+The version number is duplicated in `include/nanoflann.hpp` (two macros),
+`package.xml`, the `CHANGELOG.rst` header and the git tag. `scripts/release.py`
+keeps all of them in sync:
+
+```bash
+scripts/release.py check                   # verify all sources agree (also run in CI)
+scripts/release.py prepare --bump minor    # or: --version 1.12.0, and --dry-run
+```
+
+`prepare` runs `catkin_generate_changelog`, pauses for you to edit the
+`Forthcoming` section, then calls `catkin_prepare_release` and folds the header
+macro bump into the same release commit and tag. Nothing is pushed: the script
+prints the remaining `git push` and `bloom-release` commands.
+
+Pushing the tag triggers the `Create GitHub release` workflow, which publishes a
+GitHub release with the notes taken from that version's `CHANGELOG.rst` entry
+(`scripts/release.py notes` renders it as Markdown).
+
+----
+
+## 5. Other KD-tree projects
 
   * [FLANN](http://www.cs.ubc.ca/research/flann/) - Marius Muja and David G. Lowe (University of British Columbia).
   * [FASTANN](http://www.robots.ox.ac.uk/~vgg/software/fastann/) - James Philbin (VGG, University of Oxford).
