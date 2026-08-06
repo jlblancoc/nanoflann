@@ -554,8 +554,8 @@ void SO3_vs_bruteforce_test(const size_t nSamples)
         ASSERT_TRUE(min_idx != std::numeric_limits<size_t>::max());
     }
 
-    // Compare:
-    EXPECT_EQ(min_idx, ret_indexes[0]);
+    // Compare distances, not indices: near-ties between equidistant points
+    // can make the tree return a different (but equally valid) index.
     EXPECT_NEAR(min_dist_L2, out_dists_sqr[0], 1e-3);
 }
 
@@ -680,8 +680,8 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
             }
             ASSERT_TRUE(min_idx != std::numeric_limits<size_t>::max());
         }
-        // Compare:
-        EXPECT_EQ(min_idx, ret_indexes[0]);
+        // Compare distances, not indices: near-ties between equidistant points
+        // can make the tree return a different (but equally valid) index.
         EXPECT_NEAR(min_dist_L2, out_dists_sqr[0], 1e-3);
     }
     for (size_t i = end + 1; i < nSamples; i = i + chunk_size)
@@ -719,8 +719,8 @@ void L2_dynamic_vs_bruteforce_test(const size_t nSamples)
             }
             ASSERT_TRUE(min_idx != std::numeric_limits<size_t>::max());
         }
-        // Compare:
-        EXPECT_EQ(min_idx, ret_indexes[0]);
+        // Compare distances, not indices: near-ties between equidistant points
+        // can make the tree return a different (but equally valid) index.
         EXPECT_NEAR(min_dist_L2, out_dists_sqr[0], 1e-3);
     }
 }
@@ -774,8 +774,8 @@ void L2_concurrent_build_vs_bruteforce_test(const size_t nSamples, const size_t 
         ASSERT_TRUE(min_idx != std::numeric_limits<size_t>::max());
     }
 
-    // Compare:
-    EXPECT_EQ(min_idx, ret_indexes[0]);
+    // Compare distances, not indices: near-ties between equidistant points
+    // can make the tree return a different (but equally valid) index.
     EXPECT_NEAR(min_dist_L2, out_dists_sqr[0], 1e-3);
 }
 
