@@ -2,6 +2,28 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#312 <https://github.com/jlblancoc/nanoflann/issues/312>`_ from jlblancoc/feat/automate-release-script
+  automate release to ensure consistency
+* automate release to ensure consistency
+* fix: stop asserting exact NN index in bruteforce comparison tests
+  Two points can be equidistant (or within float rounding) from a query;
+  nanoflann does not guarantee a tie-break order unless
+  NANOFLANN_FIRST_MATCH is defined, so comparing indices makes these
+  tests flaky whenever a near-tie occurs. Checking the returned distance
+  against the brute-force minimum already fully validates correctness.
+* Merge pull request `#311 <https://github.com/jlblancoc/nanoflann/issues/311>`_ from jlblancoc/fix-potential-ram-run
+  fix: ensure background rebuild spans one single thread
+* address review
+* fix: ensure background rebuild spans one single thread
+* Merge pull request `#310 <https://github.com/jlblancoc/nanoflann/issues/310>`_ from jlblancoc/feat/install-examples-option
+  Add opt-in NANOFLANN_INSTALL_EXAMPLES option
+* Add opt-in NANOFLANN_INSTALL_EXAMPLES option
+  Lets users who need the example binaries installed opt in via CMake,
+  without changing default behavior for the header-only library.
+* Contributors: Jose Luis Blanco-Claraco
+
 1.11.0 (2026-07-31)
 -------------------
 * Merge pull request `#309 <https://github.com/jlblancoc/nanoflann/issues/309>`_ from jlblancoc/feat/incremental-index-save-load
