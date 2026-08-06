@@ -242,7 +242,8 @@ def has_forthcoming():
 
 
 def generate_changelog(dry_run, assume_yes):
-    run(["catkin_generate_changelog", "--skip-contributors"], dry_run)
+    # Contributors are listed in every past entry, so keep them:
+    run(["catkin_generate_changelog"], dry_run)
     if dry_run:
         return
     if not has_forthcoming():
