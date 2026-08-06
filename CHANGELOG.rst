@@ -2,8 +2,8 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.12.0 (2026-08-06)
+-------------------
 * Merge pull request `#312 <https://github.com/jlblancoc/nanoflann/issues/312>`_ from jlblancoc/feat/automate-release-script
   automate release to ensure consistency
 * automate release to ensure consistency

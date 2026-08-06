@@ -4,7 +4,7 @@
      indexed by the ROS build farm as a plain CMake package. -->
 <package format="3">
   <name>nanoflann</name>
-  <version>1.11.0</version>
+  <version>1.12.0</version>
   <description>
     nanoflann: a C++11 header-only library for Nearest Neighbor (NN) search
     with KD-trees, optimized for point clouds and Eigen matrices.
