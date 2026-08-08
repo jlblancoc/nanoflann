@@ -2,8 +2,8 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.12.1 (2026-08-08)
+-------------------
 * docs: badges updates to use nanoflann_vendor
 * Merge pull request `#313 <https://github.com/jlblancoc/nanoflann/issues/313>`_ from jlblancoc/chore/rename-ros-package-to-nanoflann-vendor
   chore(ros): rename the ROS package to nanoflann_vendor

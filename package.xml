@@ -16,7 +16,7 @@
      not from here. -->
 <package format="3">
   <name>nanoflann_vendor</name>
-  <version>1.12.0</version>
+  <version>1.12.1</version>
   <description>
     nanoflann: a C++11 header-only library for Nearest Neighbor (NN) search
     with KD-trees, optimized for point clouds and Eigen matrices.
