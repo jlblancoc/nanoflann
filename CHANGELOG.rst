@@ -2,6 +2,15 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* docs: badges updates to use nanoflann_vendor
+* Merge pull request `#313 <https://github.com/jlblancoc/nanoflann/issues/313>`_ from jlblancoc/chore/rename-ros-package-to-nanoflann-vendor
+  chore(ros): rename the ROS package to nanoflann_vendor
+  Only the ROS package name changes. The CMake package name comes from the
+  CMake project, so find_package(nanoflann) keeps working unchanged.
+* Contributors: Jose Luis Blanco-Claraco
+
 1.12.0 (2026-08-06)
 -------------------
 * Merge pull request `#312 <https://github.com/jlblancoc/nanoflann/issues/312>`_ from jlblancoc/feat/automate-release-script
