@@ -1,9 +1,21 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <!-- This file allows nanoflann to be built inside a ROS workspace and
-     indexed by the ROS build farm as a plain CMake package. -->
+     indexed by the ROS build farm as a plain CMake package.
+
+     The package is named "nanoflann_vendor", not "nanoflann", because
+     "nanoflann" is already a rosdep key (rosdep/base.yaml) resolving to the
+     distribution's own libnanoflann-dev. That key wins over a ROS package of
+     the same name, so <depend>nanoflann</depend> never selects this package
+     and nothing can actually depend on it. The _vendor suffix is what the
+     ROS 2 core uses for exactly this situation (sqlite3_vendor,
+     rviz_assimp_vendor, sdl2_vendor, libcurl_vendor, ...).
+
+     This only changes the ROS package name. The CMake package is still found
+     as find_package(nanoflann), since that name comes from the CMake project,
+     not from here. -->
 <package format="3">
-  <name>nanoflann</name>
+  <name>nanoflann_vendor</name>
   <version>1.12.0</version>
   <description>
     nanoflann: a C++11 header-only library for Nearest Neighbor (NN) search
