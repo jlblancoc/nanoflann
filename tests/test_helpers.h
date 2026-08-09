@@ -905,32 +905,53 @@ inline bool inc_in_box(const inc_cloud_t& c, uint32_t i, const double lo[3], con
 //
 // These helpers build the tree and compare knnSearch / radiusSearch against
 // an exact double baseline so we exercise the full build+query pipeline.
+//
+// Random coordinates use a std::mt19937_64 PRNG with a fixed seed (not
+// rand()) so that:
+//   - failures are reproducible (no time-based seed), and
+//   - the full unsigned range can be exercised (rand() is bounded by
+//     RAND_MAX, ~2^31 on glibc, which is far below UINT32_MAX and would
+//     leave large-uint32_t split-value arithmetic untested).
 // ---------------------------------------------------------------------------
 
 // Fill a PointCloud<T> with random values uniformly drawn from [0, max_coord].
+// The PRNG is seeded deterministically from (seed, point_index, axis) so each
+// call is reproducible regardless of test ordering.
 template <typename T>
-void generateRandomIntegralPointCloud(PointCloud<T>& pc, const size_t N, const T max_coord)
+void generateRandomIntegralPointCloud(
+    PointCloud<T>& pc, const size_t N, const T max_coord, const uint64_t seed = 0xC0FFEEull)
 {
+    // Use the widest unsigned state type so the same generator covers
+    // uint8_t through uint64_t uniformly. Distribution is built per-call
+    // because max_coord is a runtime parameter.
+    std::mt19937_64                              rng(seed);
+    std::uniform_int_distribution<uint64_t> dist(
+        0u, static_cast<uint64_t>(max_coord) > 0 ? static_cast<uint64_t>(max_coord) : 1u);
+
     pc.pts.resize(N);
     for (size_t i = 0; i < N; ++i)
     {
-        pc.pts[i].x = static_cast<T>(rand() % static_cast<int>(max_coord) + 1);
-        pc.pts[i].y = static_cast<T>(rand() % static_cast<int>(max_coord) + 1);
-        pc.pts[i].z = static_cast<T>(rand() % static_cast<int>(max_coord) + 1);
+        pc.pts[i].x = static_cast<T>(dist(rng));
+        pc.pts[i].y = static_cast<T>(dist(rng));
+        pc.pts[i].z = static_cast<T>(dist(rng));
     }
 }
 
 // Build a kd-tree over an integral ElementType and verify the knn result
-// matches an exact double brute-force. Distance is the metric adaptor
-// (L1_Adaptor / L2_Adaptor / L2_Simple_Adaptor). UsePowerOfTwoSum selects
+// matches an exact double brute-force. Adaptor is the metric adaptor
+// (L1_Adaptor / L2_Adaptor / L2_Simple_Adaptor). UseL2Squared selects
 // L1 (|a-b|) vs L2 ((a-b)^2) for the brute-force accumulation.
+//
+// The tree's compile-time dimensionality is fixed at 3 by tree_t, so this
+// helper does not take a DIM argument — callers generate 3D PointClouds
+// only.
 template <typename ElementType, template <class, class, class, class> class Adaptor,
           bool UseL2Squared>
 void unsigned_kd_vs_bruteforce(
-    const size_t N, const size_t DIM, const size_t knn, const ElementType max_coord)
+    const size_t N, const size_t knn, const ElementType max_coord, const uint64_t seed = 0xC0FFEEull)
 {
     PointCloud<ElementType> cloud;
-    generateRandomIntegralPointCloud(cloud, N, max_coord);
+    generateRandomIntegralPointCloud(cloud, N, max_coord, seed);
 
     using adaptor_t = Adaptor<ElementType, PointCloud<ElementType>,
                               nanoflann::detail::signed_distance_type_for_t<ElementType>, size_t>;
@@ -943,13 +964,18 @@ void unsigned_kd_vs_bruteforce(
         sizeof(typename tree_t::DistanceType) >= sizeof(int32_t),
         "DistanceType must be wide enough to hold squared sums.");
 
-    tree_t index(static_cast<int>(DIM), cloud, KDTreeSingleIndexAdaptorParams(10));
+    tree_t index(3, cloud, KDTreeSingleIndexAdaptorParams(10));
 
-    ElementType query_pt[3] = {static_cast<ElementType>(rand() % static_cast<int>(max_coord) + 1),
-                               static_cast<ElementType>(rand() % static_cast<int>(max_coord) + 1),
-                               static_cast<ElementType>(rand() % static_cast<int>(max_coord) + 1)};
+    // Query point drawn from the same range as the cloud, using a derived
+    // seed so it is independent of the cloud sequence but still reproducible.
+    std::mt19937_64                              qrng(seed ^ 0xA5A5A5A5ull);
+    std::uniform_int_distribution<uint64_t> qdist(
+        0u, static_cast<uint64_t>(max_coord) > 0 ? static_cast<uint64_t>(max_coord) : 1u);
+    const ElementType query_pt[3] = {static_cast<ElementType>(qdist(qrng)),
+                                     static_cast<ElementType>(qdist(qrng)),
+                                     static_cast<ElementType>(qdist(qrng))};
 
-    std::vector<size_t>                    ret_index(knn);
+    std::vector<size_t>                        ret_index(knn);
     std::vector<typename tree_t::DistanceType> out_dist(knn);
     nanoflann::KNNResultSet<typename tree_t::DistanceType> resultSet(knn);
     resultSet.init(&ret_index[0], &out_dist[0]);
@@ -1009,10 +1035,11 @@ void unsigned_kd_vs_bruteforce(
 // any future regression in middleSplit_/planeSplit that would crash the
 // radius-search traversal (which uses the same signed distance arithmetic).
 template <typename ElementType, template <class, class, class, class> class Adaptor>
-void unsigned_radius_smoke(const size_t N, const ElementType max_coord)
+void unsigned_radius_smoke(
+    const size_t N, const ElementType max_coord, const uint64_t seed = 0xC0FFEEull)
 {
     PointCloud<ElementType> cloud;
-    generateRandomIntegralPointCloud(cloud, N, max_coord);
+    generateRandomIntegralPointCloud(cloud, N, max_coord, seed);
 
     using adaptor_t = Adaptor<ElementType, PointCloud<ElementType>,
                               nanoflann::detail::signed_distance_type_for_t<ElementType>, size_t>;
@@ -1020,9 +1047,12 @@ void unsigned_radius_smoke(const size_t N, const ElementType max_coord)
 
     tree_t index(3, cloud, KDTreeSingleIndexAdaptorParams(10));
 
-    ElementType query_pt[3] = {static_cast<ElementType>(rand() % static_cast<int>(max_coord) + 1),
-                               static_cast<ElementType>(rand() % static_cast<int>(max_coord) + 1),
-                               static_cast<ElementType>(rand() % static_cast<int>(max_coord) + 1)};
+    std::mt19937_64                              qrng(seed ^ 0xA5A5A5A5ull);
+    std::uniform_int_distribution<uint64_t> qdist(
+        0u, static_cast<uint64_t>(max_coord) > 0 ? static_cast<uint64_t>(max_coord) : 1u);
+    const ElementType query_pt[3] = {static_cast<ElementType>(qdist(qrng)),
+                                     static_cast<ElementType>(qdist(qrng)),
+                                     static_cast<ElementType>(qdist(qrng))};
 
     // Radius large enough to find a healthy fraction of points but not all.
     const typename tree_t::DistanceType radius =
@@ -1034,10 +1064,12 @@ void unsigned_radius_smoke(const size_t N, const ElementType max_coord)
     rs.init();
     index.findNeighbors(rs, &query_pt[0]);
 
-    // Verify: every reported distance is <= radius and matches recomputation.
+    // RadiusResultSet::addPoint keeps a point only when dist < radius
+    // (strict). The brute-force check below must use the same strict
+    // comparison or it will count boundary points the tree rejects.
     for (const auto& p : pairs)
     {
-        ASSERT_LE(p.second, radius);
+        ASSERT_LT(p.second, radius);
         const double dx = static_cast<double>(query_pt[0]) - cloud.pts[p.first].x;
         const double dy = static_cast<double>(query_pt[1]) - cloud.pts[p.first].y;
         const double dz = static_cast<double>(query_pt[2]) - cloud.pts[p.first].z;
@@ -1045,14 +1077,13 @@ void unsigned_radius_smoke(const size_t N, const ElementType max_coord)
         EXPECT_NEAR(expected, static_cast<double>(p.second), 1e-3);
     }
 
-    // Brute-force count of points within radius must equal what tree returned.
     size_t bf_count = 0;
     for (size_t i = 0; i < N; ++i)
     {
         const double dx = static_cast<double>(query_pt[0]) - cloud.pts[i].x;
         const double dy = static_cast<double>(query_pt[1]) - cloud.pts[i].y;
         const double dz = static_cast<double>(query_pt[2]) - cloud.pts[i].z;
-        if (dx * dx + dy * dy + dz * dz <= static_cast<double>(radius)) ++bf_count;
+        if (dx * dx + dy * dy + dz * dz < static_cast<double>(radius)) ++bf_count;
     }
     EXPECT_EQ(bf_count, pairs.size());
 }

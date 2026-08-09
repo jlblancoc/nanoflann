@@ -263,52 +263,57 @@ TEST(kdtree, same_points)
 
 TEST(kdtree, unsigned_uint8_L2_Simple_builds_and_matches_bruteforce)
 {
-    srand(static_cast<unsigned int>(time(nullptr)));
     for (int i = 0; i < 50; ++i)
     {
-        unsigned_kd_vs_bruteforce<uint8_t, L2_Simple_Adaptor, true>(50, 3, 5, 200);
-        unsigned_kd_vs_bruteforce<uint8_t, L2_Simple_Adaptor, true>(200, 3, 7, 250);
+        // Bump the seed per iteration so each pass exercises fresh data,
+        // while keeping the sequence deterministic across runs.
+        const uint64_t seed = 0x1000ull + uint64_t(i) * 0x100ull;
+        unsigned_kd_vs_bruteforce<uint8_t, L2_Simple_Adaptor, true>(50, 5, 200, seed);
+        unsigned_kd_vs_bruteforce<uint8_t, L2_Simple_Adaptor, true>(200, 7, 250, seed + 1);
     }
 }
 
 TEST(kdtree, unsigned_uint8_L2_Adaptor_builds_and_matches_bruteforce)
 {
-    srand(static_cast<unsigned int>(time(nullptr)));
     for (int i = 0; i < 50; ++i)
     {
         // L2_Adaptor uses the unrolled 4-at-a-time loop, so this exercises
         // the evalMetric fast path in addition to the build code.
-        unsigned_kd_vs_bruteforce<uint8_t, L2_Adaptor, true>(50, 3, 5, 200);
+        const uint64_t seed = 0x2000ull + uint64_t(i) * 0x100ull;
+        unsigned_kd_vs_bruteforce<uint8_t, L2_Adaptor, true>(50, 5, 200, seed);
     }
 }
 
 TEST(kdtree, unsigned_uint8_L1_Adaptor_builds_and_matches_bruteforce)
 {
-    srand(static_cast<unsigned int>(time(nullptr)));
     for (int i = 0; i < 50; ++i)
     {
-        unsigned_kd_vs_bruteforce<uint8_t, L1_Adaptor, false>(50, 3, 5, 200);
+        const uint64_t seed = 0x3000ull + uint64_t(i) * 0x100ull;
+        unsigned_kd_vs_bruteforce<uint8_t, L1_Adaptor, false>(50, 5, 200, seed);
     }
 }
 
 TEST(kdtree, unsigned_uint16_L2_Simple_builds_and_matches_bruteforce)
 {
-    srand(static_cast<unsigned int>(time(nullptr)));
     for (int i = 0; i < 30; ++i)
     {
-        unsigned_kd_vs_bruteforce<uint16_t, L2_Simple_Adaptor, true>(100, 3, 5, 60000);
+        const uint64_t seed = 0x4000ull + uint64_t(i) * 0x100ull;
+        unsigned_kd_vs_bruteforce<uint16_t, L2_Simple_Adaptor, true>(100, 5, 60000, seed);
     }
 }
 
 TEST(kdtree, unsigned_uint32_L2_Simple_builds_and_matches_bruteforce)
 {
-    // Smaller iteration count: uint32_t -> DistanceType=double, and the
-    // point of this test is just to exercise the metafunction's uint32_t
-    // branch and Oracle's Gap 1 fix (split_val addition overflow).
-    srand(static_cast<unsigned int>(time(nullptr)));
+    // uint32_t -> DistanceType=double. max_coord = UINT32_MAX/4 (~1e9) so
+    // single-coordinate values fit in the int64_t the metafunction would
+    // have used, but the (low+high) midpoint computation in middleSplit_
+    // exercises the addition in DistanceType (cast-before-add) which would
+    // overflow if computed in ElementType (uint32_t a + uint32_t b wraps).
     for (int i = 0; i < 10; ++i)
     {
-        unsigned_kd_vs_bruteforce<uint32_t, L2_Simple_Adaptor, true>(50, 3, 3, 4000000000u);
+        const uint64_t seed = 0x5000ull + uint64_t(i) * 0x100ull;
+        unsigned_kd_vs_bruteforce<uint32_t, L2_Simple_Adaptor, true>(
+            50, 3, uint32_t(1000000000ull), seed);
     }
 }
 
@@ -316,11 +321,11 @@ TEST(kdtree, unsigned_uint8_via_metric_L2_traits_builds_and_matches_bruteforce)
 {
     // Verify the metric_L2 path (which is what KDTreeVectorOfVectorsAdaptor
     // uses internally) also picks up the metafunction-driven DistanceType.
-    srand(static_cast<unsigned int>(time(nullptr)));
     for (int i = 0; i < 30; ++i)
     {
+        const uint64_t seed = 0x6000ull + uint64_t(i) * 0x100ull;
         PointCloud<uint8_t> cloud;
-        generateRandomIntegralPointCloud(cloud, 100, uint8_t(250));
+        generateRandomIntegralPointCloud(cloud, 100, uint8_t(250), seed);
 
         using adaptor_t =
             nanoflann::metric_L2::traits<uint8_t, PointCloud<uint8_t>>::distance_t;
@@ -331,16 +336,27 @@ TEST(kdtree, unsigned_uint8_via_metric_L2_traits_builds_and_matches_bruteforce)
             "metric_L2::traits must produce a signed DistanceType for uint8_t.");
 
         tree_t index(3, cloud, KDTreeSingleIndexAdaptorParams(10));
-        EXPECT_EQ(cloud.pts.size(), 100u);
+
+        // The build alone is a weak check: querying a known point must
+        // return it at distance zero. This is what catches regressions in
+        // the metric_L2 -> adaptor -> DistanceType plumbing.
+        const uint8_t              query[3] = {cloud.pts[0].x, cloud.pts[0].y, cloud.pts[0].z};
+        size_t                     idx      = 0;
+        typename tree_t::DistanceType dist   = -1;
+        nanoflann::KNNResultSet<typename tree_t::DistanceType> rs(1);
+        rs.init(&idx, &dist);
+        ASSERT_TRUE(index.findNeighbors(rs, &query[0]));
+        EXPECT_EQ(idx, 0u);
+        EXPECT_EQ(dist, 0);
     }
 }
 
 TEST(kdtree, unsigned_uint8_radius_search_matches_bruteforce)
 {
-    srand(static_cast<unsigned int>(time(nullptr)));
     for (int i = 0; i < 20; ++i)
     {
-        unsigned_radius_smoke<uint8_t, L2_Simple_Adaptor>(100, uint8_t(200));
+        const uint64_t seed = 0x7000ull + uint64_t(i) * 0x100ull;
+        unsigned_radius_smoke<uint8_t, L2_Simple_Adaptor>(100, uint8_t(200), seed);
     }
 }
 

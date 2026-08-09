@@ -609,11 +609,13 @@ template <
 struct L1_Adaptor
 {
     static_assert(
-        std::is_signed<_DistanceType>::value,
+        !std::is_arithmetic<_DistanceType>::value || std::is_signed<_DistanceType>::value,
         "nanoflann distance adaptors require a signed _DistanceType. "
         "For unsigned ElementType the default template argument already "
         "selects a signed wider type; if you supply _DistanceType explicitly "
-        "it must be signed (e.g. int32_t, int64_t, double).");
+        "it must be signed (e.g. int32_t, int64_t, double). "
+        "User-defined (non-arithmetic) scalar distance types are accepted "
+        "unchanged.");
 
     using ElementType  = T;
     using DistanceType = _DistanceType;
@@ -701,11 +703,13 @@ template <
 struct L2_Adaptor
 {
     static_assert(
-        std::is_signed<_DistanceType>::value,
+        !std::is_arithmetic<_DistanceType>::value || std::is_signed<_DistanceType>::value,
         "nanoflann distance adaptors require a signed _DistanceType. "
         "For unsigned ElementType the default template argument already "
         "selects a signed wider type; if you supply _DistanceType explicitly "
-        "it must be signed (e.g. int32_t, int64_t, double).");
+        "it must be signed (e.g. int32_t, int64_t, double). "
+        "User-defined (non-arithmetic) scalar distance types are accepted "
+        "unchanged.");
 
     using ElementType  = T;
     using DistanceType = _DistanceType;
@@ -789,11 +793,13 @@ template <
 struct L2_Simple_Adaptor
 {
     static_assert(
-        std::is_signed<_DistanceType>::value,
+        !std::is_arithmetic<_DistanceType>::value || std::is_signed<_DistanceType>::value,
         "nanoflann distance adaptors require a signed _DistanceType. "
         "For unsigned ElementType the default template argument already "
         "selects a signed wider type; if you supply _DistanceType explicitly "
-        "it must be signed (e.g. int32_t, int64_t, double).");
+        "it must be signed (e.g. int32_t, int64_t, double). "
+        "User-defined (non-arithmetic) scalar distance types are accepted "
+        "unchanged.");
 
     using ElementType  = T;
     using DistanceType = _DistanceType;
@@ -843,11 +849,13 @@ template <
 struct SO2_Adaptor
 {
     static_assert(
-        std::is_signed<_DistanceType>::value,
+        !std::is_arithmetic<_DistanceType>::value || std::is_signed<_DistanceType>::value,
         "nanoflann distance adaptors require a signed _DistanceType. "
         "For unsigned ElementType the default template argument already "
         "selects a signed wider type; if you supply _DistanceType explicitly "
-        "it must be signed (e.g. int32_t, int64_t, double).");
+        "it must be signed (e.g. int32_t, int64_t, double). "
+        "User-defined (non-arithmetic) scalar distance types are accepted "
+        "unchanged.");
 
     using ElementType  = T;
     using DistanceType = _DistanceType;
@@ -897,11 +905,13 @@ template <
 struct SO3_Adaptor
 {
     static_assert(
-        std::is_signed<_DistanceType>::value,
+        !std::is_arithmetic<_DistanceType>::value || std::is_signed<_DistanceType>::value,
         "nanoflann distance adaptors require a signed _DistanceType. "
         "For unsigned ElementType the default template argument already "
         "selects a signed wider type; if you supply _DistanceType explicitly "
-        "it must be signed (e.g. int32_t, int64_t, double).");
+        "it must be signed (e.g. int32_t, int64_t, double). "
+        "User-defined (non-arithmetic) scalar distance types are accepted "
+        "unchanged.");
 
     using ElementType  = T;
     using DistanceType = _DistanceType;

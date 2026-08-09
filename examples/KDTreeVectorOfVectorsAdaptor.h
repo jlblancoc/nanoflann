@@ -103,6 +103,14 @@ struct KDTreeVectorOfVectorsAdaptor
         const num_t* query_point, const size_t num_closest, IndexType* out_indices,
         num_t* out_distances_sq) const
     {
+        static_assert(
+            !std::is_unsigned<num_t>::value,
+            "KDTreeVectorOfVectorsAdaptor::query() cannot be used with an "
+            "unsigned num_t: KNNResultSet<num_t>::worstDist() returns "
+            "numeric_limits<num_t>::max() (e.g. 255 for uint8_t), which "
+            "rejects every real squared distance and the out_distances_sq "
+            "buffer cannot hold the result. Call index->findNeighbors() "
+            "directly with KNNResultSet<index_t::DistanceType> instead.");
         nanoflann::KNNResultSet<num_t, IndexType> resultSet(num_closest);
         resultSet.init(out_indices, out_distances_sq);
         index->findNeighbors(resultSet, query_point);
