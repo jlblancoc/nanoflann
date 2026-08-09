@@ -2,6 +2,40 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* fix: support unsigned integral ElementTypes (uint8_t, uint16_t, uint32_t,
+  uint64_t) without crashing or silently producing wrong nearest-neighbour
+  results. Previously, instantiating
+  ``KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<uint8_t, Cloud>,
+  Cloud, 3>`` (and the L1 / L2 / SO2 / SO3 variants, including via the
+  ``metric_L2``-style traits) segfaulted inside ``planeSplit()`` during
+  ``buildIndex()`` with a heap-buffer-overflow, because the default
+  ``_DistanceType = T`` made ``DistanceType`` unsigned and the KD-tree split
+  algorithm requires a signed type.
+* The default ``_DistanceType`` for the distance adaptors is now picked by
+  ``nanoflann::detail::signed_distance_type_for_t<T>``: unsigned types up to
+  16-bit width (``uint8_t``, ``uint16_t``) map to ``int64_t``;
+  ``uint32_t``/``uint64_t`` map to ``double``; everything else (signed or
+  floating-point ``T``) is unchanged. Backward compatible for all existing
+  signed / floating-point ``ElementType`` usage.
+* A ``static_assert`` now fires at instantiation time if the user explicitly
+  passes an unsigned ``_DistanceType`` to one of the adaptors, with a message
+  pointing at the documented signed requirement.
+* ``KDTreeBaseClass::middleSplit_`` and ``planeSplit`` were rewritten to do
+  their arithmetic in ``DistanceType`` (not ``ElementType``) and to use a
+  half-open ``[0, count)`` Dutch-flag partition that cannot underflow even
+  when every point falls on the same side of ``cutval``.
+* All ``evalMetric`` and ``accum_dist`` implementations in the L1, L2 and
+  L2_Simple adaptors now cast both operands to ``DistanceType`` *before*
+  subtracting, so unsigned ``uint32_t`` / ``uint64_t`` coordinates do not
+  wrap around before the (lossless) promotion to the signed distance type.
+* Tests: 9 new regression tests in ``test_kdtree_basic.cpp`` exercising
+  build + knnSearch + radiusSearch for ``uint8_t`` / ``uint16_t`` /
+  ``uint32_t`` across the L1 / L2 / L2_Simple adaptors, the
+  ``metric_L2::traits`` path, a degenerate all-equal-points case, and a
+  compile-time check of the metafunction's mapping table.
+
 1.12.1 (2026-08-08)
 -------------------
 * docs: badges updates to use nanoflann_vendor

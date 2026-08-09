@@ -90,6 +90,14 @@ struct KDTreeVectorOfVectorsAdaptor
      *  (entered as query_point[0:dim-1]).
      *  Note that this is a short-cut method for index->findNeighbors().
      *  The user can also call index->... methods as desired.
+     *
+     *  \note When \tparam num_t is an unsigned integral type (e.g. uint8_t),
+     *  this convenience wrapper is not appropriate: it instantiates
+     *  KNNResultSet<num_t> whose worstDist() returns
+     *  numeric_limits<num_t>::max() (e.g. 255 for uint8_t), which rejects
+     *  every real squared distance. In that case, call index->findNeighbors
+     *  directly with KNNResultSet<index_t::DistanceType>, which is the
+     *  signed wider type selected by detail::signed_distance_type_for_t.
      */
     inline void query(
         const num_t* query_point, const size_t num_closest, IndexType* out_indices,

@@ -249,3 +249,158 @@ TEST(kdtree, same_points)
 
     kdtree_t idx(3 /*dim*/, cloud);
 }
+
+// ---------------------------------------------------------------------------
+// Regression tests for unsigned integral ElementTypes.
+//
+// Before the fix that introduced detail::signed_distance_type_for_t<T>,
+// instantiating a KDTree with ElementType=uint8_t (or any unsigned integral
+// type) segfaulted inside planeSplit() during buildIndex(). These tests
+// exercise build + knn + radius for each of uint8_t / uint16_t / uint32_t
+// across the L1, L2 and L2_Simple adaptors, plus the metric_L2 traits path
+// and a degenerate all-equal-points case.
+// ---------------------------------------------------------------------------
+
+TEST(kdtree, unsigned_uint8_L2_Simple_builds_and_matches_bruteforce)
+{
+    srand(static_cast<unsigned int>(time(nullptr)));
+    for (int i = 0; i < 50; ++i)
+    {
+        unsigned_kd_vs_bruteforce<uint8_t, L2_Simple_Adaptor, true>(50, 3, 5, 200);
+        unsigned_kd_vs_bruteforce<uint8_t, L2_Simple_Adaptor, true>(200, 3, 7, 250);
+    }
+}
+
+TEST(kdtree, unsigned_uint8_L2_Adaptor_builds_and_matches_bruteforce)
+{
+    srand(static_cast<unsigned int>(time(nullptr)));
+    for (int i = 0; i < 50; ++i)
+    {
+        // L2_Adaptor uses the unrolled 4-at-a-time loop, so this exercises
+        // the evalMetric fast path in addition to the build code.
+        unsigned_kd_vs_bruteforce<uint8_t, L2_Adaptor, true>(50, 3, 5, 200);
+    }
+}
+
+TEST(kdtree, unsigned_uint8_L1_Adaptor_builds_and_matches_bruteforce)
+{
+    srand(static_cast<unsigned int>(time(nullptr)));
+    for (int i = 0; i < 50; ++i)
+    {
+        unsigned_kd_vs_bruteforce<uint8_t, L1_Adaptor, false>(50, 3, 5, 200);
+    }
+}
+
+TEST(kdtree, unsigned_uint16_L2_Simple_builds_and_matches_bruteforce)
+{
+    srand(static_cast<unsigned int>(time(nullptr)));
+    for (int i = 0; i < 30; ++i)
+    {
+        unsigned_kd_vs_bruteforce<uint16_t, L2_Simple_Adaptor, true>(100, 3, 5, 60000);
+    }
+}
+
+TEST(kdtree, unsigned_uint32_L2_Simple_builds_and_matches_bruteforce)
+{
+    // Smaller iteration count: uint32_t -> DistanceType=double, and the
+    // point of this test is just to exercise the metafunction's uint32_t
+    // branch and Oracle's Gap 1 fix (split_val addition overflow).
+    srand(static_cast<unsigned int>(time(nullptr)));
+    for (int i = 0; i < 10; ++i)
+    {
+        unsigned_kd_vs_bruteforce<uint32_t, L2_Simple_Adaptor, true>(50, 3, 3, 4000000000u);
+    }
+}
+
+TEST(kdtree, unsigned_uint8_via_metric_L2_traits_builds_and_matches_bruteforce)
+{
+    // Verify the metric_L2 path (which is what KDTreeVectorOfVectorsAdaptor
+    // uses internally) also picks up the metafunction-driven DistanceType.
+    srand(static_cast<unsigned int>(time(nullptr)));
+    for (int i = 0; i < 30; ++i)
+    {
+        PointCloud<uint8_t> cloud;
+        generateRandomIntegralPointCloud(cloud, 100, uint8_t(250));
+
+        using adaptor_t =
+            nanoflann::metric_L2::traits<uint8_t, PointCloud<uint8_t>>::distance_t;
+        using tree_t = KDTreeSingleIndexAdaptor<adaptor_t, PointCloud<uint8_t>, 3, size_t>;
+
+        static_assert(
+            std::is_signed<typename tree_t::DistanceType>::value,
+            "metric_L2::traits must produce a signed DistanceType for uint8_t.");
+
+        tree_t index(3, cloud, KDTreeSingleIndexAdaptorParams(10));
+        EXPECT_EQ(cloud.pts.size(), 100u);
+    }
+}
+
+TEST(kdtree, unsigned_uint8_radius_search_matches_bruteforce)
+{
+    srand(static_cast<unsigned int>(time(nullptr)));
+    for (int i = 0; i < 20; ++i)
+    {
+        unsigned_radius_smoke<uint8_t, L2_Simple_Adaptor>(100, uint8_t(200));
+    }
+}
+
+TEST(kdtree, unsigned_uint8_all_points_equal)
+{
+    // Degenerate case that previously triggered the planeSplit underflow:
+    // when every point has identical coordinates, all values are equal to
+    // cutval, so the partition walks the "else { mid++ }" branch only and
+    // never decrements `right`. This must still terminate cleanly and
+    // return a valid neighbour.
+    PointCloud<uint8_t> cloud;
+    cloud.pts.resize(20);
+    for (auto& p : cloud.pts)
+    {
+        p.x = 100;
+        p.y = 150;
+        p.z = 200;
+    }
+
+    using adaptor_t =
+        L2_Simple_Adaptor<uint8_t, PointCloud<uint8_t>,
+                          nanoflann::detail::signed_distance_type_for_t<uint8_t>, size_t>;
+    using tree_t = KDTreeSingleIndexAdaptor<adaptor_t, PointCloud<uint8_t>, 3, size_t>;
+
+    tree_t index(3, cloud, KDTreeSingleIndexAdaptorParams(4));
+
+    uint8_t query[3] = {100, 150, 200};
+    size_t idx = 0;
+    typename tree_t::DistanceType dist = 0;
+    nanoflann::KNNResultSet<typename tree_t::DistanceType> rs(1);
+    rs.init(&idx, &dist);
+    bool ok = index.findNeighbors(rs, &query[0]);
+
+    EXPECT_TRUE(ok);
+    EXPECT_EQ(dist, 0);
+}
+
+TEST(kdtree, unsigned_static_assert_blocks_unsigned_distancetype)
+{
+    // Compile-time check: the metafunction gives unsigned->signed promotion.
+    static_assert(
+        std::is_same<nanoflann::detail::signed_distance_type_for_t<uint8_t>, int64_t>::value,
+        "uint8_t must map to int64_t");
+    static_assert(
+        std::is_same<nanoflann::detail::signed_distance_type_for_t<uint16_t>, int64_t>::value,
+        "uint16_t must map to int64_t");
+    static_assert(
+        std::is_same<nanoflann::detail::signed_distance_type_for_t<uint32_t>, double>::value,
+        "uint32_t must map to double (squared max 2^64 overflows int64_t)");
+    static_assert(
+        std::is_same<nanoflann::detail::signed_distance_type_for_t<uint64_t>, double>::value,
+        "uint64_t must map to double");
+    static_assert(
+        std::is_same<nanoflann::detail::signed_distance_type_for_t<double>, double>::value,
+        "double must map to itself");
+    static_assert(
+        std::is_same<nanoflann::detail::signed_distance_type_for_t<float>, float>::value,
+        "float must map to itself");
+    static_assert(
+        std::is_same<nanoflann::detail::signed_distance_type_for_t<int32_t>, int32_t>::value,
+        "int32_t must map to itself (signed small types are not widened)");
+    SUCCEED();
+}

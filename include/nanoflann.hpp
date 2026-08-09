@@ -245,6 +245,59 @@ struct ResultItem
 
 namespace detail
 {
+/**
+ * Default DistanceType selector for distance adaptors.
+ *
+ * The documentation of L1/L2/L2_Simple/SO2/SO3 adaptors states that
+ * `_DistanceType` "must be signed", since distance computations require
+ * subtractions of element values and signed comparisons (e.g. for spread
+ * sentinels and bounding-box split logic). The historical default
+ * `_DistanceType = T` is therefore unsafe for unsigned `T` (e.g. `uint8_t`),
+ * for which distance accumulation, KD-tree split-value computation, and the
+ * plane-split partition algorithm all produce wrong results and may even
+ * segfault (heap-buffer-overflow in `planeSplit` when the split value
+ * collapses due to unsigned arithmetic wrap-around).
+ *
+ * This metafunction picks a safe signed default that is wide enough to hold
+ * the sum of squared differences of element values:
+ *   - unsigned T with sizeof <= 2 (uint8_t, uint16_t, unsigned char, ...)
+ *     -> int64_t  (max squared distance per dim = 65535^2 = ~4.3e9, fits)
+ *   - unsigned T with sizeof >  2 (uint32_t, uint64_t)
+ *     -> double   (uint32_t squared max = 2^64 overflows int64_t)
+ *   - everything else (signed/float T)
+ *     -> T        (preserves backward compatibility; signed T users
+ *                  historically pick a sufficiently wide T themselves).
+ *
+ * Note: signed small integral T (int8_t, int16_t) is intentionally NOT
+ * promoted. The adaptor's static_assert still requires DistanceType to be
+ * signed (which they are), and the historical behaviour for those types is
+ * preserved. Users with full-range int8_t/int16_t data should pass an
+ * explicit wider _DistanceType (e.g. int32_t) to avoid overflow during
+ * squared-distance accumulation.
+ */
+template <typename T>
+struct signed_distance_type_for
+{
+    template <typename U = T, typename = void>
+    struct impl
+    {
+        using type = T;  // signed / floating-point / user-defined: identity
+    };
+    template <typename U>
+    struct impl<U, typename std::enable_if<std::is_unsigned<U>::value>::type>
+    {
+        // uint8_t / uint16_t: max squared distance per dim is 65535^2 ~= 4.3e9,
+        // which fits in int64_t even after summing across many dimensions.
+        // uint32_t: max squared distance is 2^64 which overflows int64_t, so
+        // fall back to double (lossless for individual element values < 2^53).
+        using type = typename std::conditional<(sizeof(U) <= 2), int64_t, double>::type;
+    };
+    using type = typename impl<>::type;
+};
+
+template <typename T>
+using signed_distance_type_for_t = typename signed_distance_type_for<T>::type;
+
 /** Insert (dist, index) into a sorted result buffer (dists, indices) of the
  *  given capacity, keeping ascending distance order.  Shared by KNNResultSet
  *  and RKNNResultSet, which are otherwise byte-for-byte identical.
@@ -544,13 +597,24 @@ struct Metric
  *
  * \tparam T Type of the elements (e.g. double, float, uint8_t)
  * \tparam DataSource Source of the data, i.e. where the vectors are stored
- * \tparam _DistanceType Type of distance variables (must be signed)
+ * \tparam _DistanceType Type of distance variables (must be signed). For
+ *        unsigned \tparam T the default picks a sufficiently wide signed type
+ *        automatically (see nanoflann::detail::signed_distance_type_for_t).
  * \tparam IndexType Type of the arguments with which the data can be
  * accessed (e.g. float, double, int64_t, T*)
  */
-template <class T, class DataSource, typename _DistanceType = T, typename IndexType = size_t>
+template <
+    class T, class DataSource,
+    typename _DistanceType = detail::signed_distance_type_for_t<T>, typename IndexType = size_t>
 struct L1_Adaptor
 {
+    static_assert(
+        std::is_signed<_DistanceType>::value,
+        "nanoflann distance adaptors require a signed _DistanceType. "
+        "For unsigned ElementType the default template argument already "
+        "selects a signed wider type; if you supply _DistanceType explicitly "
+        "it must be signed (e.g. int32_t, int64_t, double).");
+
     using ElementType  = T;
     using DistanceType = _DistanceType;
 
@@ -567,10 +631,21 @@ struct L1_Adaptor
 
         for (d = 0; d < multof4; d += 4)
         {
-            const DistanceType diff0 = std::abs(a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
-            const DistanceType diff1 = std::abs(a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
-            const DistanceType diff2 = std::abs(a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
-            const DistanceType diff3 = std::abs(a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3));
+            // Cast to DistanceType before subtracting: for unsigned ElementType
+            // wider than int (uint32_t, uint64_t) the subtraction would
+            // otherwise use modular unsigned arithmetic and lose the sign.
+            const DistanceType diff0 = std::abs(
+                static_cast<DistanceType>(a[d + 0]) -
+                static_cast<DistanceType>(data_source.kdtree_get_pt(b_idx, d + 0)));
+            const DistanceType diff1 = std::abs(
+                static_cast<DistanceType>(a[d + 1]) -
+                static_cast<DistanceType>(data_source.kdtree_get_pt(b_idx, d + 1)));
+            const DistanceType diff2 = std::abs(
+                static_cast<DistanceType>(a[d + 2]) -
+                static_cast<DistanceType>(data_source.kdtree_get_pt(b_idx, d + 2)));
+            const DistanceType diff3 = std::abs(
+                static_cast<DistanceType>(a[d + 3]) -
+                static_cast<DistanceType>(data_source.kdtree_get_pt(b_idx, d + 3)));
             /* Parentheses break dependency chain: */
             result += (diff0 + diff1) + (diff2 + diff3);
         }
@@ -579,13 +654,19 @@ struct L1_Adaptor
         switch (size - multof4)
         {
             case 3:
-                result += std::abs(a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
+                result += std::abs(
+                    static_cast<DistanceType>(a[d + 2]) -
+                    static_cast<DistanceType>(data_source.kdtree_get_pt(b_idx, d + 2)));
                 NANOFLANN_FALLTHROUGH;
             case 2:
-                result += std::abs(a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
+                result += std::abs(
+                    static_cast<DistanceType>(a[d + 1]) -
+                    static_cast<DistanceType>(data_source.kdtree_get_pt(b_idx, d + 1)));
                 NANOFLANN_FALLTHROUGH;
             case 1:
-                result += std::abs(a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
+                result += std::abs(
+                    static_cast<DistanceType>(a[d + 0]) -
+                    static_cast<DistanceType>(data_source.kdtree_get_pt(b_idx, d + 0)));
                 NANOFLANN_FALLTHROUGH;
             case 0:
                 break;
@@ -596,7 +677,9 @@ struct L1_Adaptor
     template <typename U, typename V>
     inline DistanceType accum_dist(const U a, const V b, const size_t) const
     {
-        return std::abs(a - b);
+        // Cast before subtracting so unsigned uint32_t/uint64_t operands do
+        // not wrap around before being promoted to (signed) DistanceType.
+        return std::abs(static_cast<DistanceType>(a) - static_cast<DistanceType>(b));
     }
 };
 
@@ -606,13 +689,24 @@ struct L1_Adaptor
  *
  * \tparam T Type of the elements (e.g. double, float, uint8_t)
  * \tparam DataSource Source of the data, i.e. where the vectors are stored
- * \tparam _DistanceType Type of distance variables (must be signed)
+ * \tparam _DistanceType Type of distance variables (must be signed). For
+ *        unsigned \tparam T the default picks a sufficiently wide signed type
+ *        automatically (see nanoflann::detail::signed_distance_type_for_t).
  * \tparam IndexType Type of the arguments with which the data can be
  * accessed (e.g. float, double, int64_t, T*)
  */
-template <class T, class DataSource, typename _DistanceType = T, typename IndexType = size_t>
+template <
+    class T, class DataSource,
+    typename _DistanceType = detail::signed_distance_type_for_t<T>, typename IndexType = size_t>
 struct L2_Adaptor
 {
+    static_assert(
+        std::is_signed<_DistanceType>::value,
+        "nanoflann distance adaptors require a signed _DistanceType. "
+        "For unsigned ElementType the default template argument already "
+        "selects a signed wider type; if you supply _DistanceType explicitly "
+        "it must be signed (e.g. int32_t, int64_t, double).");
+
     using ElementType  = T;
     using DistanceType = _DistanceType;
 
@@ -629,10 +723,15 @@ struct L2_Adaptor
 
         for (d = 0; d < multof4; d += 4)
         {
-            const DistanceType diff0 = a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0);
-            const DistanceType diff1 = a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1);
-            const DistanceType diff2 = a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2);
-            const DistanceType diff3 = a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3);
+            // Cast to DistanceType before subtracting: see L1_Adaptor::evalMetric.
+            const DistanceType diff0 = static_cast<DistanceType>(a[d + 0]) -
+                                       static_cast<DistanceType>(data_source.kdtree_get_pt(b_idx, d + 0));
+            const DistanceType diff1 = static_cast<DistanceType>(a[d + 1]) -
+                                       static_cast<DistanceType>(data_source.kdtree_get_pt(b_idx, d + 1));
+            const DistanceType diff2 = static_cast<DistanceType>(a[d + 2]) -
+                                       static_cast<DistanceType>(data_source.kdtree_get_pt(b_idx, d + 2));
+            const DistanceType diff3 = static_cast<DistanceType>(a[d + 3]) -
+                                       static_cast<DistanceType>(data_source.kdtree_get_pt(b_idx, d + 3));
             /* Parentheses break dependency chain: */
             result += (diff0 * diff0 + diff1 * diff1) + (diff2 * diff2 + diff3 * diff3);
         }
@@ -642,15 +741,18 @@ struct L2_Adaptor
         switch (size - multof4)
         {
             case 3:
-                diff = a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2);
+                diff = static_cast<DistanceType>(a[d + 2]) -
+                       static_cast<DistanceType>(data_source.kdtree_get_pt(b_idx, d + 2));
                 result += diff * diff;
                 NANOFLANN_FALLTHROUGH;
             case 2:
-                diff = a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1);
+                diff = static_cast<DistanceType>(a[d + 1]) -
+                       static_cast<DistanceType>(data_source.kdtree_get_pt(b_idx, d + 1));
                 result += diff * diff;
                 NANOFLANN_FALLTHROUGH;
             case 1:
-                diff = a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0);
+                diff = static_cast<DistanceType>(a[d + 0]) -
+                       static_cast<DistanceType>(data_source.kdtree_get_pt(b_idx, d + 0));
                 result += diff * diff;
                 NANOFLANN_FALLTHROUGH;
             case 0:
@@ -662,7 +764,9 @@ struct L2_Adaptor
     template <typename U, typename V>
     inline DistanceType accum_dist(const U a, const V b, const size_t) const
     {
-        auto diff = a - b;
+        // Cast before subtracting so unsigned uint32_t/uint64_t operands do
+        // not wrap around before being promoted to (signed) DistanceType.
+        const DistanceType diff = static_cast<DistanceType>(a) - static_cast<DistanceType>(b);
         return diff * diff;
     }
 };
@@ -673,13 +777,24 @@ struct L2_Adaptor
  *
  * \tparam T Type of the elements (e.g. double, float, uint8_t)
  * \tparam DataSource Source of the data, i.e. where the vectors are stored
- * \tparam _DistanceType Type of distance variables (must be signed)
+ * \tparam _DistanceType Type of distance variables (must be signed). For
+ *        unsigned \tparam T the default picks a sufficiently wide signed type
+ *        automatically (see nanoflann::detail::signed_distance_type_for_t).
  * \tparam IndexType Type of the arguments with which the data can be
  * accessed (e.g. float, double, int64_t, T*)
  */
-template <class T, class DataSource, typename _DistanceType = T, typename IndexType = size_t>
+template <
+    class T, class DataSource,
+    typename _DistanceType = detail::signed_distance_type_for_t<T>, typename IndexType = size_t>
 struct L2_Simple_Adaptor
 {
+    static_assert(
+        std::is_signed<_DistanceType>::value,
+        "nanoflann distance adaptors require a signed _DistanceType. "
+        "For unsigned ElementType the default template argument already "
+        "selects a signed wider type; if you supply _DistanceType explicitly "
+        "it must be signed (e.g. int32_t, int64_t, double).");
+
     using ElementType  = T;
     using DistanceType = _DistanceType;
 
@@ -692,7 +807,9 @@ struct L2_Simple_Adaptor
         DistanceType result = DistanceType();
         for (size_t i = 0; i < size; ++i)
         {
-            const DistanceType diff = a[i] - data_source.kdtree_get_pt(b_idx, i);
+            // Cast to DistanceType before subtracting: see L1_Adaptor::evalMetric.
+            const DistanceType diff = static_cast<DistanceType>(a[i]) -
+                                      static_cast<DistanceType>(data_source.kdtree_get_pt(b_idx, i));
             result += diff * diff;
         }
         return result;
@@ -701,7 +818,9 @@ struct L2_Simple_Adaptor
     template <typename U, typename V>
     inline DistanceType accum_dist(const U a, const V b, const size_t) const
     {
-        auto diff = a - b;
+        // Cast before subtracting so unsigned uint32_t/uint64_t operands do
+        // not wrap around before being promoted to (signed) DistanceType.
+        const DistanceType diff = static_cast<DistanceType>(a) - static_cast<DistanceType>(b);
         return diff * diff;
     }
 };
@@ -712,13 +831,24 @@ struct L2_Simple_Adaptor
  * \tparam T Type of the elements (e.g. double, float, uint8_t)
  * \tparam DataSource Source of the data, i.e. where the vectors are stored
  * \tparam _DistanceType Type of distance variables (must be signed) (e.g.
- * float, double) orientation is constrained to be in [-pi, pi]
+ * float, double) orientation is constrained to be in [-pi, pi]. For unsigned
+ * \tparam T the default picks a sufficiently wide signed type automatically
+ * (see nanoflann::detail::signed_distance_type_for_t).
  * \tparam IndexType Type of the arguments with which the data can be
  * accessed (e.g. float, double, int64_t, T*)
  */
-template <class T, class DataSource, typename _DistanceType = T, typename IndexType = size_t>
+template <
+    class T, class DataSource,
+    typename _DistanceType = detail::signed_distance_type_for_t<T>, typename IndexType = size_t>
 struct SO2_Adaptor
 {
+    static_assert(
+        std::is_signed<_DistanceType>::value,
+        "nanoflann distance adaptors require a signed _DistanceType. "
+        "For unsigned ElementType the default template argument already "
+        "selects a signed wider type; if you supply _DistanceType explicitly "
+        "it must be signed (e.g. int32_t, int64_t, double).");
+
     using ElementType  = T;
     using DistanceType = _DistanceType;
 
@@ -755,13 +885,24 @@ struct SO2_Adaptor
  * \tparam T Type of the elements (e.g. double, float, uint8_t)
  * \tparam DataSource Source of the data, i.e. where the vectors are stored
  * \tparam _DistanceType Type of distance variables (must be signed) (e.g.
- * float, double)
+ * float, double). For unsigned \tparam T the default picks a sufficiently
+ * wide signed type automatically (see
+ * nanoflann::detail::signed_distance_type_for_t).
  * \tparam IndexType Type of the arguments with which the data can be
  * accessed (e.g. float, double, int64_t, T*)
  */
-template <class T, class DataSource, typename _DistanceType = T, typename IndexType = size_t>
+template <
+    class T, class DataSource,
+    typename _DistanceType = detail::signed_distance_type_for_t<T>, typename IndexType = size_t>
 struct SO3_Adaptor
 {
+    static_assert(
+        std::is_signed<_DistanceType>::value,
+        "nanoflann distance adaptors require a signed _DistanceType. "
+        "For unsigned ElementType the default template argument already "
+        "selects a signed wider type; if you supply _DistanceType explicitly "
+        "it must be signed (e.g. int32_t, int64_t, double).");
+
     using ElementType  = T;
     using DistanceType = _DistanceType;
 
@@ -787,7 +928,11 @@ struct metric_L1 : public Metric
     template <class T, class DataSource, typename IndexType = size_t>
     struct traits
     {
-        using distance_t = L1_Adaptor<T, DataSource, T, IndexType>;
+        // _DistanceType is intentionally left to the adaptor's default
+        // (detail::signed_distance_type_for_t<T>) so that unsigned T such as
+        // uint8_t/uint16_t/uint32_t produce a signed distance type and the
+        // kd-tree build/query does not underflow or crash.
+        using distance_t = L1_Adaptor<T, DataSource, detail::signed_distance_type_for_t<T>, IndexType>;
     };
 };
 /** Metaprogramming helper traits class for the L2 (Euclidean) **squared**
@@ -797,7 +942,8 @@ struct metric_L2 : public Metric
     template <class T, class DataSource, typename IndexType = size_t>
     struct traits
     {
-        using distance_t = L2_Adaptor<T, DataSource, T, IndexType>;
+        // See metric_L1 for the rationale on the explicit DistanceType.
+        using distance_t = L2_Adaptor<T, DataSource, detail::signed_distance_type_for_t<T>, IndexType>;
     };
 };
 /** Metaprogramming helper traits class for the L2_simple (Euclidean)
@@ -807,7 +953,9 @@ struct metric_L2_Simple : public Metric
     template <class T, class DataSource, typename IndexType = size_t>
     struct traits
     {
-        using distance_t = L2_Simple_Adaptor<T, DataSource, T, IndexType>;
+        // See metric_L1 for the rationale on the explicit DistanceType.
+        using distance_t =
+            L2_Simple_Adaptor<T, DataSource, detail::signed_distance_type_for_t<T>, IndexType>;
     };
 };
 /** Metaprogramming helper traits class for the SO3_InnerProdQuat metric */
@@ -816,7 +964,8 @@ struct metric_SO2 : public Metric
     template <class T, class DataSource, typename IndexType = size_t>
     struct traits
     {
-        using distance_t = SO2_Adaptor<T, DataSource, T, IndexType>;
+        // See metric_L1 for the rationale on the explicit DistanceType.
+        using distance_t = SO2_Adaptor<T, DataSource, detail::signed_distance_type_for_t<T>, IndexType>;
     };
 };
 /** Metaprogramming helper traits class for the SO3_InnerProdQuat metric */
@@ -825,7 +974,8 @@ struct metric_SO3 : public Metric
     template <class T, class DataSource, typename IndexType = size_t>
     struct traits
     {
-        using distance_t = SO3_Adaptor<T, DataSource, T, IndexType>;
+        // See metric_L1 for the rationale on the explicit DistanceType.
+        using distance_t = SO3_Adaptor<T, DataSource, detail::signed_distance_type_for_t<T>, IndexType>;
     };
 };
 
@@ -1394,12 +1544,12 @@ class KDTreeBaseClass
 
         /* Recurse on left */
         BoundingBox left_bbox(bbox);
-        left_bbox[cutfeat].high = cutval;
+        left_bbox[cutfeat].high = static_cast<ElementType>(cutval);
         node->child1            = this->divideTree(obj, left, left + idx, left_bbox);
 
         /* Recurse on right */
         BoundingBox right_bbox(bbox);
-        right_bbox[cutfeat].low = cutval;
+        right_bbox[cutfeat].low = static_cast<ElementType>(cutval);
         node->child2            = this->divideTree(obj, left + idx, right, right_bbox);
 
         finalizeSplitNode(obj, node, cutfeat, left_bbox, right_bbox, bbox);
@@ -1437,7 +1587,7 @@ class KDTreeBaseClass
         /* Recurse on right concurrently, if possible */
 
         BoundingBox right_bbox(bbox);
-        right_bbox[cutfeat].low = cutval;
+        right_bbox[cutfeat].low = static_cast<ElementType>(cutval);
         if (++thread_count < n_thread_build_)
         {
             /* Concurrent thread for right recursion */
@@ -1454,7 +1604,7 @@ class KDTreeBaseClass
         /* Recurse on left in this thread */
 
         BoundingBox left_bbox(bbox);
-        left_bbox[cutfeat].high = cutval;
+        left_bbox[cutfeat].high = static_cast<ElementType>(cutval);
         node->child1 =
             this->divideTreeConcurrent(obj, left, left + idx, left_bbox, thread_count, mutex);
 
@@ -1485,24 +1635,36 @@ class KDTreeBaseClass
         const Dimension dims = static_cast<Dimension>(veclen(obj));
         const auto      EPS  = static_cast<DistanceType>(0.00001);
 
-        // Pre-compute max_span once
-        ElementType max_span = bbox[0].high - bbox[0].low;
+        // Spans and spreads are accumulated in DistanceType (signed) to:
+        //  (a) allow the "-1" sentinel below to actually be negative for
+        //      unsigned ElementType, and
+        //  (b) avoid overflow when computing bbox.high - bbox.low or split
+        //      midpoints for unsigned / small integral ElementTypes such as
+        //      uint8_t, uint16_t, uint32_t.
+        // The signed DistanceType is guaranteed either by the adaptor's
+        // default template argument (detail::signed_distance_type_for_t<T>)
+        // or by a static_assert in the adaptor when the user overrides it.
+        DistanceType max_span =
+            static_cast<DistanceType>(bbox[0].high) - static_cast<DistanceType>(bbox[0].low);
         for (Dimension i = 1; i < dims; ++i)
         {
-            ElementType span = bbox[i].high - bbox[i].low;
+            const DistanceType span =
+                static_cast<DistanceType>(bbox[i].high) - static_cast<DistanceType>(bbox[i].low);
             if (span > max_span) max_span = span;
         }
 
         // Two-pass: first find max_span (done above), then scan candidate dims
         // inline — no heap allocation for a candidates vector.
-        cutfeat                      = 0;
-        ElementType       max_spread = -1;
-        ElementType       min_elem = 0, max_elem = 0;
-        const ElementType threshold = (1 - EPS) * max_span;
+        cutfeat               = 0;
+        DistanceType max_spread = -1;
+        ElementType  min_elem = 0, max_elem = 0;
+        const DistanceType threshold = (DistanceType(1) - EPS) * max_span;
 
         for (Dimension dim = 0; dim < dims; ++dim)
         {
-            if (bbox[dim].high - bbox[dim].low < threshold) continue;
+            const DistanceType span =
+                static_cast<DistanceType>(bbox[dim].high) - static_cast<DistanceType>(bbox[dim].low);
+            if (span < threshold) continue;
 
             ElementType local_min = dataset_get(obj, vAcc_[ind], dim);
             ElementType local_max = local_min;
@@ -1529,7 +1691,8 @@ class KDTreeBaseClass
                 local_max       = std::max(local_max, val);
             }
 
-            ElementType spread = local_max - local_min;
+            const DistanceType spread =
+                static_cast<DistanceType>(local_max) - static_cast<DistanceType>(local_min);
             if (spread > max_spread)
             {
                 cutfeat    = dim;
@@ -1539,10 +1702,19 @@ class KDTreeBaseClass
             }
         }
 
-        // Median-of-three for better balance
-        DistanceType split_val = (bbox[cutfeat].low + bbox[cutfeat].high) / 2;
-        if (split_val < min_elem) split_val = min_elem;
-        if (split_val > max_elem) split_val = max_elem;
+        // Median-of-three for better balance. Cast to DistanceType BEFORE
+        // adding to avoid ElementType overflow for large unsigned types
+        // (uint32_t: low+high can exceed 2^32). The outer cast back to
+        // DistanceType silences -Wconversion for small signed DistanceTypes
+        // (e.g. int8_t) where the integer-promoted addition produces int.
+        DistanceType split_val = static_cast<DistanceType>(
+            (static_cast<DistanceType>(bbox[cutfeat].low) +
+             static_cast<DistanceType>(bbox[cutfeat].high)) /
+            DistanceType(2));
+        if (split_val < static_cast<DistanceType>(min_elem))
+            split_val = static_cast<DistanceType>(min_elem);
+        if (split_val > static_cast<DistanceType>(max_elem))
+            split_val = static_cast<DistanceType>(max_elem);
 
         cutval = split_val;
 
@@ -1557,23 +1729,34 @@ class KDTreeBaseClass
      *  Subdivide the list of points by a plane perpendicular on the axis
      * corresponding to the 'cutfeat' dimension at 'cutval' position.
      *
+     *  Uses the Dutch National Flag algorithm with a **half-open** active
+     * range `[0, count)` so that the `right` cursor can never underflow
+     * (it is always >= 1 when decremented, since `mid < right` is the loop
+     * guard and `mid >= 0`). This matters because Offset is `size_t` and a
+     * closed-range `[0, count-1]` version can underflow to SIZE_MAX when all
+     * elements fall on the same side of `cutval`.
+     *
      *  On return:
-     *  dataset[ind[0..lim1-1]][cutfeat] < cutval
-     *  dataset[ind[lim1..lim2-1]][cutfeat] == cutval
-     *  dataset[ind[lim2..count]][cutfeat] > cutval
+     *  dataset[ind[0 .. lim1-1]][cutfeat]  <  cutval
+     *  dataset[ind[lim1 .. lim2-1]][cutfeat] == cutval
+     *  dataset[ind[lim2 .. count)][cutfeat]  >  cutval
      */
     void planeSplit(
         const Derived& obj, const Offset ind, const Size count, const Dimension cutfeat,
         const DistanceType& cutval, Offset& lim1, Offset& lim2)
     {
-        // Dutch National Flag algorithm for three-way partitioning
+        // Invariant:
+        //   [0, left)         : val < cutval
+        //   [left, mid)       : val == cutval
+        //   [mid, right)      : unprocessed
+        //   [right, count)    : val > cutval
         Offset left  = 0;
         Offset mid   = 0;
-        Offset right = count - 1;
+        Offset right = count;  // half-open: [0, count) is the active range
 
-        while (mid <= right)
+        while (mid < right)
         {
-            ElementType val = dataset_get(obj, vAcc_[ind + mid], cutfeat);
+            const ElementType val = dataset_get(obj, vAcc_[ind + mid], cutfeat);
 
             if (val < cutval)
             {
@@ -1583,8 +1766,9 @@ class KDTreeBaseClass
             }
             else if (val > cutval)
             {
-                std::swap(vAcc_[ind + mid], vAcc_[ind + right]);
+                // right > mid >= 0, so right-1 >= 0: never underflows.
                 right--;
+                std::swap(vAcc_[ind + mid], vAcc_[ind + right]);
             }
             else
             {
