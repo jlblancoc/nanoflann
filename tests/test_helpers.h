@@ -914,6 +914,25 @@ inline bool inc_in_box(const inc_cloud_t& c, uint32_t i, const double lo[3], con
 //     leave large-uint32_t split-value arithmetic untested).
 // ---------------------------------------------------------------------------
 
+// Tolerance for comparing a tree distance against its double brute-force
+// baseline. The default absolute tolerance of the existing tests (1e-3)
+// only works while distances stay within double's exact-integer range
+// (< 2^53 ~ 9e15). For the uint32_t tests, squared distances routinely
+// exceed that boundary: a 1e9 coordinate gives sums of squares near 1e18,
+// where each ULP is ~16. macOS clang Release builds emit FMA-contracted
+// `a*a + b*b + c*c` sequences that round differently from the
+// non-contracted accumulation the brute-force loop produces, and the
+// resulting 1-4 ULP divergence legitimately exceeds 1e-3 absolute.
+//
+// We therefore use max(1e-3, |reference| * 1e-9): a tight relative
+// tolerance that is several orders of magnitude looser than double
+// precision (~1e-15) but still catches any real algorithmic regression
+// (which would diverge by fractions of the distance, not single ULPs).
+inline double kd_compare_tolerance(const double reference)
+{
+    return std::max(1e-3, std::abs(reference) * 1e-9);
+}
+
 // Fill a PointCloud<T> with random values uniformly drawn from [0, max_coord].
 // The PRNG is seeded deterministically from (seed, point_index, axis) so each
 // call is reproducible regardless of test ordering.
@@ -1009,7 +1028,7 @@ void unsigned_kd_vs_bruteforce(
     auto it = bf.begin();
     for (size_t i = 0; i < resultSet.size(); ++i, ++it)
     {
-        EXPECT_NEAR(it->first, static_cast<double>(out_dist[i]), 1e-3)
+        EXPECT_NEAR(it->first, static_cast<double>(out_dist[i]), kd_compare_tolerance(it->first))
             << "i=" << i << " bf_dist=" << it->first << " tree_dist=" << out_dist[i];
         // Verify the tree's reported index actually has that distance
         // (handles ties where the order may differ between tree and bf).
@@ -1027,7 +1046,7 @@ void unsigned_kd_vs_bruteforce(
             bf_at_idx += std::abs(static_cast<double>(query_pt[1]) - cloud.pts[ret_index[i]].y);
             bf_at_idx += std::abs(static_cast<double>(query_pt[2]) - cloud.pts[ret_index[i]].z);
         }
-        EXPECT_NEAR(bf_at_idx, static_cast<double>(out_dist[i]), 1e-3);
+        EXPECT_NEAR(bf_at_idx, static_cast<double>(out_dist[i]), kd_compare_tolerance(bf_at_idx));
     }
 }
 
@@ -1074,7 +1093,7 @@ void unsigned_radius_smoke(
         const double dy = static_cast<double>(query_pt[1]) - cloud.pts[p.first].y;
         const double dz = static_cast<double>(query_pt[2]) - cloud.pts[p.first].z;
         const double expected = dx * dx + dy * dy + dz * dz;
-        EXPECT_NEAR(expected, static_cast<double>(p.second), 1e-3);
+        EXPECT_NEAR(expected, static_cast<double>(p.second), kd_compare_tolerance(expected));
     }
 
     size_t bf_count = 0;
