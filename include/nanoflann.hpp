@@ -56,6 +56,10 @@
  *  - NANOFLANN_INCREMENTAL_INNODE_DISTANCE: If defined, the (Euclidean)
  *    incremental index reuses the per-axis coordinate cache for the in-node
  *    distance. No effect for manifold metrics, which always use evalMetric.
+ *  - NANOFLANN_INCREMENTAL_NO_FREELIST: If defined, nodes freed by a partial
+ *    rebuild are not recycled and every allocation bump-allocates from the
+ *    pool. Intended for ablation measurements only: steady-state memory then
+ *    grows with total inserts instead of staying bounded by the live set.
  *
  *  Macros defined internally by nanoflann (not meant to be set by the user):
  *  - NANOFLANN_RESTRICT: Expands to the compiler-specific `restrict` pointer
@@ -3381,6 +3385,16 @@ class KDTreeSingleIndexIncrementalAdaptor
     static constexpr bool kCacheCoords = (DIM > 0);
 #endif
 
+    /** Whether nodes freed by a partial rebuild are recycled through the
+     *  free-list. Always on except for ablation builds
+     *  (NANOFLANN_INCREMENTAL_NO_FREELIST), where memory is expected to grow
+     *  with total inserts rather than with the live set. */
+#if defined(NANOFLANN_INCREMENTAL_NO_FREELIST)
+    static constexpr bool kRecycleNodes = false;
+#else
+    static constexpr bool kRecycleNodes = true;
+#endif
+
    private:
     INode* iroot_    = nullptr;  //!< root of the incremental tree
     INode* freeList_ = nullptr;  //!< recycled nodes (linked via child1)
@@ -3839,7 +3853,7 @@ class KDTreeSingleIndexIncrementalAdaptor
     // --------------------------------------------------------------------
     INode* allocNode()
     {
-        if (freeList_)
+        if (kRecycleNodes && freeList_)
         {
             INode* n  = freeList_;
             freeList_ = n->child1;
@@ -3879,6 +3893,7 @@ class KDTreeSingleIndexIncrementalAdaptor
 
     void recycleNode(INode* n)
     {
+        if (!kRecycleNodes) return;
         n->child1 = freeList_;
         freeList_ = n;
     }
