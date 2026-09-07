@@ -853,9 +853,19 @@ inline Scalar so2_signed_diff(const Scalar a, const Scalar b)
     return diff;
 }
 
-/** Convert a chordal squared distance on the unit sphere (or the SO(3)
- *  quaternion block) to the geodesic angle in radians: theta = 2 asin(sqrt(d)/2).
- *  The argument is clamped to [0, 1] against rounding noise. */
+/** Convert a chordal squared distance on the unit sphere S^N to the geodesic
+ *  arc angle in radians: theta = 2 asin(sqrt(d)/2), the inverse of
+ *  d = 4 sin^2(theta/2). The argument is clamped against rounding noise.
+ *
+ *  \note This is the angle *between the two unit vectors*. For an SO(3)
+ *  quaternion block the unit vectors live on S^3, so the value returned here is
+ *  the arc angle between the quaternions, which is **half** the rotation angle
+ *  they represent. Convert with:
+ *  \code
+ *    // d2 = min(|p-q|^2, |p+q|^2), the double-cover-aware chordal distance
+ *    const double rot_angle = 2 * nanoflann::chord_sq_to_angle(d2);  // = 4 asin(sqrt(d2)/2)
+ *  \endcode
+ *  since d = 2 - 2|<p,q>| = 4 sin^2(rot_angle/4) for unit quaternions. */
 template <typename Scalar>
 inline Scalar chord_sq_to_angle(const Scalar d_ch_sq)
 {
@@ -865,9 +875,13 @@ inline Scalar chord_sq_to_angle(const Scalar d_ch_sq)
     return static_cast<Scalar>(2) * std::asin(s);
 }
 
-/** Inverse of chord_sq_to_angle: convert an angular radius (radians) to the
- *  chordal squared search radius d = 4 sin^2(theta/2), for use with
- *  radiusSearch on S^N / S^2. */
+/** Inverse of chord_sq_to_angle: convert an arc angle (radians) to the chordal
+ *  squared search radius d = 4 sin^2(theta/2), for use with radiusSearch on
+ *  S^N / S^2.
+ *
+ *  \note As in chord_sq_to_angle, \a theta is the angle between unit vectors.
+ *  To search an SO(3) quaternion block within a *rotation* angle, halve it
+ *  first: `angle_to_chord_sq(rot_angle / 2)`. */
 template <typename Scalar>
 inline Scalar angle_to_chord_sq(const Scalar theta)
 {

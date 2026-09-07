@@ -562,4 +562,52 @@ TEST(manifold, chord_angle_roundtrip)
     }
 }
 
+// The chordal helpers return the arc angle between unit vectors. On an SO(3)
+// quaternion block that arc angle is half the rotation angle; pin the factor of
+// two so the documented conversion cannot drift.
+TEST(manifold, chord_angle_so3_rotation_angle)
+{
+    using namespace nanoflann;
+    std::mt19937                           rng(0xB0B5u);
+    std::uniform_real_distribution<double> uni(0.0, 1.0);
+
+    for (int i = 0; i < 500; ++i)
+    {
+        // Random unit quaternion and a rotation of known angle about the same
+        // axis, so the expected rotation angle is known in closed form.
+        const double rot_angle = uni(rng) * pi_const<double>();
+        const double ax        = uni(rng) * 2 - 1;
+        const double ay        = uni(rng) * 2 - 1;
+        const double az        = uni(rng) * 2 - 1;
+        const double an        = std::sqrt(ax * ax + ay * ay + az * az);
+        if (an < 1e-9) continue;
+
+        const double h = rot_angle / 2;
+        const double c = std::cos(h);
+        const double sxyz = std::sin(h) / an;
+
+        // q0 = identity, q1 = rotation of rot_angle about the random axis.
+        const double q0[4] = {0, 0, 0, 1};
+        const double q1[4] = {ax * sxyz, ay * sxyz, az * sxyz, c};
+
+        double sp = 0;
+        double sm = 0;
+        for (int k = 0; k < 4; ++k)
+        {
+            const double dp = q0[k] - q1[k];
+            const double dm = q0[k] + q1[k];
+            sp += dp * dp;
+            sm += dm * dm;
+        }
+        const double d2 = std::min(sp, sm);
+
+        // The helper yields the S^3 arc angle: half of the rotation angle.
+        EXPECT_NEAR(chord_sq_to_angle<double>(d2), rot_angle / 2, 1e-9);
+        // Documented conversion back to a rotation angle.
+        EXPECT_NEAR(2 * chord_sq_to_angle<double>(d2), rot_angle, 1e-9);
+        // And the matching radius construction.
+        EXPECT_NEAR(angle_to_chord_sq<double>(rot_angle / 2), d2, 1e-9);
+    }
+}
+
 #endif  // NANOFLANN_HAS_MANIFOLDS
