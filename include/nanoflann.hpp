@@ -1067,6 +1067,36 @@ class PooledAllocator
         T* mem = static_cast<T*>(this->allocateBytes(sizeof(T) * count));
         return mem;
     }
+
+    /**
+     * Splices \a other's chain of allocated memory blocks onto this pool's
+     * chain in O(1), transferring ownership. After this call \a other owns
+     * no blocks and is safe to let go out of scope (its destructor will be
+     * a no-op with respect to memory freeing).
+     */
+    void adopt(PooledAllocator& other)
+    {
+        if (other.base_ == nullptr) return;
+
+        void* tail = other.base_;
+        while (*static_cast<void**>(tail) != nullptr)
+        {
+            tail = *static_cast<void**>(tail);
+        }
+        *static_cast<void**>(tail) = base_;
+        base_ = other.base_;
+
+        usedMemory += other.usedMemory;
+        // `other.remaining_` bytes in its active block become unreachable
+        // once `other.loc_`/`other.remaining_` are reset below.
+        wastedMemory += other.wastedMemory + other.remaining_;
+
+        other.base_        = nullptr;
+        other.remaining_   = 0;
+        other.loc_         = nullptr;
+        other.usedMemory   = 0;
+        other.wastedMemory = 0;
+    }
 };
 /** @} */
 
@@ -1468,69 +1498,125 @@ class KDTreeBaseClass
 
     /**
      * Create a tree node that subdivides the list of vecs from vind[first] to
-     * vind[last] concurrently.  The routine is called recursively on each
-     * sublist.
+     * vind[last] concurrently. The routine is called recursively on each
+     * sublist: only the smaller of the two children (by point count) is ever
+     * spawned as a std::async task, and only once it exceeds
+     * kDivideConcurrentTaskCutoff points; the larger side always continues
+     * on the calling thread. A spawned task's private pool is spliced (see
+     * PooledAllocator::adopt) into the caller's local_pool once its future
+     * is joined.
      *
      * @param left index of the first vector
      * @param right index of the last vector
      * @param bbox bounding box used as input for splitting and output for
      * parent node
-     * @param thread_count count of std::async threads
-     * @param mutex mutex for mempool allocation
+     * @param local_pool pool this call (and any non-spawned recursion below
+     * it) allocates nodes from
+     * @param tasks_in_flight count of currently spawned tasks, bounded by
+     * n_thread_build_
      */
+    static constexpr Offset kDivideConcurrentTaskCutoff = 512;
+
     NodePtr divideTreeConcurrent(
         Derived& obj, const Offset left, const Offset right, BoundingBox& bbox,
-        std::atomic<unsigned int>& thread_count, std::mutex& mutex)
+        PooledAllocator& local_pool, std::atomic<int>& tasks_in_flight)
     {
-        std::unique_lock<std::mutex> lock(mutex);
-        NodePtr                      node = obj.pool_.template allocate<Node>();  // allocate memory
-        lock.unlock();
+        NodePtr node = local_pool.template allocate<Node>();  // no lock: private pool
 
         Offset       idx;
         Dimension    cutfeat;
         DistanceType cutval;
         if (makeNode(obj, node, left, right, bbox, idx, cutfeat, cutval)) return node;
 
-        std::future<NodePtr> right_future;
-
-        /* Recurse on right concurrently, if possible */
-
-        BoundingBox right_bbox(bbox);
-        right_bbox[cutfeat].low = static_cast<ElementType>(cutval);
-        if (++thread_count < n_thread_build_)
-        {
-            /* Concurrent thread for right recursion */
-
-            right_future = std::async(
-                std::launch::async, &KDTreeBaseClass::divideTreeConcurrent, this, std::ref(obj),
-                left + idx, right, std::ref(right_bbox), std::ref(thread_count), std::ref(mutex));
-        }
-        else
-        {
-            --thread_count;
-        }
-
-        /* Recurse on left in this thread */
+        // `idx` from makeNode()/middleSplit_() is a COUNT relative to
+        // `left` (matching divideTree's own convention): the split point is
+        // `left + idx`, the left side has `idx` points, the right side has
+        // `right - (left + idx)` points.
+        const Offset split      = left + idx;
+        const Offset left_size  = idx;
+        const Offset right_size = right - split;
 
         BoundingBox left_bbox(bbox);
         left_bbox[cutfeat].high = static_cast<ElementType>(cutval);
-        node->child1 =
-            this->divideTreeConcurrent(obj, left, left + idx, left_bbox, thread_count, mutex);
+        BoundingBox right_bbox(bbox);
+        right_bbox[cutfeat].low = static_cast<ElementType>(cutval);
 
-        if (right_future.valid())
+        const bool   left_is_larger = left_size >= right_size;
+        const Offset smaller_size   = left_is_larger ? right_size : left_size;
+
+        bool spawned = false;
+        if (smaller_size > kDivideConcurrentTaskCutoff)
         {
-            /* Block and wait for concurrent right from above */
+            // tasks_in_flight is signed so an accounting bug surfaces as a
+            // visible negative value instead of wrapping to a huge unsigned
+            // count that would silently defeat this bound. `- 1` reserves a
+            // slot for the calling thread itself, so at most n_thread_build_
+            // threads (spawned tasks + caller) run concurrently.
+            int expected = tasks_in_flight.load(std::memory_order_relaxed);
+            while (expected < static_cast<int>(n_thread_build_ - 1))
+            {
+                if (tasks_in_flight.compare_exchange_weak(
+                        expected, expected + 1, std::memory_order_acq_rel))
+                {
+                    spawned = true;
+                    break;
+                }
+            }
+        }
 
-            node->child2 = right_future.get();
-            --thread_count;
+        std::future<NodePtr> spawned_future;
+        PooledAllocator       spawned_pool;  // only used if `spawned` is true
+
+        if (spawned)
+        {
+            if (left_is_larger)
+            {
+                /* Spawn the RIGHT (smaller) side: [split, right) */
+                spawned_future = std::async(
+                    std::launch::async, &KDTreeBaseClass::divideTreeConcurrent, this,
+                    std::ref(obj), split, right, std::ref(right_bbox), std::ref(spawned_pool),
+                    std::ref(tasks_in_flight));
+            }
+            else
+            {
+                /* Spawn the LEFT (smaller) side: [left, split) */
+                spawned_future = std::async(
+                    std::launch::async, &KDTreeBaseClass::divideTreeConcurrent, this,
+                    std::ref(obj), left, split, std::ref(left_bbox), std::ref(spawned_pool),
+                    std::ref(tasks_in_flight));
+            }
+        }
+
+        /* Always recurse into the LARGER side on the current thread. */
+        NodePtr larger_child =
+            left_is_larger
+                ? this->divideTreeConcurrent(obj, left, split, left_bbox, local_pool, tasks_in_flight)
+                : this->divideTreeConcurrent(
+                      obj, split, right, right_bbox, local_pool, tasks_in_flight);
+
+        NodePtr smaller_child;
+        if (spawned)
+        {
+            /* Block and wait for the concurrently-built smaller side. */
+            smaller_child = spawned_future.get();
+            tasks_in_flight.fetch_sub(1, std::memory_order_acq_rel);
+
+            /* O(1) splice of the spawned task's private pool into ours. */
+            local_pool.adopt(spawned_pool);
         }
         else
         {
-            /* Otherwise, recurse on right in this thread */
-
-            node->child2 =
-                this->divideTreeConcurrent(obj, left + idx, right, right_bbox, thread_count, mutex);
+            /* No task was spawned: recurse into the smaller side here too. */
+            smaller_child =
+                left_is_larger
+                    ? this->divideTreeConcurrent(
+                          obj, split, right, right_bbox, local_pool, tasks_in_flight)
+                    : this->divideTreeConcurrent(
+                          obj, left, split, left_bbox, local_pool, tasks_in_flight);
         }
+
+        node->child1 = left_is_larger ? larger_child : smaller_child;
+        node->child2 = left_is_larger ? smaller_child : larger_child;
 
         finalizeSplitNode(obj, node, cutfeat, left_bbox, right_bbox, bbox);
 
@@ -2043,10 +2129,9 @@ class KDTreeSingleIndexAdaptor
         else
         {
 #ifndef NANOFLANN_NO_THREADS
-            std::atomic<unsigned int> thread_count(0u);
-            std::mutex                mutex;
+            std::atomic<int> tasks_in_flight(0);
             Base::root_node_ = this->divideTreeConcurrent(
-                *this, 0, Base::size_, Base::root_bbox_, thread_count, mutex);
+                *this, 0, Base::size_, Base::root_bbox_, Base::pool_, tasks_in_flight);
 #else /* NANOFLANN_NO_THREADS */
             throw std::runtime_error("Multithreading is disabled");
 #endif /* NANOFLANN_NO_THREADS */
@@ -2449,10 +2534,9 @@ class KDTreeSingleIndexDynamicAdaptor_
         else
         {
 #ifndef NANOFLANN_NO_THREADS
-            std::atomic<unsigned int> thread_count(0u);
-            std::mutex                mutex;
+            std::atomic<int> tasks_in_flight(0);
             Base::root_node_ = this->divideTreeConcurrent(
-                *this, 0, Base::size_, Base::root_bbox_, thread_count, mutex);
+                *this, 0, Base::size_, Base::root_bbox_, Base::pool_, tasks_in_flight);
 #else /* NANOFLANN_NO_THREADS */
             throw std::runtime_error("Multithreading is disabled");
 #endif /* NANOFLANN_NO_THREADS */
