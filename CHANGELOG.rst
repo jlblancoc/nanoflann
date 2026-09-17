@@ -2,8 +2,8 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.13.0 (2026-09-17)
+-------------------
 * Merge pull request `#318 <https://github.com/jlblancoc/nanoflann/issues/318>`_ from spyridon97/improve-build-multithreading
   Rewrite nanoflann's concurrent index build
   At 16 threads, index build time drops ~3.5x on uniform data
