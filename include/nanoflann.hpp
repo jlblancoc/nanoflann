@@ -1070,9 +1070,18 @@ class PooledAllocator
 
     /**
      * Splices \a other's chain of allocated memory blocks onto this pool's
-     * chain in O(1), transferring ownership. After this call \a other owns
-     * no blocks and is safe to let go out of scope (its destructor will be
-     * a no-op with respect to memory freeing).
+     * chain, transferring ownership. After this call \a other owns no blocks
+     * and is safe to let go out of scope (its destructor will be a no-op with
+     * respect to memory freeing).
+     *
+     * Cost is one walk of \a other's block chain to reach its tail, i.e.
+     * O(number of blocks in \a other), with no per-allocation or per-byte work.
+     *
+     * \note This pool keeps allocating from its own active block, so the
+     *  unused tail of \a other's active block becomes unreachable and is
+     *  accounted as wasted memory. Splicing N pools therefore costs up to N
+     *  partially-filled blocks of overhead versus allocating everything from a
+     *  single pool.
      */
     void adopt(PooledAllocator& other)
     {
@@ -1496,6 +1505,12 @@ class KDTreeBaseClass
         return node;
     }
 
+    /** Minimum number of points in the smaller child for it to be worth
+     *  handing to a std::async task, instead of recursing into it on the
+     *  calling thread. Below this, thread creation costs more than the
+     *  subtree it would build. */
+    static constexpr Offset kDivideConcurrentTaskCutoff = 512;
+
     /**
      * Create a tree node that subdivides the list of vecs from vind[first] to
      * vind[last] concurrently. The routine is called recursively on each
@@ -1506,6 +1521,7 @@ class KDTreeBaseClass
      * PooledAllocator::adopt) into the caller's local_pool once its future
      * is joined.
      *
+     * @param obj the derived index, whose point-index array gets reordered
      * @param left index of the first vector
      * @param right index of the last vector
      * @param bbox bounding box used as input for splitting and output for
@@ -1514,9 +1530,13 @@ class KDTreeBaseClass
      * it) allocates nodes from
      * @param tasks_in_flight count of currently spawned tasks, bounded by
      * n_thread_build_
+     *
+     * @return the root of the subtree covering [left, right)
+     *
+     * \sa divideTree for the sequential builder, which produces the very same
+     *  tree: the split decisions depend only on the point range being divided,
+     *  so the result does not depend on how the work is distributed.
      */
-    static constexpr Offset kDivideConcurrentTaskCutoff = 512;
-
     NodePtr divideTreeConcurrent(
         Derived& obj, const Offset left, const Offset right, BoundingBox& bbox,
         PooledAllocator& local_pool, std::atomic<int>& tasks_in_flight)
