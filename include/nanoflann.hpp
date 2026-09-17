@@ -1584,8 +1584,12 @@ class KDTreeBaseClass
             }
         }
 
-        std::future<NodePtr> spawned_future;
+        // The pool must outlive the future: locals are destroyed in reverse
+        // order of declaration, so declaring it first means that if anything
+        // below throws, `~future` joins the spawned task before the pool it
+        // allocates nodes from is freed.
         PooledAllocator      spawned_pool;  // only used if `spawned` is true
+        std::future<NodePtr> spawned_future;
 
         if (spawned)
         {
