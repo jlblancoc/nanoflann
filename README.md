@@ -218,7 +218,7 @@ The nanoflann port in vcpkg is kept up to date by Microsoft team members and com
 
   * **Index build**: pass `n_thread_build > 1` in `KDTreeSingleIndexAdaptorParams` to parallelize the build via `std::async` (unless `NANOFLANN_NO_THREADS` is defined).
   * **Queries**: `findNeighbors()`, `knnSearch()`, `radiusSearch()` and `rknnSearch()` are `const` and safe to call concurrently from multiple threads on the same index, as long as no thread is concurrently building or modifying it.
-  * The internal `PooledAllocator` is **not** thread-safe, so building an index from multiple threads (or mixing queries with an in-progress build) is not supported.
+  * Building an index from multiple threads (or mixing queries with an in-progress build) is not supported.
 
 ------
 
