@@ -543,8 +543,8 @@ void save_value(std::ostream& stream, const T& value)
     stream.write(reinterpret_cast<const char*>(&value), sizeof(T));
 }
 
-template <typename T>
-void save_value(std::ostream& stream, const std::vector<T>& value)
+template <typename T, typename A>
+void save_value(std::ostream& stream, const std::vector<T, A>& value)
 {
     size_t size = value.size();
     stream.write(reinterpret_cast<const char*>(&size), sizeof(size_t));
@@ -557,8 +557,8 @@ void load_value(std::istream& stream, T& value)
     stream.read(reinterpret_cast<char*>(&value), sizeof(T));
 }
 
-template <typename T>
-void load_value(std::istream& stream, std::vector<T>& value)
+template <typename T, typename A>
+void load_value(std::istream& stream, std::vector<T, A>& value)
 {
     size_t size;
     stream.read(reinterpret_cast<char*>(&size), sizeof(size_t));
@@ -1113,6 +1113,32 @@ class PooledAllocator
 /** @addtogroup nanoflann_metaprog_grp Auxiliary metaprogramming stuff
  * @{ */
 
+/** std::allocator whose value-less construct() default-initializes instead of
+ *  value-initializing: for a trivial T, `v.emplace_back()` then reserves the
+ *  slot without writing to it, like a pool allocator would. */
+template <typename T, typename A = std::allocator<T>>
+class default_init_allocator : public A
+{
+   public:
+    using A::A;
+    template <typename U>
+    struct rebind
+    {
+        using other = default_init_allocator<
+            U, typename std::allocator_traits<A>::template rebind_alloc<U>>;
+    };
+    template <typename U>
+    void construct(U* p) noexcept(std::is_nothrow_default_constructible<U>::value)
+    {
+        ::new (static_cast<void*>(p)) U;
+    }
+    template <typename U, typename... Args>
+    void construct(U* p, Args&&... args)
+    {
+        std::allocator_traits<A>::construct(static_cast<A&>(*this), p, std::forward<Args>(args)...);
+    }
+};
+
 /** Used to declare fixed-size arrays when DIM>0, dynamically-allocated vectors
  * when DIM=-1. Fixed size version for a generic DIM:
  */
@@ -1176,7 +1202,7 @@ class KDTreeBaseClass
     /*-------------------------------------------------------------------
      * Internal Data Structures
      *
-     * The tree is stored as one contiguous std::vector<Node> in depth-first
+     * The tree is stored as one contiguous NodeArray in depth-first
      * pre-order: the left child of a node is always the node right after it,
      * and its right child is `child2` positions after it (0 marks a leaf).
      * Relative offsets instead of pointers make the array position
@@ -1220,14 +1246,17 @@ class KDTreeBaseClass
         } node_type;
 
         /** Offset from this node to its right child; 0 means this is a leaf
-         *  node. The left child, when there is one, is always the next node. */
-        NodeIndex child2 = 0;
+         *  node. The left child, when there is one, is always the next node.
+         *  Deliberately left uninitialized: the builders always write it. */
+        NodeIndex child2;
 
         NANOFLANN_NODISCARD bool isLeaf() const noexcept { return child2 == 0; }
     };
 
     using NodePtr      = Node*;
     using NodeConstPtr = const Node*;
+    /** The node storage: a vector that does not initialize new nodes. */
+    using NodeArray = std::vector<Node, default_init_allocator<Node>>;
 
     struct Interval
     {
@@ -1259,7 +1288,7 @@ class KDTreeBaseClass
      * All the nodes of the tree in depth-first pre-order, the root at index 0.
      * Empty until the index is built. See Node for the layout.
      */
-    std::vector<Node> nodes_;
+    NodeArray nodes_;
 
     /** Returns number of points in dataset  */
     NANOFLANN_NODISCARD Size size(const Derived& obj) const noexcept { return obj.size_; }
@@ -1508,7 +1537,7 @@ class KDTreeBaseClass
      */
     NodeIndex divideTree(
         Derived& obj, const Offset left, const Offset right, BoundingBox& bbox,
-        std::vector<Node>& nodes)
+        NodeArray& nodes)
     {
         assert(static_cast<Size>(obj.vAcc_.at(left)) < obj.dataset_.kdtree_get_point_count());
 
@@ -1566,7 +1595,7 @@ class KDTreeBaseClass
         // the building thread's per-node updates of the vector's end pointer do
         // not dirty a cache line of this object, whose other members (vAcc_,
         // leaf_max_size_, ...) all build threads keep reading.
-        std::vector<Node> nodes;
+        NodeArray nodes;
         nodes.swap(obj.nodes_);
         // No-op when the array is already large enough, e.g. on a rebuild.
         nodes.reserve(estimateNodeCount(obj.size_));
@@ -1622,7 +1651,7 @@ class KDTreeBaseClass
      */
     NodeIndex divideTreeConcurrent(
         Derived& obj, const Offset left, const Offset right, BoundingBox& bbox,
-        std::vector<Node>& nodes, std::atomic<int>& tasks_in_flight)
+        NodeArray& nodes, std::atomic<int>& tasks_in_flight)
     {
         const NodeIndex node_idx = static_cast<NodeIndex>(nodes.size());
         nodes.emplace_back();
@@ -1673,7 +1702,7 @@ class KDTreeBaseClass
         // future, so that its per-node writes never touch this thread's stack
         // frame (false sharing). If anything below throws, `~future` still
         // joins the task before this frame goes away.
-        std::future<std::vector<Node>> spawned_future;
+        std::future<NodeArray> spawned_future;
         const auto                     spawnTask =
             [this, &obj, &tasks_in_flight](const Offset a, const Offset b, BoundingBox& box)
         {
@@ -1681,7 +1710,7 @@ class KDTreeBaseClass
                 std::launch::async,
                 [this, &obj, &tasks_in_flight, a, b, &box]()
                 {
-                    std::vector<Node> v;
+                    NodeArray v;
                     v.reserve(estimateNodeCount(b - a));
                     this->divideTreeConcurrent(obj, a, b, box, v, tasks_in_flight);
                     return v;
@@ -1707,7 +1736,7 @@ class KDTreeBaseClass
             right_idx = static_cast<NodeIndex>(nodes.size());
             if (spawned)
             {
-                const std::vector<Node> right_nodes = spawned_future.get();
+                const NodeArray right_nodes = spawned_future.get();
                 tasks_in_flight.fetch_sub(1, std::memory_order_acq_rel);
                 nodes.insert(nodes.end(), right_nodes.begin(), right_nodes.end());
             }
@@ -1733,7 +1762,7 @@ class KDTreeBaseClass
 
             this->divideTreeConcurrent(obj, split, right, right_bbox, nodes, tasks_in_flight);
 
-            std::vector<Node> left_nodes;
+            NodeArray left_nodes;
             if (spawned)
             {
                 left_nodes = spawned_future.get();

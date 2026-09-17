@@ -116,7 +116,6 @@ TEST(kdtree_nodes, node_is_compact_and_trivially_copyable)
     // float coordinates and a 32-bit IndexType fit a node in 16 bytes.
     EXPECT_EQ(sizeof(tree_t::Node), std::max<size_t>(16, NANOFLANN_NODE_ALIGNMENT));
     EXPECT_TRUE(std::is_trivially_copyable<tree_t::Node>::value);
-    EXPECT_TRUE(tree_t::Node().isLeaf());
 }
 
 TEST(kdtree_nodes, layout_is_preorder_and_covers_all_points)
