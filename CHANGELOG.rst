@@ -4,16 +4,17 @@ Changelog for package nanoflann
 
 Forthcoming
 -----------
-* fix: crash (heap-buffer-overflow) while building an index over an unsigned
-  ``ElementType`` such as ``uint8_t``. The cut dimension was selected with a
-  negative sentinel that wraps around for unsigned types, leading to a
-  degenerate cut and an underflow in the partition loop.
-* fix: overflow of the split midpoint and of the metric subtractions for wide
-  integral ``ElementType`` (``uint32_t``, ``uint64_t``).
-* The distance adaptors now ``static_assert`` that ``_DistanceType`` is signed,
-  as their documentation already required. With an unsigned ``ElementType`` it
-  must be given explicitly, e.g.
-  ``L2_Simple_Adaptor<uint8_t, MyCloud, int32_t>``.
+* Merge pull request `#318 <https://github.com/jlblancoc/nanoflann/issues/318>`_ from spyridon97/improve-build-multithreading
+  Rewrite nanoflann's concurrent index build
+  At 16 threads, index build time drops ~3.5x on uniform data
+  (79ms -> 23ms) and ~3.8x on clustered data (108ms -> 29ms).
+* Merge pull request `#317 <https://github.com/jlblancoc/nanoflann/issues/317>`_ from jschueller/mtune
+  CMake: Check for mtune=native flag
+  For some archs like ppc64 this is not always available
+* Merge pull request `#315 <https://github.com/jlblancoc/nanoflann/issues/315>`_ from jlblancoc/fix/unsigned-elementtype-crash
+  Fix crash and wrong results with unsigned ElementType (alternative to `#314 <https://github.com/jlblancoc/nanoflann/issues/314>`_)
+* fix: compute all coordinate differences in DistanceType
+* Contributors: Jose Luis Blanco-Claraco, Julien Schueller, Spiros Tsalikis
 
 1.12.1 (2026-08-08)
 -------------------
