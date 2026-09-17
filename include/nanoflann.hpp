@@ -1084,7 +1084,7 @@ class PooledAllocator
             tail = *static_cast<void**>(tail);
         }
         *static_cast<void**>(tail) = base_;
-        base_ = other.base_;
+        base_                      = other.base_;
 
         usedMemory += other.usedMemory;
         // `other.remaining_` bytes in its active block become unreachable
@@ -1565,7 +1565,7 @@ class KDTreeBaseClass
         }
 
         std::future<NodePtr> spawned_future;
-        PooledAllocator       spawned_pool;  // only used if `spawned` is true
+        PooledAllocator      spawned_pool;  // only used if `spawned` is true
 
         if (spawned)
         {
@@ -1573,26 +1573,26 @@ class KDTreeBaseClass
             {
                 /* Spawn the RIGHT (smaller) side: [split, right) */
                 spawned_future = std::async(
-                    std::launch::async, &KDTreeBaseClass::divideTreeConcurrent, this,
-                    std::ref(obj), split, right, std::ref(right_bbox), std::ref(spawned_pool),
+                    std::launch::async, &KDTreeBaseClass::divideTreeConcurrent, this, std::ref(obj),
+                    split, right, std::ref(right_bbox), std::ref(spawned_pool),
                     std::ref(tasks_in_flight));
             }
             else
             {
                 /* Spawn the LEFT (smaller) side: [left, split) */
                 spawned_future = std::async(
-                    std::launch::async, &KDTreeBaseClass::divideTreeConcurrent, this,
-                    std::ref(obj), left, split, std::ref(left_bbox), std::ref(spawned_pool),
+                    std::launch::async, &KDTreeBaseClass::divideTreeConcurrent, this, std::ref(obj),
+                    left, split, std::ref(left_bbox), std::ref(spawned_pool),
                     std::ref(tasks_in_flight));
             }
         }
 
         /* Always recurse into the LARGER side on the current thread. */
         NodePtr larger_child =
-            left_is_larger
-                ? this->divideTreeConcurrent(obj, left, split, left_bbox, local_pool, tasks_in_flight)
-                : this->divideTreeConcurrent(
-                      obj, split, right, right_bbox, local_pool, tasks_in_flight);
+            left_is_larger ? this->divideTreeConcurrent(
+                                 obj, left, split, left_bbox, local_pool, tasks_in_flight)
+                           : this->divideTreeConcurrent(
+                                 obj, split, right, right_bbox, local_pool, tasks_in_flight);
 
         NodePtr smaller_child;
         if (spawned)
@@ -1607,12 +1607,11 @@ class KDTreeBaseClass
         else
         {
             /* No task was spawned: recurse into the smaller side here too. */
-            smaller_child =
-                left_is_larger
-                    ? this->divideTreeConcurrent(
-                          obj, split, right, right_bbox, local_pool, tasks_in_flight)
-                    : this->divideTreeConcurrent(
-                          obj, left, split, left_bbox, local_pool, tasks_in_flight);
+            smaller_child = left_is_larger
+                                ? this->divideTreeConcurrent(
+                                      obj, split, right, right_bbox, local_pool, tasks_in_flight)
+                                : this->divideTreeConcurrent(
+                                      obj, left, split, left_bbox, local_pool, tasks_in_flight);
         }
 
         node->child1 = left_is_larger ? larger_child : smaller_child;
