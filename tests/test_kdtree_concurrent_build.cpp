@@ -78,11 +78,10 @@ struct TreeDigest
 
 void walkTree(const tree_t::Node* n, TreeDigest& d, const size_t depth)
 {
-    if (n == nullptr) return;
     d.nodes++;
     d.maxDepth = std::max(d.maxDepth, depth);
 
-    const bool isLeaf = (n->child1 == nullptr && n->child2 == nullptr);
+    const bool isLeaf = n->isLeaf();
     d.feed(static_cast<uint64_t>(isLeaf ? 1 : 0));
     if (isLeaf)
     {
@@ -94,8 +93,8 @@ void walkTree(const tree_t::Node* n, TreeDigest& d, const size_t depth)
     d.feed(static_cast<uint64_t>(n->node_type.sub.divfeat));
     d.feed(static_cast<double>(n->node_type.sub.divlow));
     d.feed(static_cast<double>(n->node_type.sub.divhigh));
-    walkTree(n->child1, d, depth + 1);
-    walkTree(n->child2, d, depth + 1);
+    walkTree(n + 1, d, depth + 1);  // left child: always the next node
+    walkTree(n + n->child2, d, depth + 1);
 }
 
 TreeDigest digestOf(const tree_t& index)
@@ -109,7 +108,7 @@ TreeDigest digestOf(const tree_t& index)
         d.feed(static_cast<double>(iv.low));
         d.feed(static_cast<double>(iv.high));
     }
-    walkTree(index.root_node_, d, 0);
+    if (!index.nodes_.empty()) walkTree(index.nodes_.data(), d, 0);
     return d;
 }
 

@@ -2,6 +2,20 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* perf: the kd-tree nodes are now stored in one contiguous ``std::vector`` in
+  depth-first pre-order, children addressed by relative offsets (left child
+  is always the next node), instead of individually pool-allocated nodes
+  linked by pointers. Nodes shrink from 32 to 16 bytes (``float`` data,
+  32-bit ``IndexType``), rebuilding an index reuses the previous allocation,
+  the concurrent build produces the very same array as the sequential one,
+  and ``saveIndex()``/``loadIndex()`` write/read the tree as a single block.
+  Query time improves by 5-20% and single-thread build time by 3-5%.
+* fix: copying a built ``KDTreeSingleIndexDynamicAdaptor_`` (defaulted copy
+  constructor) shared the pool memory between both copies and double-freed it
+  on destruction. Copies now own their nodes.
+
 1.13.0 (2026-09-17)
 -------------------
 * Merge pull request `#318 <https://github.com/jlblancoc/nanoflann/issues/318>`_ from spyridon97/improve-build-multithreading
