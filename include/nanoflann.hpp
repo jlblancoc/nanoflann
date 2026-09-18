@@ -285,6 +285,41 @@ struct ResultItem
 
 namespace detail
 {
+/** Validates the `_DistanceType` of a distance adaptor.
+ *
+ *  The kd-tree build and search algorithms subtract coordinates and compare
+ *  the result against negative sentinels, so distances must be representable
+ *  as negative values. An unsigned `DistanceType` makes those subtractions
+ *  wrap around modulo 2^N, which yields wrong neighbors and can crash the
+ *  build (see the split logic in KDTreeBaseClass::middleSplit_).
+ *
+ *  Non-arithmetic (user-defined) scalar types are accepted as-is, since
+ *  std::is_signed<> says nothing useful about them.
+ */
+template <typename DistanceType>
+struct checked_distance_type
+{
+    static_assert(
+        !std::is_arithmetic<DistanceType>::value || std::is_signed<DistanceType>::value,
+        "nanoflann: _DistanceType must be signed. If ElementType is unsigned "
+        "(e.g. uint8_t), pass an explicit signed _DistanceType wide enough for "
+        "the squared distances of your coordinate range, for example: "
+        "L2_Simple_Adaptor<uint8_t, MyCloud, int32_t>.");
+
+    using type = DistanceType;
+};
+
+/** Computes `a - b` in \a ResultType instead of in the operands' own type.
+ *  Required for unsigned element types, whose native subtraction wraps around
+ *  modulo 2^N rather than becoming negative. For every type at least as wide
+ *  as the operands (i.e. any sane DistanceType) the result is identical to
+ *  the plain `a - b` expression. */
+template <typename ResultType, typename U, typename V>
+inline ResultType diff_as(const U a, const V b)
+{
+    return static_cast<ResultType>(a) - static_cast<ResultType>(b);
+}
+
 /** Insert (dist, index) into a sorted result buffer (dists, indices) of the
  *  given capacity, keeping ascending distance order.  Shared by KNNResultSet
  *  and RKNNResultSet, which are otherwise byte-for-byte identical.
@@ -621,7 +656,10 @@ struct Metric
  *
  * \tparam T Type of the elements (e.g. double, float, uint8_t)
  * \tparam DataSource Source of the data, i.e. where the vectors are stored
- * \tparam _DistanceType Type of distance variables (must be signed)
+ * \tparam _DistanceType Type of distance variables (must be signed). It
+ * defaults to \a T, so for an unsigned \a T (e.g. uint8_t) it must be given
+ * explicitly, wide enough for the distances of the actual coordinate range,
+ * e.g. `L2_Simple_Adaptor<uint8_t, MyCloud, int32_t>`.
  * \tparam IndexType Type of the arguments with which the data can be
  * accessed (e.g. float, double, int64_t, T*)
  */
@@ -629,7 +667,7 @@ template <class T, class DataSource, typename _DistanceType = T, typename IndexT
 struct L1_Adaptor
 {
     using ElementType  = T;
-    using DistanceType = _DistanceType;
+    using DistanceType = typename detail::checked_distance_type<_DistanceType>::type;
 
     const DataSource& data_source;
 
@@ -644,10 +682,14 @@ struct L1_Adaptor
 
         for (d = 0; d < multof4; d += 4)
         {
-            const DistanceType diff0 = std::abs(a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
-            const DistanceType diff1 = std::abs(a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
-            const DistanceType diff2 = std::abs(a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
-            const DistanceType diff3 = std::abs(a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3));
+            const DistanceType diff0 = std::abs(
+                detail::diff_as<DistanceType>(a[d + 0], data_source.kdtree_get_pt(b_idx, d + 0)));
+            const DistanceType diff1 = std::abs(
+                detail::diff_as<DistanceType>(a[d + 1], data_source.kdtree_get_pt(b_idx, d + 1)));
+            const DistanceType diff2 = std::abs(
+                detail::diff_as<DistanceType>(a[d + 2], data_source.kdtree_get_pt(b_idx, d + 2)));
+            const DistanceType diff3 = std::abs(
+                detail::diff_as<DistanceType>(a[d + 3], data_source.kdtree_get_pt(b_idx, d + 3)));
             /* Parentheses break dependency chain: */
             result += (diff0 + diff1) + (diff2 + diff3);
         }
@@ -656,13 +698,16 @@ struct L1_Adaptor
         switch (size - multof4)
         {
             case 3:
-                result += std::abs(a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2));
+                result += std::abs(detail::diff_as<DistanceType>(
+                    a[d + 2], data_source.kdtree_get_pt(b_idx, d + 2)));
                 NANOFLANN_FALLTHROUGH;
             case 2:
-                result += std::abs(a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1));
+                result += std::abs(detail::diff_as<DistanceType>(
+                    a[d + 1], data_source.kdtree_get_pt(b_idx, d + 1)));
                 NANOFLANN_FALLTHROUGH;
             case 1:
-                result += std::abs(a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0));
+                result += std::abs(detail::diff_as<DistanceType>(
+                    a[d + 0], data_source.kdtree_get_pt(b_idx, d + 0)));
                 NANOFLANN_FALLTHROUGH;
             case 0:
                 break;
@@ -673,7 +718,7 @@ struct L1_Adaptor
     template <typename U, typename V>
     inline DistanceType accum_dist(const U a, const V b, const size_t) const
     {
-        return std::abs(a - b);
+        return std::abs(detail::diff_as<DistanceType>(a, b));
     }
 };
 
@@ -683,7 +728,10 @@ struct L1_Adaptor
  *
  * \tparam T Type of the elements (e.g. double, float, uint8_t)
  * \tparam DataSource Source of the data, i.e. where the vectors are stored
- * \tparam _DistanceType Type of distance variables (must be signed)
+ * \tparam _DistanceType Type of distance variables (must be signed). It
+ * defaults to \a T, so for an unsigned \a T (e.g. uint8_t) it must be given
+ * explicitly, wide enough for the distances of the actual coordinate range,
+ * e.g. `L2_Simple_Adaptor<uint8_t, MyCloud, int32_t>`.
  * \tparam IndexType Type of the arguments with which the data can be
  * accessed (e.g. float, double, int64_t, T*)
  */
@@ -691,7 +739,7 @@ template <class T, class DataSource, typename _DistanceType = T, typename IndexT
 struct L2_Adaptor
 {
     using ElementType  = T;
-    using DistanceType = _DistanceType;
+    using DistanceType = typename detail::checked_distance_type<_DistanceType>::type;
 
     const DataSource& data_source;
 
@@ -706,10 +754,14 @@ struct L2_Adaptor
 
         for (d = 0; d < multof4; d += 4)
         {
-            const DistanceType diff0 = a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0);
-            const DistanceType diff1 = a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1);
-            const DistanceType diff2 = a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2);
-            const DistanceType diff3 = a[d + 3] - data_source.kdtree_get_pt(b_idx, d + 3);
+            const DistanceType diff0 =
+                detail::diff_as<DistanceType>(a[d + 0], data_source.kdtree_get_pt(b_idx, d + 0));
+            const DistanceType diff1 =
+                detail::diff_as<DistanceType>(a[d + 1], data_source.kdtree_get_pt(b_idx, d + 1));
+            const DistanceType diff2 =
+                detail::diff_as<DistanceType>(a[d + 2], data_source.kdtree_get_pt(b_idx, d + 2));
+            const DistanceType diff3 =
+                detail::diff_as<DistanceType>(a[d + 3], data_source.kdtree_get_pt(b_idx, d + 3));
             /* Parentheses break dependency chain: */
             result += (diff0 * diff0 + diff1 * diff1) + (diff2 * diff2 + diff3 * diff3);
         }
@@ -719,15 +771,18 @@ struct L2_Adaptor
         switch (size - multof4)
         {
             case 3:
-                diff = a[d + 2] - data_source.kdtree_get_pt(b_idx, d + 2);
+                diff = detail::diff_as<DistanceType>(
+                    a[d + 2], data_source.kdtree_get_pt(b_idx, d + 2));
                 result += diff * diff;
                 NANOFLANN_FALLTHROUGH;
             case 2:
-                diff = a[d + 1] - data_source.kdtree_get_pt(b_idx, d + 1);
+                diff = detail::diff_as<DistanceType>(
+                    a[d + 1], data_source.kdtree_get_pt(b_idx, d + 1));
                 result += diff * diff;
                 NANOFLANN_FALLTHROUGH;
             case 1:
-                diff = a[d + 0] - data_source.kdtree_get_pt(b_idx, d + 0);
+                diff = detail::diff_as<DistanceType>(
+                    a[d + 0], data_source.kdtree_get_pt(b_idx, d + 0));
                 result += diff * diff;
                 NANOFLANN_FALLTHROUGH;
             case 0:
@@ -739,7 +794,7 @@ struct L2_Adaptor
     template <typename U, typename V>
     inline DistanceType accum_dist(const U a, const V b, const size_t) const
     {
-        auto diff = a - b;
+        const DistanceType diff = detail::diff_as<DistanceType>(a, b);
         return diff * diff;
     }
 };
@@ -750,7 +805,10 @@ struct L2_Adaptor
  *
  * \tparam T Type of the elements (e.g. double, float, uint8_t)
  * \tparam DataSource Source of the data, i.e. where the vectors are stored
- * \tparam _DistanceType Type of distance variables (must be signed)
+ * \tparam _DistanceType Type of distance variables (must be signed). It
+ * defaults to \a T, so for an unsigned \a T (e.g. uint8_t) it must be given
+ * explicitly, wide enough for the distances of the actual coordinate range,
+ * e.g. `L2_Simple_Adaptor<uint8_t, MyCloud, int32_t>`.
  * \tparam IndexType Type of the arguments with which the data can be
  * accessed (e.g. float, double, int64_t, T*)
  */
@@ -758,7 +816,7 @@ template <class T, class DataSource, typename _DistanceType = T, typename IndexT
 struct L2_Simple_Adaptor
 {
     using ElementType  = T;
-    using DistanceType = _DistanceType;
+    using DistanceType = typename detail::checked_distance_type<_DistanceType>::type;
 
     const DataSource& data_source;
 
@@ -770,7 +828,8 @@ struct L2_Simple_Adaptor
         DistanceType result = DistanceType();
         for (size_t i = 0; i < size; ++i)
         {
-            const DistanceType diff = a[i] - data_source.kdtree_get_pt(b_idx, i);
+            const DistanceType diff =
+                detail::diff_as<DistanceType>(a[i], data_source.kdtree_get_pt(b_idx, i));
             result += diff * diff;
         }
         return result;
@@ -779,7 +838,7 @@ struct L2_Simple_Adaptor
     template <typename U, typename V>
     inline DistanceType accum_dist(const U a, const V b, const size_t) const
     {
-        auto diff = a - b;
+        const DistanceType diff = detail::diff_as<DistanceType>(a, b);
         return diff * diff;
     }
 };
@@ -1428,6 +1487,45 @@ class PooledAllocator
         T* mem = static_cast<T*>(this->allocateBytes(sizeof(T) * count));
         return mem;
     }
+
+    /**
+     * Splices \a other's chain of allocated memory blocks onto this pool's
+     * chain, transferring ownership. After this call \a other owns no blocks
+     * and is safe to let go out of scope (its destructor will be a no-op with
+     * respect to memory freeing).
+     *
+     * Cost is one walk of \a other's block chain to reach its tail, i.e.
+     * O(number of blocks in \a other), with no per-allocation or per-byte work.
+     *
+     * \note This pool keeps allocating from its own active block, so the
+     *  unused tail of \a other's active block becomes unreachable and is
+     *  accounted as wasted memory. Splicing N pools therefore costs up to N
+     *  partially-filled blocks of overhead versus allocating everything from a
+     *  single pool.
+     */
+    void adopt(PooledAllocator& other)
+    {
+        if (other.base_ == nullptr) return;
+
+        void* tail = other.base_;
+        while (*static_cast<void**>(tail) != nullptr)
+        {
+            tail = *static_cast<void**>(tail);
+        }
+        *static_cast<void**>(tail) = base_;
+        base_                      = other.base_;
+
+        usedMemory += other.usedMemory;
+        // `other.remaining_` bytes in its active block become unreachable
+        // once `other.loc_`/`other.remaining_` are reset below.
+        wastedMemory += other.wastedMemory + other.remaining_;
+
+        other.base_        = nullptr;
+        other.remaining_   = 0;
+        other.loc_         = nullptr;
+        other.usedMemory   = 0;
+        other.wastedMemory = 0;
+    }
 };
 /** @} */
 
@@ -1693,8 +1791,8 @@ class KDTreeBaseClass
         /* Which child branch should be taken first? */
         Dimension    idx   = node->node_type.sub.divfeat;
         ElementType  val   = vec[idx];
-        DistanceType diff1 = val - node->node_type.sub.divlow;
-        DistanceType diff2 = val - node->node_type.sub.divhigh;
+        DistanceType diff1 = detail::diff_as<DistanceType>(val, node->node_type.sub.divlow);
+        DistanceType diff2 = detail::diff_as<DistanceType>(val, node->node_type.sub.divhigh);
 
         NodePtr      bestChild;
         NodePtr      otherChild;
@@ -1884,8 +1982,8 @@ class KDTreeBaseClass
         Derived& obj, NodePtr node, const Dimension cutfeat, const BoundingBox& left_bbox,
         const BoundingBox& right_bbox, BoundingBox& bbox)
     {
-        node->node_type.sub.divlow  = left_bbox[cutfeat].high;
-        node->node_type.sub.divhigh = right_bbox[cutfeat].low;
+        node->node_type.sub.divlow  = static_cast<DistanceType>(left_bbox[cutfeat].high);
+        node->node_type.sub.divhigh = static_cast<DistanceType>(right_bbox[cutfeat].low);
 
         const Dimension dims = static_cast<Dimension>(veclen(obj));
         for (Dimension i = 0; i < dims; ++i)
@@ -1907,12 +2005,12 @@ class KDTreeBaseClass
 
         /* Recurse on left */
         BoundingBox left_bbox(bbox);
-        left_bbox[cutfeat].high = cutval;
+        left_bbox[cutfeat].high = static_cast<ElementType>(cutval);
         node->child1            = this->divideTree(obj, left, left + idx, left_bbox);
 
         /* Recurse on right */
         BoundingBox right_bbox(bbox);
-        right_bbox[cutfeat].low = cutval;
+        right_bbox[cutfeat].low = static_cast<ElementType>(cutval);
         node->child2            = this->divideTree(obj, left + idx, right, right_bbox);
 
         finalizeSplitNode(obj, node, cutfeat, left_bbox, right_bbox, bbox);
@@ -1920,71 +2018,141 @@ class KDTreeBaseClass
         return node;
     }
 
+    /** Minimum number of points in the smaller child for it to be worth
+     *  handing to a std::async task, instead of recursing into it on the
+     *  calling thread. Below this, thread creation costs more than the
+     *  subtree it would build. */
+    static constexpr Offset kDivideConcurrentTaskCutoff = 512;
+
     /**
      * Create a tree node that subdivides the list of vecs from vind[first] to
-     * vind[last] concurrently.  The routine is called recursively on each
-     * sublist.
+     * vind[last] concurrently. The routine is called recursively on each
+     * sublist: only the smaller of the two children (by point count) is ever
+     * spawned as a std::async task, and only once it exceeds
+     * kDivideConcurrentTaskCutoff points; the larger side always continues
+     * on the calling thread. A spawned task's private pool is spliced (see
+     * PooledAllocator::adopt) into the caller's local_pool once its future
+     * is joined.
      *
+     * @param obj the derived index, whose point-index array gets reordered
      * @param left index of the first vector
      * @param right index of the last vector
      * @param bbox bounding box used as input for splitting and output for
      * parent node
-     * @param thread_count count of std::async threads
-     * @param mutex mutex for mempool allocation
+     * @param local_pool pool this call (and any non-spawned recursion below
+     * it) allocates nodes from
+     * @param tasks_in_flight count of currently spawned tasks, bounded by
+     * n_thread_build_
+     *
+     * @return the root of the subtree covering [left, right)
+     *
+     * \sa divideTree for the sequential builder, which produces the very same
+     *  tree: the split decisions depend only on the point range being divided,
+     *  so the result does not depend on how the work is distributed.
      */
     NodePtr divideTreeConcurrent(
         Derived& obj, const Offset left, const Offset right, BoundingBox& bbox,
-        std::atomic<unsigned int>& thread_count, std::mutex& mutex)
+        PooledAllocator& local_pool, std::atomic<int>& tasks_in_flight)
     {
-        std::unique_lock<std::mutex> lock(mutex);
-        NodePtr                      node = obj.pool_.template allocate<Node>();  // allocate memory
-        lock.unlock();
+        NodePtr node = local_pool.template allocate<Node>();  // no lock: private pool
 
         Offset       idx;
         Dimension    cutfeat;
         DistanceType cutval;
         if (makeNode(obj, node, left, right, bbox, idx, cutfeat, cutval)) return node;
 
-        std::future<NodePtr> right_future;
-
-        /* Recurse on right concurrently, if possible */
-
-        BoundingBox right_bbox(bbox);
-        right_bbox[cutfeat].low = cutval;
-        if (++thread_count < n_thread_build_)
-        {
-            /* Concurrent thread for right recursion */
-
-            right_future = std::async(
-                std::launch::async, &KDTreeBaseClass::divideTreeConcurrent, this, std::ref(obj),
-                left + idx, right, std::ref(right_bbox), std::ref(thread_count), std::ref(mutex));
-        }
-        else
-        {
-            --thread_count;
-        }
-
-        /* Recurse on left in this thread */
+        // `idx` from makeNode()/middleSplit_() is a COUNT relative to
+        // `left` (matching divideTree's own convention): the split point is
+        // `left + idx`, the left side has `idx` points, the right side has
+        // `right - (left + idx)` points.
+        const Offset split      = left + idx;
+        const Offset left_size  = idx;
+        const Offset right_size = right - split;
 
         BoundingBox left_bbox(bbox);
-        left_bbox[cutfeat].high = cutval;
-        node->child1 =
-            this->divideTreeConcurrent(obj, left, left + idx, left_bbox, thread_count, mutex);
+        left_bbox[cutfeat].high = static_cast<ElementType>(cutval);
+        BoundingBox right_bbox(bbox);
+        right_bbox[cutfeat].low = static_cast<ElementType>(cutval);
 
-        if (right_future.valid())
+        const bool   left_is_larger = left_size >= right_size;
+        const Offset smaller_size   = left_is_larger ? right_size : left_size;
+
+        bool spawned = false;
+        if (smaller_size > kDivideConcurrentTaskCutoff)
         {
-            /* Block and wait for concurrent right from above */
+            // tasks_in_flight is signed so an accounting bug surfaces as a
+            // visible negative value instead of wrapping to a huge unsigned
+            // count that would silently defeat this bound. `- 1` reserves a
+            // slot for the calling thread itself, so at most n_thread_build_
+            // threads (spawned tasks + caller) run concurrently.
+            int expected = tasks_in_flight.load(std::memory_order_relaxed);
+            while (expected < static_cast<int>(n_thread_build_ - 1))
+            {
+                if (tasks_in_flight.compare_exchange_weak(
+                        expected, expected + 1, std::memory_order_acq_rel))
+                {
+                    spawned = true;
+                    break;
+                }
+            }
+        }
 
-            node->child2 = right_future.get();
-            --thread_count;
+        // The pool must outlive the future: locals are destroyed in reverse
+        // order of declaration, so declaring it first means that if anything
+        // below throws, `~future` joins the spawned task before the pool it
+        // allocates nodes from is freed.
+        PooledAllocator      spawned_pool;  // only used if `spawned` is true
+        std::future<NodePtr> spawned_future;
+
+        if (spawned)
+        {
+            if (left_is_larger)
+            {
+                /* Spawn the RIGHT (smaller) side: [split, right) */
+                spawned_future = std::async(
+                    std::launch::async, &KDTreeBaseClass::divideTreeConcurrent, this, std::ref(obj),
+                    split, right, std::ref(right_bbox), std::ref(spawned_pool),
+                    std::ref(tasks_in_flight));
+            }
+            else
+            {
+                /* Spawn the LEFT (smaller) side: [left, split) */
+                spawned_future = std::async(
+                    std::launch::async, &KDTreeBaseClass::divideTreeConcurrent, this, std::ref(obj),
+                    left, split, std::ref(left_bbox), std::ref(spawned_pool),
+                    std::ref(tasks_in_flight));
+            }
+        }
+
+        /* Always recurse into the LARGER side on the current thread. */
+        NodePtr larger_child =
+            left_is_larger ? this->divideTreeConcurrent(
+                                 obj, left, split, left_bbox, local_pool, tasks_in_flight)
+                           : this->divideTreeConcurrent(
+                                 obj, split, right, right_bbox, local_pool, tasks_in_flight);
+
+        NodePtr smaller_child;
+        if (spawned)
+        {
+            /* Block and wait for the concurrently-built smaller side. */
+            smaller_child = spawned_future.get();
+            tasks_in_flight.fetch_sub(1, std::memory_order_acq_rel);
+
+            /* O(1) splice of the spawned task's private pool into ours. */
+            local_pool.adopt(spawned_pool);
         }
         else
         {
-            /* Otherwise, recurse on right in this thread */
-
-            node->child2 =
-                this->divideTreeConcurrent(obj, left + idx, right, right_bbox, thread_count, mutex);
+            /* No task was spawned: recurse into the smaller side here too. */
+            smaller_child = left_is_larger
+                                ? this->divideTreeConcurrent(
+                                      obj, split, right, right_bbox, local_pool, tasks_in_flight)
+                                : this->divideTreeConcurrent(
+                                      obj, left, split, left_bbox, local_pool, tasks_in_flight);
         }
+
+        node->child1 = left_is_larger ? larger_child : smaller_child;
+        node->child2 = left_is_larger ? smaller_child : larger_child;
 
         finalizeSplitNode(obj, node, cutfeat, left_bbox, right_bbox, bbox);
 
@@ -1998,24 +2166,35 @@ class KDTreeBaseClass
         const Dimension dims = static_cast<Dimension>(veclen(obj));
         const auto      EPS  = static_cast<DistanceType>(0.00001);
 
+        // Spans, spreads and the split value below are all computed in
+        // DistanceType, which detail::checked_distance_type guarantees to be
+        // signed: a difference of two ElementType coordinates wraps around for
+        // unsigned types, and overflows for signed ones as soon as the data
+        // spans most of the range of a narrow integer type.
+
         // Pre-compute max_span once
-        ElementType max_span = bbox[0].high - bbox[0].low;
+        DistanceType max_span = detail::diff_as<DistanceType>(bbox[0].high, bbox[0].low);
         for (Dimension i = 1; i < dims; ++i)
         {
-            ElementType span = bbox[i].high - bbox[i].low;
+            const DistanceType span = detail::diff_as<DistanceType>(bbox[i].high, bbox[i].low);
             if (span > max_span) max_span = span;
         }
 
         // Two-pass: first find max_span (done above), then scan candidate dims
         // inline — no heap allocation for a candidates vector.
-        cutfeat                      = 0;
-        ElementType       max_spread = -1;
-        ElementType       min_elem = 0, max_elem = 0;
-        const ElementType threshold = (1 - EPS) * max_span;
+        // Note: `max_spread` must not be seeded with a negative sentinel, which
+        // wraps around for unsigned types and is not even constructible for a
+        // user-defined scalar DistanceType. A flag for the first candidate keeps
+        // this selection type-agnostic.
+        cutfeat                       = 0;
+        bool               first      = true;
+        DistanceType       max_spread = DistanceType();
+        ElementType        min_elem = 0, max_elem = 0;
+        const DistanceType threshold = (1 - EPS) * max_span;
 
         for (Dimension dim = 0; dim < dims; ++dim)
         {
-            if (bbox[dim].high - bbox[dim].low < threshold) continue;
+            if (detail::diff_as<DistanceType>(bbox[dim].high, bbox[dim].low) < threshold) continue;
 
             ElementType local_min = dataset_get(obj, vAcc_[ind], dim);
             ElementType local_max = local_min;
@@ -2042,9 +2221,10 @@ class KDTreeBaseClass
                 local_max       = std::max(local_max, val);
             }
 
-            ElementType spread = local_max - local_min;
-            if (spread > max_spread)
+            const DistanceType spread = detail::diff_as<DistanceType>(local_max, local_min);
+            if (first || spread > max_spread)
             {
+                first      = false;
                 cutfeat    = dim;
                 max_spread = spread;
                 min_elem   = local_min;
@@ -2052,10 +2232,17 @@ class KDTreeBaseClass
             }
         }
 
-        // Median-of-three for better balance
-        DistanceType split_val = (bbox[cutfeat].low + bbox[cutfeat].high) / 2;
-        if (split_val < min_elem) split_val = min_elem;
-        if (split_val > max_elem) split_val = max_elem;
+        // Median-of-three for better balance. The midpoint is computed as
+        // `low + (high - low) / 2` rather than `(low + high) / 2`, since the
+        // latter overflows as soon as both coordinates are large.
+        const DistanceType lo = static_cast<DistanceType>(bbox[cutfeat].low);
+        const DistanceType hi = static_cast<DistanceType>(bbox[cutfeat].high);
+
+        DistanceType split_val = lo + (hi - lo) / 2;
+        if (split_val < static_cast<DistanceType>(min_elem))
+            split_val = static_cast<DistanceType>(min_elem);
+        if (split_val > static_cast<DistanceType>(max_elem))
+            split_val = static_cast<DistanceType>(max_elem);
 
         cutval = split_val;
 
@@ -2079,14 +2266,21 @@ class KDTreeBaseClass
         const Derived& obj, const Offset ind, const Size count, const Dimension cutfeat,
         const DistanceType& cutval, Offset& lim1, Offset& lim2)
     {
-        // Dutch National Flag algorithm for three-way partitioning
+        // Dutch National Flag algorithm for three-way partitioning, over the
+        // half-open range [0, count). Offset is unsigned, so a closed-range
+        // `[0, count-1]` variant underflows to SIZE_MAX if every element ends
+        // up above cutval.
         Offset left  = 0;
         Offset mid   = 0;
-        Offset right = count - 1;
+        Offset right = count;
 
-        while (mid <= right)
+        while (mid < right)
         {
-            ElementType val = dataset_get(obj, vAcc_[ind + mid], cutfeat);
+            // Compared in DistanceType, like every other coordinate-vs-cutval
+            // comparison, so that a wide unsigned ElementType is not converted
+            // the other way around.
+            const DistanceType val =
+                static_cast<DistanceType>(dataset_get(obj, vAcc_[ind + mid], cutfeat));
 
             if (val < cutval)
             {
@@ -2096,8 +2290,9 @@ class KDTreeBaseClass
             }
             else if (val > cutval)
             {
-                std::swap(vAcc_[ind + mid], vAcc_[ind + right]);
+                // right > mid >= 0, so decrementing it cannot underflow
                 right--;
+                std::swap(vAcc_[ind + mid], vAcc_[ind + right]);
             }
             else
             {
@@ -2485,10 +2680,9 @@ class KDTreeSingleIndexAdaptor
         else
         {
 #ifndef NANOFLANN_NO_THREADS
-            std::atomic<unsigned int> thread_count(0u);
-            std::mutex                mutex;
+            std::atomic<int> tasks_in_flight(0);
             Base::root_node_ = this->divideTreeConcurrent(
-                *this, 0, Base::size_, Base::root_bbox_, thread_count, mutex);
+                *this, 0, Base::size_, Base::root_bbox_, Base::pool_, tasks_in_flight);
 #else /* NANOFLANN_NO_THREADS */
             throw std::runtime_error("Multithreading is disabled");
 #endif /* NANOFLANN_NO_THREADS */
@@ -2903,10 +3097,9 @@ class KDTreeSingleIndexDynamicAdaptor_
         else
         {
 #ifndef NANOFLANN_NO_THREADS
-            std::atomic<unsigned int> thread_count(0u);
-            std::mutex                mutex;
+            std::atomic<int> tasks_in_flight(0);
             Base::root_node_ = this->divideTreeConcurrent(
-                *this, 0, Base::size_, Base::root_bbox_, thread_count, mutex);
+                *this, 0, Base::size_, Base::root_bbox_, Base::pool_, tasks_in_flight);
 #else /* NANOFLANN_NO_THREADS */
             throw std::runtime_error("Multithreading is disabled");
 #endif /* NANOFLANN_NO_THREADS */
@@ -4340,9 +4533,11 @@ class KDTreeSingleIndexIncrementalAdaptor
         if (lo >= hi) return nullptr;
         const Dimension dims = static_cast<Dimension>(this->veclen(*this));
 
-        // Widest-spread axis over buf[lo,hi).
+        // Widest-spread axis over buf[lo,hi). As in middleSplit_, `bestSpan`
+        // cannot use a negative sentinel, since ElementType may be unsigned.
         Dimension   axis     = static_cast<Dimension>(depth % dims);
-        ElementType bestSpan = -1;
+        bool        first    = true;
+        ElementType bestSpan = 0;
         for (Dimension d = 0; d < dims; ++d)
         {
             ElementType mn = pt(buf[lo], d), mx = mn;
@@ -4353,8 +4548,9 @@ class KDTreeSingleIndexIncrementalAdaptor
                 if (v > mx) mx = v;
             }
             const ElementType span = mx - mn;
-            if (span > bestSpan)
+            if (first || span > bestSpan)
             {
+                first    = false;
                 bestSpan = span;
                 axis     = d;
             }

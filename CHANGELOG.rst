@@ -65,6 +65,51 @@ Changelog for package nanoflann
   ``NANOFLANN_NO_MANIFOLDS`` / ``NANOFLANN_INCREMENTAL_*`` macros, and fixed the
   stale ``CHANGELOG.md`` link and the ``KDTreeEigenMatrixAdaptor`` usage snippet.
 
+1.13.0 (2026-09-17)
+-------------------
+* Merge pull request `#318 <https://github.com/jlblancoc/nanoflann/issues/318>`_ from spyridon97/improve-build-multithreading
+  Rewrite nanoflann's concurrent index build
+  At 16 threads, index build time drops ~3.5x on uniform data
+  (79ms -> 23ms) and ~3.8x on clustered data (108ms -> 29ms).
+* Merge pull request `#317 <https://github.com/jlblancoc/nanoflann/issues/317>`_ from jschueller/mtune
+  CMake: Check for mtune=native flag
+  For some archs like ppc64 this is not always available
+* Merge pull request `#315 <https://github.com/jlblancoc/nanoflann/issues/315>`_ from jlblancoc/fix/unsigned-elementtype-crash
+  Fix crash and wrong results with unsigned ElementType (alternative to `#314 <https://github.com/jlblancoc/nanoflann/issues/314>`_)
+* fix: compute all coordinate differences in DistanceType
+* Contributors: Jose Luis Blanco-Claraco, Julien Schueller, Spiros Tsalikis
+
+1.12.1 (2026-08-08)
+-------------------
+* docs: badges updates to use nanoflann_vendor
+* Merge pull request `#313 <https://github.com/jlblancoc/nanoflann/issues/313>`_ from jlblancoc/chore/rename-ros-package-to-nanoflann-vendor
+  chore(ros): rename the ROS package to nanoflann_vendor
+  Only the ROS package name changes. The CMake package name comes from the
+  CMake project, so find_package(nanoflann) keeps working unchanged.
+* Contributors: Jose Luis Blanco-Claraco
+
+1.12.0 (2026-08-06)
+-------------------
+* Merge pull request `#312 <https://github.com/jlblancoc/nanoflann/issues/312>`_ from jlblancoc/feat/automate-release-script
+  automate release to ensure consistency
+* automate release to ensure consistency
+* fix: stop asserting exact NN index in bruteforce comparison tests
+  Two points can be equidistant (or within float rounding) from a query;
+  nanoflann does not guarantee a tie-break order unless
+  NANOFLANN_FIRST_MATCH is defined, so comparing indices makes these
+  tests flaky whenever a near-tie occurs. Checking the returned distance
+  against the brute-force minimum already fully validates correctness.
+* Merge pull request `#311 <https://github.com/jlblancoc/nanoflann/issues/311>`_ from jlblancoc/fix-potential-ram-run
+  fix: ensure background rebuild spans one single thread
+* address review
+* fix: ensure background rebuild spans one single thread
+* Merge pull request `#310 <https://github.com/jlblancoc/nanoflann/issues/310>`_ from jlblancoc/feat/install-examples-option
+  Add opt-in NANOFLANN_INSTALL_EXAMPLES option
+* Add opt-in NANOFLANN_INSTALL_EXAMPLES option
+  Lets users who need the example binaries installed opt in via CMake,
+  without changing default behavior for the header-only library.
+* Contributors: Jose Luis Blanco-Claraco
+
 1.11.0 (2026-07-31)
 -------------------
 * Merge pull request `#309 <https://github.com/jlblancoc/nanoflann/issues/309>`_ from jlblancoc/feat/incremental-index-save-load

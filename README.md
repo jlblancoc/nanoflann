@@ -10,11 +10,11 @@
 
 | Distro | Build dev | Build releases | Stable version |
 | ---    | ---       | ---            | ---            |
-| ROS 2 Humble (u22.04) | [![Build Status](https://build.ros2.org/job/Hdev__nanoflann__ubuntu_jammy_amd64/badge/icon)](https://build.ros2.org/job/Hdev__nanoflann__ubuntu_jammy_amd64/) | [![Build Status](https://build.ros2.org/job/Hbin_uJ64__nanoflann__ubuntu_jammy_amd64__binary/badge/icon)](https://build.ros2.org/job/Hbin_uJ64__nanoflann__ubuntu_jammy_amd64__binary/)  <br/> [![Build Status](https://build.ros2.org/job/Hbin_ujv8_uJv8__nanoflann__ubuntu_jammy_arm64__binary/badge/icon)](https://build.ros2.org/job/Hbin_ujv8_uJv8__nanoflann__ubuntu_jammy_arm64__binary/) | [![Version](https://img.shields.io/ros/v/humble/nanoflann)](https://index.ros.org/?search_packages=true&pkgs=nanoflann) |
-| ROS 2 Jazzy (u24.04) | [![Build Status](https://build.ros2.org/job/Jdev__nanoflann__ubuntu_noble_amd64/badge/icon)](https://build.ros2.org/job/Jdev__nanoflann__ubuntu_noble_amd64/) | [![Build Status](https://build.ros2.org/job/Jbin_uN64__nanoflann__ubuntu_noble_amd64__binary/badge/icon)](https://build.ros2.org/job/Jbin_uN64__nanoflann__ubuntu_noble_amd64__binary/) <br/> [![Build Status](https://build.ros2.org/job/Jbin_unv8_uNv8__nanoflann__ubuntu_noble_arm64__binary/badge/icon)](https://build.ros2.org/job/Jbin_unv8_uNv8__nanoflann__ubuntu_noble_arm64__binary/) | [![Version](https://img.shields.io/ros/v/jazzy/nanoflann)](https://index.ros.org/?search_packages=true&pkgs=nanoflann) |
-| ROS 2 Kilted (u24.04) | [![Build Status](https://build.ros2.org/job/Kdev__nanoflann__ubuntu_noble_amd64/badge/icon)](https://build.ros2.org/job/Kdev__nanoflann__ubuntu_noble_amd64/) | [![Build Status](https://build.ros2.org/job/Kbin_uN64__nanoflann__ubuntu_noble_amd64__binary/badge/icon)](https://build.ros2.org/job/Kbin_uN64__nanoflann__ubuntu_noble_amd64__binary/) <br/> [![Build Status](https://build.ros2.org/job/Kbin_unv8_uNv8__nanoflann__ubuntu_noble_arm64__binary/badge/icon)](https://build.ros2.org/job/Kbin_unv8_uNv8__nanoflann__ubuntu_noble_arm64__binary/) | [![Version](https://img.shields.io/ros/v/kilted/nanoflann)](https://index.ros.org/?search_packages=true&pkgs=nanoflann) |
-| ROS 2 Lyrical (u26.04) | [![Build Status](https://build.ros2.org/job/Ldev__nanoflann__ubuntu_resolute_amd64/badge/icon)](https://build.ros2.org/job/Ldev__nanoflann__ubuntu_resolute_amd64/) | [![Build Status](https://build.ros2.org/job/Lbin_uR64__nanoflann__ubuntu_resolute_amd64__binary/badge/icon)](https://build.ros2.org/job/Lbin_uR64__nanoflann__ubuntu_resolute_amd64__binary/) <br/> [![Build Status](https://build.ros2.org/job/Lbin_armv8_uRv8__nanoflann__ubuntu_resolute_arm64__binary/badge/icon)](https://build.ros2.org/job/Lbin_armv8_uRv8__nanoflann__ubuntu_resolute_arm64__binary/) | [![Version](https://img.shields.io/ros/v/lyrical/nanoflann)](https://index.ros.org/?search_packages=true&pkgs=nanoflann) |
-| ROS 2 Rolling (u26.04) | [![Build Status](https://build.ros2.org/job/Rdev__nanoflann__ubuntu_resolute_amd64/badge/icon)](https://build.ros2.org/job/Rdev__nanoflann__ubuntu_resolute_amd64/) | [![Build Status](https://build.ros2.org/job/Rbin_uR64__nanoflann__ubuntu_resolute_amd64__binary/badge/icon)](https://build.ros2.org/job/Rbin_uR64__nanoflann__ubuntu_resolute_amd64__binary/) <br/> [![Build Status](https://build.ros2.org/job/Rbin_unv8_uRv8__nanoflann__ubuntu_resolute_arm64__binary/badge/icon)](https://build.ros2.org/job/Rbin_unv8_uRv8__nanoflann__ubuntu_resolute_arm64__binary/) |  [![Version](https://img.shields.io/ros/v/rolling/nanoflann)](https://index.ros.org/?search_packages=true&pkgs=nanoflann) |
+| ROS 2 Humble (u22.04) | [![Build Status](https://build.ros2.org/job/Hdev__nanoflann_vendor__ubuntu_jammy_amd64/badge/icon)](https://build.ros2.org/job/Hdev__nanoflann_vendor__ubuntu_jammy_amd64/) | [![Build Status](https://build.ros2.org/job/Hbin_uJ64__nanoflann_vendor__ubuntu_jammy_amd64__binary/badge/icon)](https://build.ros2.org/job/Hbin_uJ64__nanoflann_vendor__ubuntu_jammy_amd64__binary/)  <br/> [![Build Status](https://build.ros2.org/job/Hbin_ujv8_uJv8__nanoflann_vendor__ubuntu_jammy_arm64__binary/badge/icon)](https://build.ros2.org/job/Hbin_ujv8_uJv8__nanoflann_vendor__ubuntu_jammy_arm64__binary/) | [![Version](https://img.shields.io/ros/v/humble/nanoflann_vendor)](https://index.ros.org/?search_packages=true&pkgs=nanoflann_vendor) |
+| ROS 2 Jazzy (u24.04) | [![Build Status](https://build.ros2.org/job/Jdev__nanoflann_vendor__ubuntu_noble_amd64/badge/icon)](https://build.ros2.org/job/Jdev__nanoflann_vendor__ubuntu_noble_amd64/) | [![Build Status](https://build.ros2.org/job/Jbin_uN64__nanoflann_vendor__ubuntu_noble_amd64__binary/badge/icon)](https://build.ros2.org/job/Jbin_uN64__nanoflann_vendor__ubuntu_noble_amd64__binary/) <br/> [![Build Status](https://build.ros2.org/job/Jbin_unv8_uNv8__nanoflann_vendor__ubuntu_noble_arm64__binary/badge/icon)](https://build.ros2.org/job/Jbin_unv8_uNv8__nanoflann_vendor__ubuntu_noble_arm64__binary/) | [![Version](https://img.shields.io/ros/v/jazzy/nanoflann_vendor)](https://index.ros.org/?search_packages=true&pkgs=nanoflann_vendor) |
+| ROS 2 Kilted (u24.04) | [![Build Status](https://build.ros2.org/job/Kdev__nanoflann_vendor__ubuntu_noble_amd64/badge/icon)](https://build.ros2.org/job/Kdev__nanoflann_vendor__ubuntu_noble_amd64/) | [![Build Status](https://build.ros2.org/job/Kbin_uN64__nanoflann_vendor__ubuntu_noble_amd64__binary/badge/icon)](https://build.ros2.org/job/Kbin_uN64__nanoflann_vendor__ubuntu_noble_amd64__binary/) <br/> [![Build Status](https://build.ros2.org/job/Kbin_unv8_uNv8__nanoflann_vendor__ubuntu_noble_arm64__binary/badge/icon)](https://build.ros2.org/job/Kbin_unv8_uNv8__nanoflann_vendor__ubuntu_noble_arm64__binary/) | [![Version](https://img.shields.io/ros/v/kilted/nanoflann_vendor)](https://index.ros.org/?search_packages=true&pkgs=nanoflann_vendor) |
+| ROS 2 Lyrical (u26.04) | [![Build Status](https://build.ros2.org/job/Ldev__nanoflann_vendor__ubuntu_resolute_amd64/badge/icon)](https://build.ros2.org/job/Ldev__nanoflann_vendor__ubuntu_resolute_amd64/) | [![Build Status](https://build.ros2.org/job/Lbin_uR64__nanoflann_vendor__ubuntu_resolute_amd64__binary/badge/icon)](https://build.ros2.org/job/Lbin_uR64__nanoflann_vendor__ubuntu_resolute_amd64__binary/) <br/> [![Build Status](https://build.ros2.org/job/Lbin_armv8_uRv8__nanoflann_vendor__ubuntu_resolute_arm64__binary/badge/icon)](https://build.ros2.org/job/Lbin_armv8_uRv8__nanoflann_vendor__ubuntu_resolute_arm64__binary/) | [![Version](https://img.shields.io/ros/v/lyrical/nanoflann_vendor)](https://index.ros.org/?search_packages=true&pkgs=nanoflann_vendor) |
+| ROS 2 Rolling (u26.04) | [![Build Status](https://build.ros2.org/job/Rdev__nanoflann_vendor__ubuntu_resolute_amd64/badge/icon)](https://build.ros2.org/job/Rdev__nanoflann_vendor__ubuntu_resolute_amd64/) | [![Build Status](https://build.ros2.org/job/Rbin_uR64__nanoflann_vendor__ubuntu_resolute_amd64__binary/badge/icon)](https://build.ros2.org/job/Rbin_uR64__nanoflann_vendor__ubuntu_resolute_amd64__binary/) <br/> [![Build Status](https://build.ros2.org/job/Rbin_unv8_uRv8__nanoflann_vendor__ubuntu_resolute_arm64__binary/badge/icon)](https://build.ros2.org/job/Rbin_unv8_uRv8__nanoflann_vendor__ubuntu_resolute_arm64__binary/) |  [![Version](https://img.shields.io/ros/v/rolling/nanoflann_vendor)](https://index.ros.org/?search_packages=true&pkgs=nanoflann_vendor) |
 
 (Binary build badges are for amd64 and arm64, respectively)
 
@@ -124,6 +124,22 @@ Refer to the examples below or to the C++ API of [nanoflann::KDTreeSingleIndexAd
     * Can be used to receive a callback for each point found in range. This may be more efficient in some situations instead of building a huge vector of pairs with the results.
     * [nanoflann::KDTreeSingleIndexAdaptor<>](https://jlblancoc.github.io/nanoflann/classnanoflann_1_1KDTreeSingleIndexAdaptor.html)`::findWithinBox()` [New in 1.8.0]: Optimized search within a given axis-aligned bound box.
   * Working with 2D and 3D point clouds or N-dimensional data sets.
+  * Working with integral element types, including unsigned ones. Since
+    `_DistanceType` defaults to the element type and must be **signed**, an
+    unsigned element type requires passing it explicitly, wide enough for the
+    distances of the actual coordinate range, e.g.
+    `nanoflann::L2_Simple_Adaptor<uint8_t, MyCloud, int32_t>`. To use it
+    through the `nanoflann::metric_*` tags, define your own tag:
+    ```cpp
+    struct my_metric_L2 : public nanoflann::Metric
+    {
+        template <class T, class DataSource, typename IndexType = size_t>
+        struct traits
+        {
+            using distance_t = nanoflann::L2_Simple_Adaptor<T, DataSource, int32_t, IndexType>;
+        };
+    };
+    ```
   * Working directly with `Eigen::Matrix<>` classes (matrices and vectors-of-vectors).
   * Working with dynamic point clouds without a need to rebuild entire kd-tree index. Two options:
     * `nanoflann::KDTreeSingleIndexDynamicAdaptor<>`: the Bentley–Saxe "logarithmic forest" of static sub-trees.
@@ -296,7 +312,29 @@ These performance tests are only representative of our testing. If you want to r
 
 ----
 
-## 4. Other KD-tree projects
+## 4. Releasing a new version (maintainers only)
+
+The version number is duplicated in `include/nanoflann.hpp` (two macros),
+`package.xml`, the `CHANGELOG.rst` header and the git tag. `scripts/release.py`
+keeps all of them in sync:
+
+```bash
+scripts/release.py check                   # verify all sources agree (also run in CI)
+scripts/release.py prepare --bump minor    # or: --version 1.12.0, and --dry-run
+```
+
+`prepare` runs `catkin_generate_changelog`, pauses for you to edit the
+`Forthcoming` section, then calls `catkin_prepare_release` and folds the header
+macro bump into the same release commit and tag. Nothing is pushed: the script
+prints the remaining `git push` and `bloom-release` commands.
+
+Pushing the tag triggers the `Create GitHub release` workflow, which publishes a
+GitHub release with the notes taken from that version's `CHANGELOG.rst` entry
+(`scripts/release.py notes` renders it as Markdown).
+
+----
+
+## 5. Other KD-tree projects
 
   * [FLANN](http://www.cs.ubc.ca/research/flann/) - Marius Muja and David G. Lowe (University of British Columbia).
   * [FASTANN](http://www.robots.ox.ac.uk/~vgg/software/fastann/) - James Philbin (VGG, University of Oxford).

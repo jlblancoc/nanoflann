@@ -780,3 +780,90 @@ inline bool inc_in_box(const inc_cloud_t& c, uint32_t i, const double lo[3], con
     return c.pts[i].x >= lo[0] && c.pts[i].x <= hi[0] && c.pts[i].y >= lo[1] &&
            c.pts[i].y <= hi[1] && c.pts[i].z >= lo[2] && c.pts[i].z <= hi[2];
 }
+
+// ---------------------------------------------------------------------------
+// Helpers for integral (in particular unsigned) ElementTypes.
+//
+// std::rand() cannot cover the range of the wider types, so these use a
+// deterministic mt19937_64 to keep failures reproducible.
+// ---------------------------------------------------------------------------
+
+// Fill a 3D PointCloud<T> with coordinates uniformly drawn from [0, max_coord].
+template <typename T>
+void generateRandomIntegralPointCloud(
+    PointCloud<T>& pc, const size_t N, const T max_coord, const uint64_t seed)
+{
+    std::mt19937_64                         rng(seed);
+    std::uniform_int_distribution<uint64_t> dis(0, static_cast<uint64_t>(max_coord));
+
+    pc.pts.resize(N);
+    for (auto& p : pc.pts)
+    {
+        p.x = static_cast<T>(dis(rng));
+        p.y = static_cast<T>(dis(rng));
+        p.z = static_cast<T>(dis(rng));
+    }
+}
+
+// Builds a kd-tree over an integral ElementType and compares a knn query
+// against an exact double brute force. IsL1 selects the |a-b| accumulation
+// instead of (a-b)^2.
+template <
+    typename ElementType, typename DistanceType,
+    template <class, class, class, class> class Adaptor, bool IsL1>
+void integral_kd_vs_bruteforce_test(
+    const size_t N, const size_t numToSearch, const ElementType max_coord, const uint64_t seed)
+{
+    using cloud_t   = PointCloud<ElementType>;
+    using adaptor_t = Adaptor<ElementType, cloud_t, DistanceType, size_t>;
+    using kdtree_t  = KDTreeSingleIndexAdaptor<adaptor_t, cloud_t, 3>;
+
+    cloud_t cloud;
+    generateRandomIntegralPointCloud(cloud, N, max_coord, seed);
+
+    kdtree_t index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10));
+
+    // Query point, drawn from the same range as the cloud:
+    std::mt19937_64                         rng(seed + 1);
+    std::uniform_int_distribution<uint64_t> dis(0, static_cast<uint64_t>(max_coord));
+    const ElementType                       query_pt[3] = {
+                              static_cast<ElementType>(dis(rng)), static_cast<ElementType>(dis(rng)),
+                              static_cast<ElementType>(dis(rng))};
+
+    std::vector<size_t>       ret_indexes(numToSearch);
+    std::vector<DistanceType> out_dists(numToSearch);
+
+    nanoflann::KNNResultSet<DistanceType> resultSet(numToSearch);
+    resultSet.init(&ret_indexes[0], &out_dists[0]);
+    index.findNeighbors(resultSet, &query_pt[0]);
+
+    ASSERT_EQ(resultSet.size(), numToSearch);
+
+    // Exact brute force, in double:
+    // Note the explicit return type: C++11 only deduces it for single-return
+    // lambda bodies.
+    const auto bf_dist = [&](const size_t i) -> double
+    {
+        const double dx = static_cast<double>(query_pt[0]) - static_cast<double>(cloud.pts[i].x);
+        const double dy = static_cast<double>(query_pt[1]) - static_cast<double>(cloud.pts[i].y);
+        const double dz = static_cast<double>(query_pt[2]) - static_cast<double>(cloud.pts[i].z);
+        if (IsL1) return std::abs(dx) + std::abs(dy) + std::abs(dz);
+        return dx * dx + dy * dy + dz * dz;
+    };
+
+    std::vector<double> bf;
+    bf.reserve(N);
+    for (size_t i = 0; i < N; i++) bf.push_back(bf_dist(i));
+    std::sort(bf.begin(), bf.end());
+
+    for (size_t i = 0; i < numToSearch; i++)
+    {
+        // Relative tolerance: with wide integral coordinates the squared
+        // distances exceed the exactly-representable range of double.
+        const double tol = std::max(1e-3, std::abs(bf[i]) * 1e-9);
+        EXPECT_NEAR(bf[i], static_cast<double>(out_dists[i]), tol) << " i=" << i;
+        // The reported index must really be at the reported distance (ties
+        // may be returned in a different order than the brute-force one):
+        EXPECT_NEAR(bf_dist(ret_indexes[i]), static_cast<double>(out_dists[i]), tol) << " i=" << i;
+    }
+}

@@ -277,3 +277,195 @@ TEST(kdtree, vector_of_vectors_known_answer)
     EXPECT_EQ(idx, 1u);  // (1,0) is the nearest to (0.9,0.1)
     EXPECT_NEAR(d2, 0.01 + 0.01, 1e-12);
 }
+
+// ---------------------------------------------------------------------------
+// Unsigned / integral ElementType.
+//
+// Building an index over an unsigned ElementType used to abort with a
+// heap-buffer-overflow inside planeSplit(): the spread sentinel in
+// middleSplit_() wrapped around to the largest representable value, no cut
+// dimension was ever selected, and the resulting degenerate cut sent every
+// point to the same side of the partition.
+// ---------------------------------------------------------------------------
+
+TEST(kdtree, unsigned_vs_bruteforce)
+{
+    for (uint64_t seed = 0; seed < 20; seed++)
+    {
+        integral_kd_vs_bruteforce_test<uint8_t, int32_t, L2_Simple_Adaptor, false>(
+            200, 5, 255, seed);
+        integral_kd_vs_bruteforce_test<uint8_t, int32_t, L2_Adaptor, false>(200, 5, 255, seed);
+        integral_kd_vs_bruteforce_test<uint8_t, int32_t, L1_Adaptor, true>(200, 5, 255, seed);
+
+        // A floating-point DistanceType is equally valid:
+        integral_kd_vs_bruteforce_test<uint8_t, float, L2_Simple_Adaptor, false>(200, 5, 255, seed);
+
+        integral_kd_vs_bruteforce_test<uint16_t, int64_t, L2_Simple_Adaptor, false>(
+            300, 5, 65535, seed);
+
+        // Full uint32_t and uint64_t ranges: exercise the span and midpoint
+        // computations in middleSplit_(), which overflow if done in
+        // ElementType, and the metric subtractions, which wrap around.
+        integral_kd_vs_bruteforce_test<uint32_t, double, L2_Simple_Adaptor, false>(
+            300, 5, std::numeric_limits<uint32_t>::max(), seed);
+        integral_kd_vs_bruteforce_test<uint64_t, double, L2_Simple_Adaptor, false>(
+            300, 5, std::numeric_limits<uint64_t>::max(), seed);
+    }
+}
+
+TEST(kdtree, signed_extreme_range)
+{
+    // Coordinates spanning nearly the whole int32_t range: computing spans,
+    // spreads or the split midpoint in ElementType overflows (UB), so they
+    // must be evaluated in the wider DistanceType.
+    using cloud_t   = PointCloud<int32_t>;
+    using adaptor_t = L2_Simple_Adaptor<int32_t, cloud_t, double>;
+    using kdtree_t  = KDTreeSingleIndexAdaptor<adaptor_t, cloud_t, 3 /* dim */>;
+
+    const int32_t lo = std::numeric_limits<int32_t>::min();
+    const int32_t hi = std::numeric_limits<int32_t>::max();
+
+    std::mt19937_64                        rng(99);
+    std::uniform_int_distribution<int32_t> dis(lo, hi);
+
+    cloud_t cloud;
+    cloud.pts.resize(400);
+    for (auto& p : cloud.pts)
+    {
+        p.x = dis(rng);
+        p.y = dis(rng);
+        p.z = dis(rng);
+    }
+    // Force the bounding box to actually span the full range:
+    cloud.pts[0] = {lo, lo, lo};
+    cloud.pts[1] = {hi, hi, hi};
+
+    kdtree_t index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10));
+
+    const int32_t query_pt[3] = {0, 1000, -1000};
+    size_t        ret_index   = 0;
+    double        out_dist    = -1;
+
+    nanoflann::KNNResultSet<double> resultSet(1);
+    resultSet.init(&ret_index, &out_dist);
+    ASSERT_TRUE(index.findNeighbors(resultSet, &query_pt[0]));
+
+    double bf_best = std::numeric_limits<double>::max();
+    for (const auto& p : cloud.pts)
+    {
+        const double dx = double(query_pt[0]) - double(p.x);
+        const double dy = double(query_pt[1]) - double(p.y);
+        const double dz = double(query_pt[2]) - double(p.z);
+        bf_best         = std::min(bf_best, dx * dx + dy * dy + dz * dz);
+    }
+
+    EXPECT_EQ(out_dist, bf_best);
+}
+
+TEST(kdtree, unsigned_radius_search)
+{
+    using cloud_t   = PointCloud<uint8_t>;
+    using adaptor_t = L2_Simple_Adaptor<uint8_t, cloud_t, int32_t>;
+    using kdtree_t  = KDTreeSingleIndexAdaptor<adaptor_t, cloud_t, 3 /* dim */>;
+
+    cloud_t cloud;
+    generateRandomIntegralPointCloud<uint8_t>(cloud, 500, 255, 42);
+
+    kdtree_t index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(10));
+
+    const uint8_t query_pt[3] = {100, 120, 140};
+    const int32_t radius      = 10000;
+
+    std::vector<nanoflann::ResultItem<typename kdtree_t::IndexType, int32_t>> matches;
+    const size_t nFound = index.radiusSearch(&query_pt[0], radius, matches);
+
+    const auto sq_dist = [&](const size_t i) -> int32_t
+    {
+        const int32_t dx = int32_t(query_pt[0]) - int32_t(cloud.pts[i].x);
+        const int32_t dy = int32_t(query_pt[1]) - int32_t(cloud.pts[i].y);
+        const int32_t dz = int32_t(query_pt[2]) - int32_t(cloud.pts[i].z);
+        return dx * dx + dy * dy + dz * dz;
+    };
+
+    // RadiusResultSet::addPoint keeps a point only if dist < radius (strict):
+    std::set<kdtree_t::IndexType> expected;
+    for (size_t i = 0; i < cloud.pts.size(); i++)
+        if (sq_dist(i) < radius) expected.insert(static_cast<kdtree_t::IndexType>(i));
+
+    // Compare the actual membership, not just the count. The results are not
+    // requested sorted, so compare them as a set:
+    std::set<kdtree_t::IndexType> found;
+    for (const auto& m : matches)
+    {
+        found.insert(m.first);
+        EXPECT_EQ(m.second, sq_dist(m.first));
+    }
+
+    EXPECT_GT(expected.size(), 0u);
+    EXPECT_EQ(nFound, expected.size());
+    EXPECT_TRUE(found == expected);
+}
+
+TEST(kdtree, unsigned_same_points)
+{
+    // Degenerate case: every value equals the cut value, so the partition
+    // takes only the "equal" branch and must still terminate.
+    using cloud_t   = PointCloud<uint8_t>;
+    using adaptor_t = L2_Simple_Adaptor<uint8_t, cloud_t, int32_t>;
+    using kdtree_t  = KDTreeSingleIndexAdaptor<adaptor_t, cloud_t, 3 /* dim */>;
+
+    cloud_t cloud;
+    cloud.pts.resize(16);
+    for (auto& p : cloud.pts)
+    {
+        p.x = 200;
+        p.y = 0;
+        p.z = 255;
+    }
+
+    kdtree_t index(3 /*dim*/, cloud, KDTreeSingleIndexAdaptorParams(4));
+
+    const uint8_t query_pt[3] = {200, 0, 255};
+    size_t        ret_index   = 0;
+    int32_t       out_dist    = -1;
+
+    nanoflann::KNNResultSet<int32_t> resultSet(1);
+    resultSet.init(&ret_index, &out_dist);
+    ASSERT_TRUE(index.findNeighbors(resultSet, &query_pt[0]));
+    EXPECT_EQ(out_dist, 0);
+}
+
+TEST(kdtree, unsigned_incremental_index)
+{
+    // The incremental index selects its cut axis with the same "widest
+    // spread" logic, which has to stay unsigned-safe too.
+    using cloud_t   = PointCloud<uint8_t>;
+    using adaptor_t = L2_Simple_Adaptor<uint8_t, cloud_t, int32_t>;
+    using kdtree_t  = nanoflann::KDTreeSingleIndexIncrementalAdaptor<adaptor_t, cloud_t, 3>;
+
+    cloud_t cloud;
+    generateRandomIntegralPointCloud<uint8_t>(cloud, 300, 255, 7);
+
+    kdtree_t index(3 /*dim*/, cloud);
+    index.addPoints(0, static_cast<kdtree_t::IndexType>(cloud.pts.size() - 1));
+
+    const uint8_t query_pt[3] = {30, 60, 90};
+
+    size_t  ret_index = 0;
+    int32_t out_dist  = -1;
+
+    nanoflann::KNNResultSet<int32_t> resultSet(1);
+    resultSet.init(&ret_index, &out_dist);
+    ASSERT_TRUE(index.findNeighbors(resultSet, &query_pt[0]));
+
+    int32_t bf_best = std::numeric_limits<int32_t>::max();
+    for (const auto& p : cloud.pts)
+    {
+        const int32_t dx = int32_t(query_pt[0]) - int32_t(p.x);
+        const int32_t dy = int32_t(query_pt[1]) - int32_t(p.y);
+        const int32_t dz = int32_t(query_pt[2]) - int32_t(p.z);
+        bf_best          = std::min(bf_best, dx * dx + dy * dy + dz * dz);
+    }
+
+    EXPECT_EQ(out_dist, bf_best);
+}
