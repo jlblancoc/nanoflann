@@ -2076,6 +2076,58 @@ class KDTreeBaseClass
             throw std::runtime_error(
                 "nanoflann loadIndex: unexpected end of stream or read error.");
         }
+        // Queries follow the stored offsets blindly, so reject any array that is
+        // not a well-formed tree over vAcc_ before it can be used.
+        if (!isValidNodeArray(obj))
+        {
+            freeIndex(obj);
+            throw std::runtime_error("nanoflann loadIndex: corrupt node array.");
+        }
+    }
+
+    /** Whether nodes_ is a pre-order tree whose leaves tile vAcc_ in order:
+     *  a depth-first walk must visit every node exactly once and in array
+     *  order, with every offset and split dimension in range. O(nodes). */
+    NANOFLANN_NODISCARD bool isValidNodeArray(const Derived& obj) const
+    {
+        const auto& nodes = obj.nodes_;
+        const Size  n_pts = obj.vAcc_.size();
+        if (nodes.empty()) return n_pts == 0 || obj.size_ == 0;
+        if (obj.size_ != n_pts) return false;
+
+        std::vector<Size> stack;
+        stack.push_back(0);
+        Size next_node  = 0;
+        Size next_point = 0;
+        while (!stack.empty())
+        {
+            const Size i = stack.back();
+            stack.pop_back();
+            if (i != next_node || i >= nodes.size()) return false;
+            next_node++;
+            const Node& n = nodes[i];
+            if (n.isLeaf())
+            {
+                if (n.node_type.lr.left != next_point ||
+                    n.node_type.lr.right < n.node_type.lr.left || n.node_type.lr.right > n_pts)
+                {
+                    return false;
+                }
+                next_point = n.node_type.lr.right;
+            }
+            else
+            {
+                const Dimension d = n.node_type.sub.divfeat;
+                if (n.child2 < 2 || n.child2 >= nodes.size() - i || d < 0 ||
+                    d >= static_cast<Dimension>(veclen(obj)))
+                {
+                    return false;
+                }
+                stack.push_back(i + n.child2);  // right child: visited second
+                stack.push_back(i + 1);  // left child: visited first
+            }
+        }
+        return next_node == nodes.size() && next_point == n_pts;
     }
 };
 

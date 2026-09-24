@@ -21,6 +21,7 @@
 //  std::vector<Node> in depth-first pre-order, children addressed by relative
 //  offsets (see KDTreeBaseClass::Node).
 
+#include <cstddef>
 #include <cstring>
 #include <sstream>
 #include <type_traits>
@@ -212,6 +213,52 @@ TEST(kdtree_nodes, saveload_roundtrip_preserves_array)
     EXPECT_EQ(loaded.knnSearch(q, 1, &i2, &d2), 1u);
     EXPECT_EQ(i1, i2);
     EXPECT_EQ(d1, d2);
+}
+
+TEST(kdtree_nodes, free_index_releases_memory)
+{
+    const cloud_t cloud = skewedCloud(20000, 4);
+    tree_t        idx(3, cloud, KDTreeSingleIndexAdaptorParams(10));
+    EXPECT_GT(idx.nodes_.capacity(), 0u);
+    idx.freeIndex(idx);
+    EXPECT_EQ(idx.nodes_.capacity(), 0u);
+}
+
+TEST(kdtree_nodes, node_reservation_never_exceeds_max_node_count)
+{
+    // With one point per leaf, a tree over N points has exactly 2N-1 nodes.
+    const cloud_t cloud = skewedCloud(5000, 6);
+    const tree_t  idx(3, cloud, KDTreeSingleIndexAdaptorParams(1));
+    EXPECT_EQ(idx.nodes_.size(), 2 * cloud.pts.size() - 1);
+    EXPECT_LE(idx.nodes_.capacity(), 2 * cloud.pts.size());
+}
+
+TEST(kdtree_nodes, loadindex_rejects_corrupt_node_array)
+{
+    const cloud_t     cloud = skewedCloud(3000, 8);
+    const tree_t      original(3, cloud, KDTreeSingleIndexAdaptorParams(10));
+    std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+    original.saveIndex(ss);
+    const std::string good = ss.str();
+
+    // The node array is the last block of the stream: point the root's right
+    // child past the end of the array.
+    std::string  bad  = good;
+    const size_t root = bad.size() - original.nodes_.size() * sizeof(tree_t::Node);
+    const auto   off  = static_cast<decltype(tree_t::Node::child2)>(original.nodes_.size());
+    std::memcpy(&bad[root + offsetof(tree_t::Node, child2)], &off, sizeof(off));
+
+    const auto load = [&](const std::string& bytes)
+    {
+        std::stringstream in(bytes, std::ios::in | std::ios::binary);
+        tree_t            idx(
+                       3, cloud,
+                       KDTreeSingleIndexAdaptorParams(
+                           10, KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
+        idx.loadIndex(in);
+    };
+    EXPECT_NO_THROW(load(good));
+    EXPECT_THROW(load(bad), std::runtime_error);
 }
 
 // Copying a built KDTreeSingleIndexDynamicAdaptor_ (its copy constructor is
