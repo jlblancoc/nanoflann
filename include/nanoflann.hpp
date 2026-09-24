@@ -1124,8 +1124,8 @@ class default_init_allocator : public A
     template <typename U>
     struct rebind
     {
-        using other = default_init_allocator<
-            U, typename std::allocator_traits<A>::template rebind_alloc<U>>;
+        using other =
+            default_init_allocator<U, typename std::allocator_traits<A>::template rebind_alloc<U>>;
     };
     template <typename U>
     void construct(U* p) noexcept(std::is_nothrow_default_constructible<U>::value)
@@ -1180,9 +1180,7 @@ class KDTreeBaseClass
      * buildIndex(). */
     void freeIndex(Derived& obj)
     {
-        // clear() keeps the capacity of the node array: rebuilding an index of a
-        // similar size reuses the same memory and performs no allocation at all.
-        obj.nodes_.clear();
+        NodeArray().swap(obj.nodes_);  // releases the memory, unlike clear()
         obj.size_at_index_build_ = 0;
     }
 
@@ -1224,8 +1222,7 @@ class KDTreeBaseClass
      *  points also addresses the N positions of vAcc_ and, as checked by
      *  buildIndex(), the at most 2N-1 nodes of the tree. Keeping it narrow is
      *  what makes a Node 16 bytes for float coordinates. */
-    using NodeIndex =
-        typename std::conditional<(sizeof(IndexType) <= 4), uint32_t, uint64_t>::type;
+    using NodeIndex = typename std::conditional<(sizeof(IndexType) <= 4), uint32_t, uint64_t>::type;
 
     struct alignas(NANOFLANN_NODE_ALIGNMENT) Node
     {
@@ -1536,8 +1533,7 @@ class KDTreeBaseClass
      * pointer or reference is never kept across a recursive call.
      */
     NodeIndex divideTree(
-        Derived& obj, const Offset left, const Offset right, BoundingBox& bbox,
-        NodeArray& nodes)
+        Derived& obj, const Offset left, const Offset right, BoundingBox& bbox, NodeArray& nodes)
     {
         assert(static_cast<Size>(obj.vAcc_.at(left)) < obj.dataset_.kdtree_get_point_count());
 
@@ -1556,7 +1552,7 @@ class KDTreeBaseClass
 
         /* Recurse on right: lands at the current end of the array */
         BoundingBox right_bbox(bbox);
-        right_bbox[cutfeat].low = static_cast<ElementType>(cutval);
+        right_bbox[cutfeat].low   = static_cast<ElementType>(cutval);
         const NodeIndex right_idx = this->divideTree(obj, left + idx, right, right_bbox, nodes);
 
         const NodePtr node = &nodes[node_idx];  // re-fetch: the array may have grown
@@ -1574,7 +1570,8 @@ class KDTreeBaseClass
      */
     NANOFLANN_NODISCARD Size estimateNodeCount(const Size n_points) const noexcept
     {
-        return 4 * (n_points / std::max<Size>(leaf_max_size_, 1)) + 8;
+        // A tree never has more than 2N-1 nodes (reached for leaf_max_size_=1).
+        return std::min<Size>(2 * n_points, 4 * (n_points / std::max<Size>(leaf_max_size_, 1)) + 8);
     }
 
     /**
@@ -1650,8 +1647,8 @@ class KDTreeBaseClass
      *  [left, right)
      */
     NodeIndex divideTreeConcurrent(
-        Derived& obj, const Offset left, const Offset right, BoundingBox& bbox,
-        NodeArray& nodes, std::atomic<int>& tasks_in_flight)
+        Derived& obj, const Offset left, const Offset right, BoundingBox& bbox, NodeArray& nodes,
+        std::atomic<int>& tasks_in_flight)
     {
         const NodeIndex node_idx = static_cast<NodeIndex>(nodes.size());
         nodes.emplace_back();
@@ -1703,7 +1700,7 @@ class KDTreeBaseClass
         // frame (false sharing). If anything below throws, `~future` still
         // joins the task before this frame goes away.
         std::future<NodeArray> spawned_future;
-        const auto                     spawnTask =
+        const auto             spawnTask =
             [this, &obj, &tasks_in_flight](const Offset a, const Offset b, BoundingBox& box)
         {
             return std::async(
@@ -1771,7 +1768,8 @@ class KDTreeBaseClass
             else
             {
                 left_nodes.reserve(estimateNodeCount(left_size));
-                this->divideTreeConcurrent(obj, left, split, left_bbox, left_nodes, tasks_in_flight);
+                this->divideTreeConcurrent(
+                    obj, left, split, left_bbox, left_nodes, tasks_in_flight);
             }
             nodes.insert(
                 nodes.begin() + static_cast<std::ptrdiff_t>(node_idx) + 1, left_nodes.begin(),
@@ -2003,8 +2001,7 @@ class KDTreeBaseClass
         save_value(stream, obj.vAcc_);
         // Nodes address each other by relative offsets, so the whole tree is
         // one position-independent block of trivially-copyable structs.
-        static_assert(
-            std::is_trivially_copyable<Node>::value, "Node must be trivially copyable");
+        static_assert(std::is_trivially_copyable<Node>::value, "Node must be trivially copyable");
         save_value(stream, obj.nodes_);
     }
 
@@ -2251,7 +2248,9 @@ class KDTreeSingleIndexAdaptor
         Base::size_                = dataset_.kdtree_get_point_count();
         Base::size_at_index_build_ = Base::size_;
         init_vind();
-        this->freeIndex(*this);
+        // clear() keeps the capacity of the node array: rebuilding an index of a
+        // similar size reuses the same memory.
+        Base::nodes_.clear();
         Base::size_at_index_build_ = Base::size_;
         if (Base::size_ == 0) return;
         this->buildTree(*this);
@@ -2640,7 +2639,7 @@ class KDTreeSingleIndexDynamicAdaptor_
     void buildIndex()
     {
         Base::size_ = Base::vAcc_.size();
-        this->freeIndex(*this);
+        Base::nodes_.clear();  // keeps capacity, see KDTreeSingleIndexAdaptor
         Base::size_at_index_build_ = Base::size_;
         if (Base::size_ == 0) return;
         this->buildTree(*this);
@@ -2942,8 +2941,16 @@ class KDTreeSingleIndexDynamicAdaptor
 
         for (int i = 0; i <= maxIndex; ++i)
         {
-            index_[i].freeIndex(index_[i]);
-            if (!index_[i].vAcc_.empty()) index_[i].buildIndex();
+            // Sub-trees merged into a larger one release their memory; the others
+            // are rebuilt in place.
+            if (index_[i].vAcc_.empty())
+            {
+                index_[i].freeIndex(index_[i]);
+            }
+            else
+            {
+                index_[i].buildIndex();
+            }
         }
     }
 
@@ -3318,8 +3325,7 @@ class KDTreeSingleIndexIncrementalAdaptor
     /** Approximate bytes used by the node pool and the index->node map. */
     NANOFLANN_NODISCARD Size usedMemory() const
     {
-        return pool_.usedMemory + pool_.wastedMemory +
-               nodeOfPoint_.capacity() * sizeof(INode*);
+        return pool_.usedMemory + pool_.wastedMemory + nodeOfPoint_.capacity() * sizeof(INode*);
     }
 
     /** Axis-aligned bounding box of all points currently in the index (live and
