@@ -1625,13 +1625,13 @@ class KDTreeBaseClass
      *
      * Only the smaller of the two children (by point count) is ever spawned as
      * a std::async task, and only once it exceeds kDivideConcurrentTaskCutoff
-     * points; the larger side is always built first, on the calling thread. A
-     * spawned task builds into a private vector that is spliced into \a nodes
-     * once its future is joined: appended after the left side when it is the
-     * right child, inserted right after the parent when it is the left child.
-     * Children are addressed by relative offsets, so the splice is a plain
-     * memmove with no fix-up, and the resulting array is the one the sequential
-     * builder produces.
+     * points; when a task is spawned, the larger side is built meanwhile on the
+     * calling thread. A spawned task builds into a private vector that is
+     * spliced into \a nodes once its future is joined: appended after the left
+     * side when it is the right child, inserted right after the parent when it
+     * is the left child. Children are addressed by relative offsets, so the
+     * splice is a plain memmove with no fix-up, and the resulting array is the
+     * one the sequential builder produces.
      *
      * @param obj the derived index, whose point-index array gets reordered
      * @param left index of the first vector
@@ -1714,13 +1714,11 @@ class KDTreeBaseClass
                 });
         };
 
-        // Whether or not a task was spawned, the LARGER side is built first by
-        // this thread: slots free up while it works, and it can only use one at
-        // a node whose smaller child exceeds the cutoff. Descending the larger
-        // child first keeps the thread where such nodes are, so a freed slot is
-        // picked up quickly; descending the smaller child first would leave the
-        // slot idle until the thread gets back to the larger child (measured to
-        // cost up to 50% of the build time on skewed data with 3-4 threads).
+        // With a spawned task, this thread builds the LARGER side meanwhile.
+        // Without one, both sides are built here in array order (left first),
+        // so that no memmove is needed: moving the already-built right side to
+        // make room for the left one costs, over all levels, several times the
+        // size of the whole node array.
         NodeIndex right_idx;
         if (left_is_larger)
         {
@@ -1742,35 +1740,25 @@ class KDTreeBaseClass
                 this->divideTreeConcurrent(obj, split, right, right_bbox, nodes, tasks_in_flight);
             }
         }
-        else if (!spawned && left_size <= kDivideConcurrentTaskCutoff)
+        else if (!spawned)
         {
-            /* Tiny LEFT side: nothing to gain from reordering, build in array order. */
+            /* No task: build in array order. */
             this->divideTreeConcurrent(obj, left, split, left_bbox, nodes, tasks_in_flight);
             right_idx = static_cast<NodeIndex>(nodes.size());
             this->divideTreeConcurrent(obj, split, right, right_bbox, nodes, tasks_in_flight);
         }
         else
         {
-            /* The smaller LEFT side must land at node_idx + 1 but is built after
-             * (or concurrently with) the right side, so it goes into its own
-             * array, then gets inserted before the right side. The right side
+            /* The smaller LEFT side, spawned, must land at node_idx + 1 but is
+             * built concurrently with the right side, so it comes back in its
+             * own array and gets inserted before the right side. The right side
              * only holds relative offsets, so shifting it needs no fix-up. */
-            if (spawned) spawned_future = spawnTask(left, split, left_bbox);
+            spawned_future = spawnTask(left, split, left_bbox);
 
             this->divideTreeConcurrent(obj, split, right, right_bbox, nodes, tasks_in_flight);
 
-            NodeArray left_nodes;
-            if (spawned)
-            {
-                left_nodes = spawned_future.get();
-                tasks_in_flight.fetch_sub(1, std::memory_order_acq_rel);
-            }
-            else
-            {
-                left_nodes.reserve(estimateNodeCount(left_size));
-                this->divideTreeConcurrent(
-                    obj, left, split, left_bbox, left_nodes, tasks_in_flight);
-            }
+            const NodeArray left_nodes = spawned_future.get();
+            tasks_in_flight.fetch_sub(1, std::memory_order_acq_rel);
             nodes.insert(
                 nodes.begin() + static_cast<std::ptrdiff_t>(node_idx) + 1, left_nodes.begin(),
                 left_nodes.end());
