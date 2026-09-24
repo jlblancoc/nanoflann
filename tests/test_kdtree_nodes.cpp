@@ -165,11 +165,7 @@ TEST(kdtree_nodes, rebuild_reuses_storage)
             EXPECT_EQ(idx.nodes_.size(), n);
         }
         EXPECT_EQ(
-            idx.usedMemory(idx), cap * sizeof(tree_t::Node) +
-                                     idx.split_coords_.capacity() * sizeof(num_t) +
-                                     cloud.pts.size() * sizeof(uint32_t));
-        // The build scratch is kept too, so a rebuild allocates nothing at all.
-        EXPECT_EQ(idx.split_coords_.size(), cloud.pts.size());
+            idx.usedMemory(idx), cap * sizeof(tree_t::Node) + cloud.pts.size() * sizeof(uint32_t));
     }
 }
 

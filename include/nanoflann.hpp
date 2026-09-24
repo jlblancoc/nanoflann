@@ -1290,14 +1290,6 @@ class KDTreeBaseClass
      */
     NodeArray nodes_;
 
-    /** Build-time scratch: split_coords_[i] holds the coordinate, along the
-     *  dimension being split, of the point vAcc_[i]. middleSplit_() gathers it
-     *  while scanning for the split dimension, so that planeSplit() partitions
-     *  contiguous memory instead of reading the dataset through vAcc_ again.
-     *  Concurrent build tasks touch disjoint ranges of it. Kept between
-     *  rebuilds, like nodes_, so that rebuilding allocates nothing. */
-    std::vector<ElementType, default_init_allocator<ElementType>> split_coords_;
-
     /** Returns number of points in dataset  */
     NANOFLANN_NODISCARD Size size(const Derived& obj) const noexcept { return obj.size_; }
 
@@ -1334,9 +1326,8 @@ class KDTreeBaseClass
     NANOFLANN_NODISCARD Size usedMemory(const Derived& obj) const
     {
         return obj.nodes_.capacity() * sizeof(Node) +
-               obj.split_coords_.capacity() * sizeof(ElementType) +
                obj.dataset_.kdtree_get_point_count() *
-                   sizeof(IndexType);  // node array, build scratch and vind array memory
+                   sizeof(IndexType);  // node array and vind array memory
     }
 
     /**
@@ -1606,7 +1597,6 @@ class KDTreeBaseClass
         // leaf_max_size_, ...) all build threads keep reading.
         NodeArray nodes;
         nodes.swap(obj.nodes_);
-        obj.split_coords_.resize(obj.size_);
         // No-op when the array is already large enough, e.g. on a rebuild.
         nodes.reserve(estimateNodeCount(obj.size_));
         if (obj.n_thread_build_ == 1)
@@ -1829,24 +1819,35 @@ class KDTreeBaseClass
         ElementType        min_elem = 0, max_elem = 0;
         const DistanceType threshold = (1 - EPS) * max_span;
 
-        // While scanning a candidate dimension its coordinates are gathered
-        // into split_coords_, so that this min/max scan is the only pass over
-        // the dataset: planeSplit() then partitions contiguous memory.
-        ElementType* const coords       = split_coords_.data() + ind;
-        Dimension          gathered_dim = -1;
         for (Dimension dim = 0; dim < dims; ++dim)
         {
             if (detail::diff_as<DistanceType>(bbox[dim].high, bbox[dim].low) < threshold) continue;
-            ElementType local_min = coords[0] = dataset_get(obj, vAcc_[ind], dim);
+
+            ElementType local_min = dataset_get(obj, vAcc_[ind], dim);
             ElementType local_max = local_min;
-            for (Offset k = 1; k < count; ++k)
+
+            // Unrolled loop for better performance
+            constexpr size_t UNROLL = 4;
+            Offset           k      = 1;
+            for (; k + UNROLL <= count; k += UNROLL)
             {
-                const ElementType val = dataset_get(obj, vAcc_[ind + k], dim);
-                coords[k]             = val;
-                local_min             = std::min(local_min, val);
-                local_max             = std::max(local_max, val);
+                ElementType v0 = dataset_get(obj, vAcc_[ind + k], dim);
+                ElementType v1 = dataset_get(obj, vAcc_[ind + k + 1], dim);
+                ElementType v2 = dataset_get(obj, vAcc_[ind + k + 2], dim);
+                ElementType v3 = dataset_get(obj, vAcc_[ind + k + 3], dim);
+
+                local_min = std::min({local_min, v0, v1, v2, v3});
+                local_max = std::max({local_max, v0, v1, v2, v3});
             }
-            gathered_dim              = dim;
+
+            // Handle remainder
+            for (; k < count; ++k)
+            {
+                ElementType val = dataset_get(obj, vAcc_[ind + k], dim);
+                local_min       = std::min(local_min, val);
+                local_max       = std::max(local_max, val);
+            }
+
             const DistanceType spread = detail::diff_as<DistanceType>(local_max, local_min);
             if (first || spread > max_spread)
             {
@@ -1857,12 +1858,7 @@ class KDTreeBaseClass
                 max_elem   = local_max;
             }
         }
-        if (gathered_dim != cutfeat)
-        {
-            // Several candidate dimensions and the chosen one was not the last
-            // scanned (e.g. a perfectly cubic bounding box): gather it again.
-            for (Offset k = 0; k < count; ++k) coords[k] = dataset_get(obj, vAcc_[ind + k], cutfeat);
-        }
+
         // Median-of-three for better balance. The midpoint is computed as
         // `low + (high - low) / 2` rather than `(low + high) / 2`, since the
         // latter overflows as soon as both coordinates are large.
@@ -1879,7 +1875,7 @@ class KDTreeBaseClass
 
         // Optimized partitioning
         Offset lim1, lim2;
-        planeSplit(ind, count, cutval, lim1, lim2);
+        planeSplit(obj, ind, count, cutfeat, cutval, lim1, lim2);
 
         index = (lim1 > count / 2) ? lim1 : (lim2 < count / 2) ? lim2 : count / 2;
     }
@@ -1893,33 +1889,29 @@ class KDTreeBaseClass
      *  dataset[ind[lim1..lim2-1]][cutfeat] == cutval
      *  dataset[ind[lim2..count]][cutfeat] > cutval
      */
-    /**
-     * Three-way partition (Dutch national flag) of vAcc_[ind, ind + count) by
-     * the coordinates that middleSplit_() gathered into split_coords_ for the
-     * same range: on exit, [0, lim1) holds points below cutval, [lim1, lim2)
-     * points equal to it and [lim2, count) points above it. Both arrays are
-     * permuted in lockstep; the half-open range avoids the underflow of a
-     * closed `[0, count-1]` variant when every point ends up above cutval.
-     */
     void planeSplit(
-        const Offset ind, const Size count, const DistanceType& cutval, Offset& lim1,
-        Offset& lim2)
+        const Derived& obj, const Offset ind, const Size count, const Dimension cutfeat,
+        const DistanceType& cutval, Offset& lim1, Offset& lim2)
     {
-        ElementType* const coords = split_coords_.data() + ind;
-        IndexType* const   idxs   = vAcc_.data() + ind;
-        Offset             left   = 0;
-        Offset             mid    = 0;
-        Offset             right  = count;
+        // Dutch National Flag algorithm for three-way partitioning, over the
+        // half-open range [0, count). Offset is unsigned, so a closed-range
+        // `[0, count-1]` variant underflows to SIZE_MAX if every element ends
+        // up above cutval.
+        Offset left  = 0;
+        Offset mid   = 0;
+        Offset right = count;
+
         while (mid < right)
         {
             // Compared in DistanceType, like every other coordinate-vs-cutval
             // comparison, so that a wide unsigned ElementType is not converted
             // the other way around.
-            const DistanceType val = static_cast<DistanceType>(coords[mid]);
+            const DistanceType val =
+                static_cast<DistanceType>(dataset_get(obj, vAcc_[ind + mid], cutfeat));
+
             if (val < cutval)
             {
-                std::swap(idxs[left], idxs[mid]);
-                std::swap(coords[left], coords[mid]);
+                std::swap(vAcc_[ind + left], vAcc_[ind + mid]);
                 left++;
                 mid++;
             }
@@ -1927,14 +1919,14 @@ class KDTreeBaseClass
             {
                 // right > mid >= 0, so decrementing it cannot underflow
                 right--;
-                std::swap(idxs[mid], idxs[right]);
-                std::swap(coords[mid], coords[right]);
+                std::swap(vAcc_[ind + mid], vAcc_[ind + right]);
             }
             else
             {
                 mid++;
             }
         }
+
         lim1 = left;
         lim2 = mid;
     }
