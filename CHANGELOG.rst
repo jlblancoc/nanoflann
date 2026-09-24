@@ -12,6 +12,12 @@ Forthcoming
   the concurrent build produces the very same array as the sequential one,
   and ``saveIndex()``/``loadIndex()`` write/read the tree as a single block.
   Query time improves by 5-20% and single-thread build time by 3-5%.
+* perf: the split coordinates of a node are gathered once into a scratch
+  array while the split dimension is chosen, and the partition then runs over
+  that contiguous array instead of re-reading the dataset through the index
+  array. Same tree, 4-7% faster single-thread build and up to 16% faster
+  concurrent build on LiDAR-like clouds. The scratch (one ``ElementType``
+  per point) is kept between rebuilds.
 * fix: copying a built ``KDTreeSingleIndexDynamicAdaptor_`` (defaulted copy
   constructor) shared the pool memory between both copies and double-freed it
   on destruction. Copies now own their nodes.
