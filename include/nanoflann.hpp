@@ -1418,9 +1418,15 @@ class KDTreeBaseClass
 
         const NodeConstPtr child1 = node + 1;
         const NodeConstPtr child2 = node + node->child2;
-        NodeConstPtr       bestChild;
-        NodeConstPtr       otherChild;
-        DistanceType       cut_dist;
+#if defined(__GNUC__) || defined(__clang__)
+        // The left child is the next node, likely already in cache; the right
+        // one is far away in the array, fetch it while the distances are
+        // computed.
+        __builtin_prefetch(child2);
+#endif
+        NodeConstPtr bestChild;
+        NodeConstPtr otherChild;
+        DistanceType cut_dist;
         if ((diff1 + diff2) < 0)
         {
             bestChild  = child1;
