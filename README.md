@@ -212,7 +212,7 @@ The nanoflann port in vcpkg is kept up to date by Microsoft team members and com
 
   * `NANOFLANN_FIRST_MATCH`: If defined and two points have the same distance, the one with the lowest-index will be returned first. Otherwise there is no particular order.
   * `NANOFLANN_NO_THREADS`: If defined, multithreading capabilities will be disabled, so that the library can be used without linking with pthreads. If one tries to use multiple threads, an exception will be thrown.
-  * `NANOFLANN_NODE_ALIGNMENT`: The memory alignment, in bytes, used for KD-tree nodes. Defaults to `16`.
+  * `NANOFLANN_NODE_ALIGNMENT`: The memory alignment, in bytes, used for KD-tree nodes. Defaults to `16`. Values above `alignof(std::max_align_t)` (e.g. `32`/`64` for AVX/AVX-512 aligned loads) are honored with any C++ standard.
 
 ### 1.10. Thread safety
 

@@ -119,6 +119,23 @@ TEST(kdtree_nodes, node_is_compact_and_trivially_copyable)
     EXPECT_TRUE(std::is_trivially_copyable<tree_t::Node>::value);
 }
 
+TEST(kdtree_nodes, node_array_honors_node_alignment)
+{
+    // Small trees, so that the node arrays come from the heap and not from
+    // page-aligned memory maps.
+    for (size_t N = 20; N < 2000; N += 37)
+    {
+        SCOPED_TRACE("N=" + std::to_string(N));
+        // Odd-sized allocations in between, so that the heap does not hand out
+        // blocks that are aligned by chance.
+        const std::vector<char> noise(1 + N % 13);
+        const cloud_t           cloud = skewedCloud(N, 5);
+        const tree_t            idx(3, cloud, KDTreeSingleIndexAdaptorParams(10));
+        ASSERT_FALSE(idx.nodes_.empty());
+        EXPECT_EQ(reinterpret_cast<std::uintptr_t>(idx.nodes_.data()) % alignof(tree_t::Node), 0u);
+    }
+}
+
 TEST(kdtree_nodes, layout_is_preorder_and_covers_all_points)
 {
     for (const size_t N : {1u, 2u, 9u, 10u, 11u, 100u, 5000u, 60000u})
