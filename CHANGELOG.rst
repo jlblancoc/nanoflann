@@ -2,6 +2,23 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Store kd-tree nodes in one contiguous std::vector instead of pointer-linked
+  allocations, shrinking Node and speeding up kNN queries and builds
+  (`#319 <https://github.com/jlblancoc/nanoflann/issues/319>`_).
+* Gather split coordinates once into a scratch array reused across builds,
+  avoiding a second pass over the dataset in middleSplit_().
+* Release node memory in freeIndex() and cap the node reservation at 2N.
+* loadIndex() now validates the loaded node array and rejects corrupt files.
+* Concurrent build: splice only the subtrees actually built by a task,
+  avoiding unnecessary memmoves.
+* Prefetch the right child while descending the tree, improving kNN
+  query speed.
+* CI Linux: do not upgrade runner packages before installing build tools
+  (`#320 <https://github.com/jlblancoc/nanoflann/issues/320>`_).
+* Contributors: Jose Luis Blanco-Claraco, Luca Bartoli
+
 1.13.0 (2026-09-17)
 -------------------
 * Merge pull request `#318 <https://github.com/jlblancoc/nanoflann/issues/318>`_ from spyridon97/improve-build-multithreading
