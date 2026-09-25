@@ -30,6 +30,7 @@ add_executable(nanoflann_unit_tests
   test_kdtree_incremental.cpp
   test_kdtree_manifold.cpp
   test_kdtree_incremental_manifold.cpp
+  test_kdtree_nodes.cpp
   test_main.cpp
 )
 set_target_properties(nanoflann_unit_tests PROPERTIES FOLDER "./")

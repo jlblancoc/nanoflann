@@ -91,7 +91,6 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get -y update
-          sudo apt-get -y upgrade
 
           sudo apt install -y \
             cmake build-essential cmake libeigen3-dev
