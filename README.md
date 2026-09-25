@@ -232,7 +232,7 @@ The nanoflann port in vcpkg is kept up to date by Microsoft team members and com
 
   * `NANOFLANN_FIRST_MATCH`: If defined and two points have the same distance, the one with the lowest-index will be returned first. Otherwise there is no particular order.
   * `NANOFLANN_NO_THREADS`: If defined, multithreading capabilities will be disabled, so that the library can be used without linking with pthreads. If one tries to use multiple threads, an exception will be thrown.
-  * `NANOFLANN_NODE_ALIGNMENT`: The memory alignment, in bytes, used for KD-tree nodes. Must be a power of two and `>= 8`. Defaults to `16` (also a good value for AVX; use `32`/`64` for AVX/AVX-512 aligned loads). The pool allocator honors this alignment for every node.
+  * `NANOFLANN_NODE_ALIGNMENT`: The memory alignment, in bytes, used for KD-tree nodes. Must be a power of two and `>= 8`. Defaults to `16` (also a good value for AVX; use `32`/`64` for AVX/AVX-512 aligned loads). Every node honors this alignment, with any C++ standard.
   * `NANOFLANN_NO_MANIFOLDS`: If defined, disables the C++17 product-manifold topology support (`Manifold_Adaptor`, `Product<>`, `SO2`/`SO3`/`SE2`/`SE3`/`Sn`/`Torus`, `metric_Manifold<>`). It is auto-enabled under C++17; define this to force it off (the C++11 Euclidean core is unaffected).
   * `NANOFLANN_INCREMENTAL_NO_COORD_CACHE`: If defined, the incremental index does not keep a per-node contiguous copy of point coordinates (trades query speed for memory).
   * `NANOFLANN_INCREMENTAL_INNODE_DISTANCE`: If defined, the (Euclidean) incremental index reuses the per-axis coordinate cache for the in-node distance. Has no effect for manifold metrics, which always use the full `evalMetric`.

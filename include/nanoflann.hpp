@@ -85,7 +85,7 @@
 #include <chrono>  // std::chrono (async incremental index polling)
 #include <cmath>  // for abs()
 #include <condition_variable>  // rebuild worker of the async incremental index
-#include <cstddef>  // std::ptrdiff_t
+#include <cstddef>  // std::ptrdiff_t, std::max_align_t
 #include <cstdint>
 #include <cstdio>  // snprintf
 #include <cstdlib>  // for abs()
@@ -1557,6 +1557,48 @@ class default_init_allocator : public A
     {
         std::allocator_traits<A>::construct(static_cast<A&>(*this), p, std::forward<Args>(args)...);
     }
+
+#if !defined(__cpp_aligned_new)
+    // Before C++17, std::allocator ignores alignments beyond that of
+    // max_align_t (e.g. NANOFLANN_NODE_ALIGNMENT=32/64), so over-aligned types
+    // are over-allocated and aligned by hand, keeping the malloc() pointer
+    // right before the returned block.
+    using value_type                     = typename std::allocator_traits<A>::value_type;
+    static constexpr size_t kAlign       = alignof(value_type);
+    static constexpr bool   kOverAligned = kAlign > alignof(std::max_align_t);
+
+    value_type* allocate(const size_t n)
+    {
+        if (!kOverAligned)
+        {
+            return std::allocator_traits<A>::allocate(static_cast<A&>(*this), n);
+        }
+        if (n > (std::numeric_limits<size_t>::max() - kAlign - sizeof(void*)) / sizeof(value_type))
+        {
+            throw std::bad_alloc();
+        }
+        void* raw = ::malloc(n * sizeof(value_type) + kAlign + sizeof(void*));
+        if (!raw)
+        {
+            throw std::bad_alloc();
+        }
+        const std::uintptr_t p =
+            (reinterpret_cast<std::uintptr_t>(raw) + sizeof(void*) + kAlign - 1) &
+            ~static_cast<std::uintptr_t>(kAlign - 1);
+        reinterpret_cast<void**>(p)[-1] = raw;
+        return reinterpret_cast<value_type*>(p);
+    }
+
+    void deallocate(value_type* p, const size_t n) noexcept
+    {
+        if (!kOverAligned)
+        {
+            std::allocator_traits<A>::deallocate(static_cast<A&>(*this), p, n);
+            return;
+        }
+        ::free(reinterpret_cast<void**>(p)[-1]);
+    }
+#endif
 };
 
 /** Used to declare fixed-size arrays when DIM>0, dynamically-allocated vectors
