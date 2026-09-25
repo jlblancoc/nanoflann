@@ -2,8 +2,8 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.14.0 (2026-09-25)
+-------------------
 * Store kd-tree nodes in one contiguous std::vector instead of pointer-linked
   allocations, shrinking Node and speeding up kNN queries and builds
   (`#319 <https://github.com/jlblancoc/nanoflann/issues/319>`_).
