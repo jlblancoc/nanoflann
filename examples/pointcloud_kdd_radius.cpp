@@ -101,6 +101,27 @@ void kdtree_demo(const size_t N)
                  << "]=" << ret_matches[i].second << endl;
         cout << "\n";
     }
+
+    // ----------------------------------------------------------------
+    // findWithinBox(): Find all points inside an axis-aligned box
+    // (bounds are inclusive)
+    // ----------------------------------------------------------------
+    {
+        typename my_kd_tree_t::BoundingBox box;
+        for (int d = 0; d < 3; ++d)
+        {
+            box[d].low  = query_pt[d] - static_cast<num_t>(0.25);
+            box[d].high = query_pt[d] + static_cast<num_t>(0.25);
+        }
+        std::vector<uint32_t>             inside;
+        nanoflann::BoxResultSet<uint32_t> resultSet(inside);
+
+        const size_t nInside = index.findWithinBox(resultSet, box);
+
+        cout << "findWithinBox(): " << nInside << " points inside the box\n";
+        for (size_t i = 0; i < nInside; i++) cout << "idx[" << i << "]=" << inside[i] << endl;
+        cout << "\n";
+    }
 }
 }  // namespace
 

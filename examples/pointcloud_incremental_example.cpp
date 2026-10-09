@@ -36,8 +36,9 @@
 //     memory bounded under churn (lazy tombstones + amortized partial rebuilds);
 //   - optionally recycle the freed point slots (acquireRemovedPoints).
 //
-// A multithreaded variant (KDTreeSingleIndexIncrementalAdaptorMT) that performs
-// the balancing rebuilds on a background thread is sketched at the end.
+// See pointcloud_incremental_mt_example.cpp for the multithreaded variant
+// (KDTreeSingleIndexIncrementalAdaptorMT), which runs the balancing rebuilds on
+// a background thread.
 
 #include <array>
 #include <cstdlib>
@@ -153,20 +154,6 @@ int main()
               << " physical nodes=" << index.physicalSize()
               << " recyclable slots=" << cloud.freeSlots.size()
               << " radius matches=" << totalNeighbors << "\n";
-
-    // --- Multithreaded variant (background-thread rebuilds) -----------------
-    // The wrapper has the same insert/remove/query API; rebuilds run on a worker
-    // thread so foreground update latency stays low. Use sync() before any read
-    // that must observe all pending mutations, and setRebuildCallback() to be
-    // notified when a background rebuild swaps in a fresh tree, e.g.:
-    //
-    //   using kdtree_mt_t = nanoflann::KDTreeSingleIndexIncrementalAdaptorMT<
-    //       metric_t, PointCloud<num_t>, 3, uint32_t>;
-    //   kdtree_mt_t mt(3, cloud);
-    //   mt.setRebuildCallback([](kdtree_t& fresh) { /* warm caches, log... */ });
-    //   mt.addPoints(0, N);
-    //   mt.sync();  // ensure the worker finished before querying
-    //   mt.knnSearch(q.data(), 1, &idx, &dist);
 
     return 0;
 }

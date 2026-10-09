@@ -87,6 +87,27 @@ void kdtree_demo(const size_t N)
         std::cout << "Worst pair: idx=" << worst_pair.first << " squaredDist=" << worst_pair.second
                   << std::endl;
     }
+
+#ifndef NANOFLANN_NO_THREADS
+    {
+        // Multithreaded build: n_thread_build=0 uses all hardware threads (or
+        // pass an explicit count). The tree, and so every query result, is the
+        // same as with the default single-threaded build.
+        const nanoflann::KDTreeSingleIndexAdaptorParams params(
+            10 /* max leaf */, nanoflann::KDTreeSingleIndexAdaptorFlags::None,
+            0 /* n_thread_build */);
+        my_kd_tree_t index_mt(3 /*dim*/, cloud, params);
+
+        const size_t                   num_results = 1;
+        size_t                         ret_index;
+        num_t                          out_dist_sqr;
+        nanoflann::KNNResultSet<num_t> resultSet(num_results);
+        resultSet.init(&ret_index, &out_dist_sqr);
+        index_mt.findNeighbors(resultSet, &query_pt[0]);
+        std::cout << "Multithreaded build, knnSearch(nn=1): ret_index=" << ret_index
+                  << " out_dist_sqr=" << out_dist_sqr << std::endl;
+    }
+#endif
 }
 }  // namespace
 
