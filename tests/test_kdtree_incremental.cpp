@@ -1013,3 +1013,136 @@ TEST(kdtree_incremental, async_mt_replay_remove_box_and_callback)
     }
 }
 #endif  // NANOFLANN_NO_THREADS
+
+namespace
+{
+// Squared distances from q to every live point, sorted.
+std::vector<double> sortedLiveDists(
+    const inc_cloud_t& cloud, const std::set<uint32_t>& live, const double* q)
+{
+    std::vector<double> d;
+    for (const uint32_t i : live)
+    {
+        const double dx = q[0] - cloud.pts[i].x;
+        const double dy = q[1] - cloud.pts[i].y;
+        const double dz = q[2] - cloud.pts[i].z;
+        d.push_back(dx * dx + dy * dy + dz * dz);
+    }
+    std::sort(d.begin(), d.end());
+    return d;
+}
+
+// k-NN distances and radius-search counts against brute force.
+void checkVsBruteforce(
+    const inc_tree_t& index, const inc_cloud_t& cloud, const std::set<uint32_t>& live,
+    const double* q, const size_t k, const double radius)
+{
+    ASSERT_EQ(index.size(), live.size());
+    const std::vector<double> bf = sortedLiveDists(cloud, live, q);
+
+    std::vector<uint32_t> idx(k);
+    std::vector<double>   d(k);
+    const size_t          n = index.knnSearch(q, k, idx.data(), d.data());
+    ASSERT_EQ(n, std::min(k, live.size()));
+    for (size_t i = 0; i < n; ++i)
+    {
+        EXPECT_TRUE(live.count(idx[i]) == 1);
+        EXPECT_NEAR(d[i], bf[i], 1e-9);
+    }
+
+    std::vector<nanoflann::ResultItem<uint32_t, double>> matches;
+    (void)index.radiusSearch(q, radius, matches);
+    const size_t expected =
+        static_cast<size_t>(std::lower_bound(bf.begin(), bf.end(), radius) - bf.begin());
+    EXPECT_EQ(matches.size(), expected);
+}
+}  // namespace
+
+// Every point at the same location: splits cannot separate them, which
+// stresses insertion, balance rebuilds and deletion on degenerate subtrees.
+TEST(kdtree_incremental, all_duplicate_points)
+{
+    inc_cloud_t        cloud;
+    inc_tree_t         index(3, cloud);
+    std::set<uint32_t> live;
+    const uint32_t     N = 3000;
+    cloud.pts.assign(N, {1.0, 2.0, 3.0});
+
+    // One point at a time, so every insertion goes through the balance checks.
+    for (uint32_t i = 0; i < N; ++i)
+    {
+        index.addPoints(i, i);
+        live.insert(i);
+    }
+    const double atPt[3] = {1.0, 2.0, 3.0};
+    const double away[3] = {4.0, 2.0, 3.0};
+    checkVsBruteforce(index, cloud, live, atPt, 10, 0.5);
+    checkVsBruteforce(index, cloud, live, away, 10, 10.0);
+
+    // Remove every other point, then a box holding all of the rest.
+    for (uint32_t i = 0; i < N; i += 2)
+    {
+        index.removePoint(i);
+        live.erase(i);
+    }
+    checkVsBruteforce(index, cloud, live, atPt, 10, 0.5);
+
+    inc_tree_t::BoundingBox box;
+    for (int d = 0; d < 3; ++d)
+    {
+        box[d].low  = atPt[d];
+        box[d].high = atPt[d];
+    }
+    index.removeBox(box);
+    live.clear();
+    EXPECT_EQ(index.size(), 0u);
+
+    // The emptied tree must accept new points again.
+    index.addPoints(0, 9);
+    for (uint32_t i = 0; i < 10; ++i)
+    {
+        live.insert(i);
+    }
+    checkVsBruteforce(index, cloud, live, atPt, 5, 0.5);
+}
+
+// Coordinates drawn from a 3x3x3 grid: every location holds many duplicates.
+TEST(kdtree_incremental, heavily_duplicated_points_under_churn)
+{
+    std::mt19937                       rng(2024);
+    std::uniform_int_distribution<int> coord(0, 2);
+    inc_cloud_t                        cloud;
+    inc_tree_t                         index(3, cloud);
+    std::set<uint32_t>                 live;
+
+    for (int round = 0; round < 8; ++round)
+    {
+        const uint32_t start = static_cast<uint32_t>(cloud.pts.size());
+        for (int i = 0; i < 500; ++i)
+        {
+            cloud.pts.push_back({double(coord(rng)), double(coord(rng)), double(coord(rng))});
+        }
+        const uint32_t end = static_cast<uint32_t>(cloud.pts.size()) - 1;
+        index.addPoints(start, end);
+        for (uint32_t i = start; i <= end; ++i)
+        {
+            live.insert(i);
+        }
+
+        // Drop about a third of the live points.
+        std::vector<uint32_t> order(live.begin(), live.end());
+        std::shuffle(order.begin(), order.end(), rng);
+        for (size_t i = 0; i < order.size() / 3; ++i)
+        {
+            index.removePoint(order[i]);
+            live.erase(order[i]);
+        }
+
+        for (int t = 0; t < 20; ++t)
+        {
+            const double q[3] = {
+                0.5 * coord(rng) + 0.25, 0.5 * coord(rng) + 0.25, 0.5 * coord(rng) + 0.25};
+            checkVsBruteforce(index, cloud, live, q, 50, 1.0);
+        }
+    }
+}
