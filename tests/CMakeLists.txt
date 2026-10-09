@@ -26,6 +26,7 @@ add_executable(nanoflann_unit_tests
   test_kdtree_basic.cpp
   test_kdtree_concurrent_build.cpp
   test_kdtree_dynamic.cpp
+  test_kdtree_first_match.cpp
   test_kdtree_eigen.cpp
   test_kdtree_incremental.cpp
   test_kdtree_manifold.cpp
@@ -64,3 +65,20 @@ target_link_libraries(nanoflann_unit_tests
 )
 
 add_test(NAME nanoflann_unit_tests COMMAND nanoflann_unit_tests)
+# The tie-breaking tests again, with NANOFLANN_FIRST_MATCH defined. The macro
+# changes inline code, so it cannot be mixed with the other test files in one
+# executable.
+add_executable(nanoflann_unit_tests_first_match
+  test_kdtree_first_match.cpp
+  test_main.cpp
+)
+set_target_properties(nanoflann_unit_tests_first_match PROPERTIES FOLDER "./")
+target_compile_definitions(nanoflann_unit_tests_first_match PRIVATE NANOFLANN_FIRST_MATCH)
+target_link_libraries(nanoflann_unit_tests_first_match
+    PRIVATE
+        ${GTEST_TARGET}
+        nanoflann::nanoflann
+        Threads::Threads
+)
+
+add_test(NAME nanoflann_unit_tests_first_match COMMAND nanoflann_unit_tests_first_match)

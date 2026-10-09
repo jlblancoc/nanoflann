@@ -357,6 +357,21 @@ bool addPointToSortedResultSet(
     if (count < capacity) count++;
     return true;
 }
+
+/** Whether a candidate at distance \a dist may be offered to \a result_set
+ *  via addPoint(). */
+template <class RESULTSET, typename DistanceType>
+inline bool acceptsCandidate(const RESULTSET& result_set, const DistanceType dist)
+{
+#ifdef NANOFLANN_FIRST_MATCH
+    // A tie with the current worst result of a full set may still win on a
+    // smaller index, so let the result set decide.
+    const auto worst = result_set.worstDist();
+    return dist < worst || (dist == worst && result_set.full());
+#else
+    return dist < result_set.worstDist();
+#endif
+}
 }  // namespace detail
 
 /** @addtogroup result_sets_grp Result set classes
@@ -1861,7 +1876,7 @@ class KDTreeBaseClass
                 const IndexType accessor = vAcc_[i];
                 if (!obj.isActive(accessor)) continue;
                 DistanceType dist = obj.distance_.evalMetric(vec, accessor, dim);
-                if (dist < result_set.worstDist())
+                if (detail::acceptsCandidate(result_set, dist))
                 {
                     if (!result_set.addPoint(
                             static_cast<typename RESULTSET::DistanceType>(dist),
@@ -1943,7 +1958,7 @@ class KDTreeBaseClass
                 const IndexType accessor = vAcc_[i];
                 if (!obj.isActive(accessor)) continue;
                 DistanceType dist = obj.distance_.evalMetric(vec, accessor, dim);
-                if (dist < result_set.worstDist())
+                if (detail::acceptsCandidate(result_set, dist))
                 {
                     if (!result_set.addPoint(
                             static_cast<typename RESULTSET::DistanceType>(dist),
@@ -4801,7 +4816,7 @@ class KDTreeSingleIndexIncrementalAdaptor
 #else
             const DistanceType d = distance_.evalMetric(vec, node->ptIdx, dim);
 #endif
-            if (d < rs.worstDist())
+            if (detail::acceptsCandidate(rs, d))
                 rs.addPoint(
                     static_cast<typename RESULTSET::DistanceType>(d),
                     static_cast<typename RESULTSET::IndexType>(node->ptIdx));
@@ -4858,7 +4873,7 @@ class KDTreeSingleIndexIncrementalAdaptor
         if (!node->deleted)
         {
             const DistanceType d = distance_.evalMetric(vec, node->ptIdx, dim);
-            if (d < rs.worstDist())
+            if (detail::acceptsCandidate(rs, d))
                 rs.addPoint(
                     static_cast<typename RESULTSET::DistanceType>(d),
                     static_cast<typename RESULTSET::IndexType>(node->ptIdx));

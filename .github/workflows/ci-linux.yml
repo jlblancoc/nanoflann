@@ -78,6 +78,11 @@ jobs:
             compiler: gcc
             cxx_std: 17
             extra_defines: "-DNANOFLANN_INCREMENTAL_INNODE_DISTANCE"
+          - name: ubuntu-24.04-gcc-first-match
+            os: ubuntu-24.04
+            compiler: gcc
+            cxx_std: 17
+            extra_defines: "-DNANOFLANN_FIRST_MATCH"
 
     steps:
       - name: Checkout
