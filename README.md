@@ -2,6 +2,8 @@
 
 # nanoflann
 [![CI Linux](https://github.com/jlblancoc/nanoflann/actions/workflows/ci-linux.yml/badge.svg)](https://github.com/jlblancoc/nanoflann/actions/workflows/ci-linux.yml)
+[![CI macOS](https://github.com/jlblancoc/nanoflann/actions/workflows/ci-macos.yml/badge.svg)](https://github.com/jlblancoc/nanoflann/actions/workflows/ci-macos.yml)
+[![CI Windows](https://github.com/jlblancoc/nanoflann/actions/workflows/ci-windows.yml/badge.svg)](https://github.com/jlblancoc/nanoflann/actions/workflows/ci-windows.yml)
 [![CI Check clang-format](https://github.com/jlblancoc/nanoflann/actions/workflows/check-clang-format.yml/badge.svg)](https://github.com/jlblancoc/nanoflann/actions/workflows/check-clang-format.yml)
 [![CircleCI](https://circleci.com/gh/jlblancoc/nanoflann/tree/master.svg?style=svg)](https://circleci.com/gh/jlblancoc/nanoflann/tree/master)
 [![Windows build status](https://ci.appveyor.com/api/projects/status/h8k1apfogxyqhskd/branch/master?svg=true)](https://ci.appveyor.com/project/jlblancoc/nanoflann/branch/master)
@@ -75,10 +77,11 @@ $ make && make test
 
 ### 1.3. Code examples
 
-  * KD-tree look-up with `knnSearch()` and `radiusSearch()`: [pointcloud_kdd_radius.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_kdd_radius.cpp)
-  * KD-tree look-up on a point cloud dataset: [pointcloud_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_example.cpp)
+  * KD-tree look-up with `knnSearch()`, `radiusSearch()` and `findWithinBox()`: [pointcloud_kdd_radius.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_kdd_radius.cpp)
+  * KD-tree look-up on a point cloud dataset, with a single- and a multithreaded build: [pointcloud_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_example.cpp)
   * KD-tree look-up on a dynamic point cloud dataset (Bentley–Saxe forest): [dynamic_pointcloud_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/dynamic_pointcloud_example.cpp)
   * Incremental / sliding-window point cloud index (`addPoints` + box trimming): [pointcloud_incremental_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_incremental_example.cpp)
+  * The same, with rebalancing rebuilds on a background thread (`KDTreeSingleIndexIncrementalAdaptorMT`): [pointcloud_incremental_mt_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/pointcloud_incremental_mt_example.cpp)
   * Exact KD-tree look-up on a rotation group (SO2), C++17: [manifold_so2_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/manifold_so2_example.cpp)
   * Exact KD-tree look-up on a rotation group (SO3), C++17: [manifold_so3_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/manifold_so3_example.cpp)
   * Exact KD-tree look-up on SE(3) poses, C++17: [manifold_se3_example.cpp](https://github.com/jlblancoc/nanoflann/blob/master/examples/manifold_se3_example.cpp)
@@ -142,7 +145,7 @@ Refer to the examples below or to the C++ API of [nanoflann::KDTreeSingleIndexAd
     ```
   * Working directly with `Eigen::Matrix<>` classes (matrices and vectors-of-vectors).
   * Working with dynamic point clouds without a need to rebuild entire kd-tree index. Two options:
-    * `nanoflann::KDTreeSingleIndexDynamicAdaptor<>`: the Bentley–Saxe "logarithmic forest" of static sub-trees.
+    * `nanoflann::KDTreeSingleIndexDynamicAdaptor<>`: the Bentley–Saxe "logarithmic forest" of static sub-trees. Kept for API stability; for new code, the incremental index below is faster for most dynamic workloads.
     * `nanoflann::KDTreeSingleIndexIncrementalAdaptor<>` [New]: a single self-balancing tree, recommended for sliding-window LiDAR-style maps. Supports incremental `addPoints`, lazy `removePoint`, and axis-aligned box trimming (`removeBox` / `removeOutsideBox`) with bounded memory under churn. See the design & benchmark report in [nanoflann-benchmark/incrementalTests](https://github.com/MRPT/nanoflann-benchmark/tree/master/incrementalTests/REPORT.md).
     * `nanoflann::KDTreeSingleIndexIncrementalAdaptorMT<>` [New]: the same index with the large rebalancing rebuilds offloaded to a background thread, to bound the foreground update-latency tail (see the [threading analysis](https://github.com/MRPT/nanoflann-benchmark/tree/master/incrementalTests/async_rebalance.md)). Disabled under `NANOFLANN_NO_THREADS`.
   * Working with the distance metrics:
@@ -168,6 +171,10 @@ Refer to the examples below or to the C++ API of [nanoflann::KDTreeSingleIndexAd
       `examples/manifold_s2_example.cpp`, and
       `examples/manifold_se3_incremental_example.cpp`. Opt out with
       `NANOFLANN_NO_MANIFOLDS`.
+      Points on `Sn<N>` are stored as unit vectors and compared with the chordal
+      distance, which ranks neighbors exactly like the geodesic angle. All their
+      coordinates stay ordinary linear ones, which is why plain bounding boxes
+      give exact pruning on the sphere.
   * Saves and load the built indices to disk.
   * GUI based support for benchmarking multiple kd-tree libraries namely nanoflann, flann, fastann and libkdtree.
 
@@ -230,18 +237,31 @@ The nanoflann port in vcpkg is kept up to date by Microsoft team members and com
 
 ### 1.9. Compile time definitions
 
-  * `NANOFLANN_FIRST_MATCH`: If defined and two points have the same distance, the one with the lowest-index will be returned first. Otherwise there is no particular order.
+  * `NANOFLANN_FIRST_MATCH`: If defined, ties in distance are broken by the lowest point index, both when choosing which tied points make it into a k-NN result and in their order. Otherwise there is no particular order.
   * `NANOFLANN_NO_THREADS`: If defined, multithreading capabilities will be disabled, so that the library can be used without linking with pthreads. If one tries to use multiple threads, an exception will be thrown.
   * `NANOFLANN_NODE_ALIGNMENT`: The memory alignment, in bytes, used for KD-tree nodes. Must be a power of two and `>= 8`. Defaults to `16` (also a good value for AVX; use `32`/`64` for AVX/AVX-512 aligned loads). Every node honors this alignment, with any C++ standard.
   * `NANOFLANN_NO_MANIFOLDS`: If defined, disables the C++17 product-manifold topology support (`Manifold_Adaptor`, `Product<>`, `SO2`/`SO3`/`SE2`/`SE3`/`Sn`/`Torus`, `metric_Manifold<>`). It is auto-enabled under C++17; define this to force it off (the C++11 Euclidean core is unaffected).
   * `NANOFLANN_INCREMENTAL_NO_COORD_CACHE`: If defined, the incremental index does not keep a per-node contiguous copy of point coordinates (trades query speed for memory).
   * `NANOFLANN_INCREMENTAL_INNODE_DISTANCE`: If defined, the (Euclidean) incremental index reuses the per-axis coordinate cache for the in-node distance. Has no effect for manifold metrics, which always use the full `evalMetric`.
+  * `NANOFLANN_INCREMENTAL_NO_FREELIST`: For benchmarking only. If defined, the incremental index does not recycle the nodes freed by partial rebuilds, so its memory grows with the total number of insertions instead of staying bounded by the live points.
 
 ### 1.10. Thread safety
 
-  * **Index build**: pass `n_thread_build > 1` in `KDTreeSingleIndexAdaptorParams` to parallelize the build via `std::async` (unless `NANOFLANN_NO_THREADS` is defined).
+  * **Index build**: pass `n_thread_build != 1` in `KDTreeSingleIndexAdaptorParams` (`0` = all hardware threads) to parallelize the build via `std::async` (unless `NANOFLANN_NO_THREADS` is defined). The resulting tree is identical to the single-threaded one.
   * **Queries**: `findNeighbors()`, `knnSearch()`, `radiusSearch()` and `rknnSearch()` are `const` and safe to call concurrently from multiple threads on the same index, as long as no thread is concurrently building or modifying it.
   * Building an index from multiple threads (or mixing queries with an in-progress build) is not supported.
+  * **Dynamic and incremental indices** follow the same rule: any number of concurrent queries, or one thread modifying the index (`addPoints()`, `removePoint()`, `removeBox()`, ...), never both at once.
+  * **`KDTreeSingleIndexIncrementalAdaptorMT`** runs its large rebuilds on an internal worker thread, but its public API is still meant to be called from a single foreground thread (or with external locking), as above. Two extra rules:
+    * The worker reads point coordinates through your dataset adaptor while the foreground thread keeps inserting, so **the dataset storage must not move while a rebuild is in flight**. For example, `reserve()` a `std::vector` up front and recycle evicted slots (see `acquireRemovedPoints()`). A `std::deque` is not enough, since `push_back()` may reallocate its internal block map.
+    * The callback given to `setRebuildCallback()` runs on the worker thread, concurrently with foreground queries, so it must only touch the fresh index it receives (plus its own data).
+    * Call `sync()` to wait for an in-flight rebuild, e.g. before saving the index or reading `physicalSize()`.
+
+### 1.11. Migrating from 1.x to 2.0
+
+The Euclidean API (`L1`/`L2`/`L2_Simple`, the static, dynamic and incremental indices) is unchanged and still C++11. Two things need attention:
+
+  * **Removed `SO2_Adaptor` / `metric_SO2` and `SO3_Adaptor` / `metric_SO3`.** Use `metric_Manifold<SO2>` / `metric_Manifold<SO3>` (or `Manifold_Adaptor<SO2, ...>`), which require C++17. The new metrics are exact; note that SO(3) distances are now chordal-squared and treat `q` and `-q` as the same rotation. See `examples/manifold_so2_example.cpp` and `examples/manifold_so3_example.cpp`.
+  * **Saved indices must be rebuilt.** `loadIndex()` rejects files written by any other nanoflann version (it throws `std::runtime_error`), so re-create and re-save index files written with 1.x.
 
 ------
 
@@ -283,6 +303,18 @@ This parameter is really ignored in `nanoflann`, but was kept for backward compa
 This parameter determines the maximum number of threads that can be called concurrently during the construction of the KD tree. The default value is 1. When the parameter is set to 0, `nanoflann` automatically determines the number of threads to use.
 
 See [this pull request](https://github.com/jlblancoc/nanoflann/pull/236) for some benchmarking showing that using the maximum number of threads is not always the most efficient approach. Do benchmarking on your data!
+
+### 2.4. Incremental index parameters
+
+`KDTreeSingleIndexIncrementalAdaptor` has no `leaf_max_size`: each node holds one point. It is tuned with `KDTreeIncrementalIndexParams`:
+
+  * `alpha_balance` (default `0.75`, typical range `[0.55, 0.85]`): a subtree is rebuilt when its larger child holds more than this fraction of its points. Lower values keep the tree better balanced (faster queries) at the price of more frequent rebuilds.
+  * `alpha_deleted` (default `0.5`, typical range `[0.3, 0.7]`): a subtree is rebuilt, physically dropping its removed points, when more than this fraction of them is removed. Lower values reclaim memory sooner.
+
+`KDTreeSingleIndexIncrementalAdaptorMT` adds two constructor arguments that decide when a background rebuild starts:
+
+  * `rebuild_growth` (default `1.3`): once the tree holds this many times the live points it had at the last rebuild (counting both new and removed points).
+  * `min_rebuild_size` (default `10000`): never below this many nodes. The MT wrapper never rebalances inline, so a smaller tree is not rebalanced at all, which is cheap at that size.
 
 -----
 

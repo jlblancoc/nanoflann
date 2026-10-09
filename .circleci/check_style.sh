@@ -3,12 +3,12 @@
 # Given a set of commits current script checks the style based on clang_format
 # on the list of changed files that exist in the commits.
 #
-# Script should be called from a travis.yml file.
+# Called from the "CI Check clang-format" GitHub Actions workflow.
 
 # Functions
 ######################
 
-# This is run by travis automatically from the root of the project
+# Run from the root of the project.
 
 set +e
 set +x

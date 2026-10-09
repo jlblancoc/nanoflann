@@ -82,7 +82,6 @@
 #include <array>
 #include <atomic>
 #include <cassert>
-#include <chrono>  // std::chrono (async incremental index polling)
 #include <cmath>  // for abs()
 #include <condition_variable>  // rebuild worker of the async incremental index
 #include <cstddef>  // std::ptrdiff_t, std::max_align_t
@@ -901,8 +900,17 @@ struct metric_L2_Simple : public Metric
  *  metric (`metric_Manifold<Space>`) honors the correct geodesic distance and,
  *  crucially, keeps the KD-tree pruning *exact* by supplying an admissible
  *  per-coordinate point-to-interval lower bound (see the lemma in the companion
- *  paper). Only available under C++17 and only for the fixed single-tree index
- *  `KDTreeSingleIndexAdaptor`.
+ *  paper). Only available under C++17, for the static `KDTreeSingleIndexAdaptor`
+ *  and the incremental `KDTreeSingleIndexIncrementalAdaptor` (and its MT
+ *  wrapper).
+ *
+ *  The bound is exact but can be loose, which costs speed, never correctness:
+ *  - Circular coordinates keep plain [min, max] node intervals, so a subtree
+ *    whose angles straddle the +/-pi seam gets an interval close to the whole
+ *    circle and is barely pruned along that axis. Seam-heavy SO(2) data is
+ *    therefore queried slower, not less accurately.
+ *  - S^N needs no special handling: with the chordal embedding all its
+ *    coordinates are `Linear`, so plain axis-aligned boxes already bound it.
  *  @{ */
 
 /** Per-scalar-coordinate topology tag. */
@@ -3328,6 +3336,8 @@ class KDTreeSingleIndexDynamicAdaptor_
     {
         assert(vec);
         if (this->size(*this) == 0) return false;
+        // Unlike the static index, an unbuilt sub-tree is not an error: the
+        // forest keeps empty slots that are simply skipped.
         if (Base::nodes_.empty()) return false;
         DistanceType epsError = 1 + static_cast<DistanceType>(searchParams.eps);
 
@@ -4976,8 +4986,10 @@ class KDTreeSingleIndexIncrementalAdaptor
  *  thread (const queries are safe for concurrent readers; no concurrent writer).
  *  Additionally, because the background thread reads point coordinates from the
  *  dataset adaptor, the **dataset must keep stable element storage while a
- *  rebuild is in flight** (e.g. `reserve()` the backing vector, or use a
- *  std::deque) so that appends on the foreground thread do not reallocate it.
+ *  rebuild is in flight**: appends on the foreground thread must not move
+ *  existing elements nor any lookup structure the adaptor reads them through
+ *  (e.g. `reserve()` the backing std::vector up front). A std::deque is not
+ *  enough, since push_back() may reallocate its internal block map.
  *  Disabled entirely under NANOFLANN_NO_THREADS.
  */
 template <typename Distance, class DatasetAdaptor, int32_t DIM = -1, typename IndexType = uint32_t>
