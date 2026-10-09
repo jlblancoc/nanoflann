@@ -83,6 +83,11 @@ jobs:
             compiler: gcc
             cxx_std: 17
             extra_defines: "-DNANOFLANN_FIRST_MATCH"
+          - name: ubuntu-24.04-gcc-no-freelist
+            os: ubuntu-24.04
+            compiler: gcc
+            cxx_std: 17
+            extra_defines: "-DNANOFLANN_INCREMENTAL_NO_FREELIST"
 
     steps:
       - name: Checkout
