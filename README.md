@@ -24,8 +24,24 @@
 
 This library is a *fork* of the [flann library](https://github.com/flann-lib/flann) by Marius Muja and David G. Lowe, and born as a child project of [MRPT](https://www.mrpt.org/). Following the original license terms, *nanoflann* is distributed under the BSD license. Please, for bugs use the issues button or fork and open a pull request.
 
-Cite as:
+### Citing nanoflann
+
+If you use *nanoflann* in your research, please cite the following paper (accepted for publication in IEEE RA-L, 2026):
+
+> J.L. Blanco-Claraco, "nanoflann: A Header-Only KD-Tree Library for Exact Nearest-Neighbor Search on Compile-Time Product Manifolds," *IEEE Robotics and Automation Letters*, 2026 (accepted).
+
+```bibtex
+@article{blancoclaraco2026nanoflann,
+  title   = {nanoflann: A Header-Only {KD}-Tree Library for Exact Nearest-Neighbor Search on Compile-Time Product Manifolds},
+  author  = {Blanco-Claraco, Jose Luis},
+  journal = {IEEE Robotics and Automation Letters},
+  year    = {2026},
+  note    = {Accepted for publication}
+}
 ```
+
+The original software release can also be cited as:
+```bibtex
 @misc{blanco2014nanoflann,
   title        = {nanoflann: a {C}++ header-only fork of {FLANN}, a library for Nearest Neighbor ({NN}) with KD-trees},
   author       = {Blanco, Jose Luis and Rai, Pranjal Kumar},
