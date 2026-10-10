@@ -2,6 +2,20 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add compile-time product-manifold metrics (SO2, SO3, SE2, SE3, S^N, tori and products) for exact non-Euclidean nearest-neighbor search (C++17, opt out with ``NANOFLANN_NO_MANIFOLDS``). Supported by the static and the incremental KD-trees.
+* Tighter block-level pruning bound for SO(3), up to ~28x faster queries on rotation-heavy data.
+* Add ``NANOFLANN_INCREMENTAL_NO_FREELIST`` (ablation-only) switch.
+* **Breaking:** remove the legacy ``SO2_Adaptor`` / ``SO3_Adaptor`` metrics, superseded by ``Manifold_Adaptor``. SO(2) and SO(3) now require C++17; C++11 users needing the old metrics should stay on nanoflann 1.x.
+* Honor ``NANOFLANN_NODE_ALIGNMENT`` > 16 in the node array before C++17 and in ``PooledAllocator`` (`#321 <https://github.com/jlblancoc/nanoflann/issues/321>`_).
+* Robustness and performance: reject corrupt vector sizes in ``load_value()``, cheaper post-deletion rebalancing in the incremental index, radius results sorted once in the dynamic adaptor.
+* ``KDTreeEigenMatrixAdaptor`` now owns its index via ``std::unique_ptr``.
+* New examples (SE3, S2, incremental Euclidean and manifold) and tests (Eigen adaptor, radius boundary, incremental manifolds); CI matrix for the compile-time macros.
+* Docs: README and Doxygen refresh, clarify that ``chord_sq_to_angle`` returns an arc angle.
+* Remove dead Travis CI files; add a release helper script.
+* Contributors: Jose Luis Blanco-Claraco
+
 1.14.0 (2026-09-25)
 -------------------
 * Store kd-tree nodes in one contiguous std::vector instead of pointer-linked
