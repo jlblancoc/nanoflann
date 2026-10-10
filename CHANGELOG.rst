@@ -2,8 +2,8 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.0 (2026-10-11)
+------------------
 * Add compile-time product-manifold metrics (SO2, SO3, SE2, SE3, S^N, tori and products) for exact non-Euclidean nearest-neighbor search (C++17, opt out with ``NANOFLANN_NO_MANIFOLDS``). Supported by the static and the incremental KD-trees.
 * Tighter block-level pruning bound for SO(3), up to ~28x faster queries on rotation-heavy data.
 * Add ``NANOFLANN_INCREMENTAL_NO_FREELIST`` (ablation-only) switch.
