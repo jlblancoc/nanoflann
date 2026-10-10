@@ -40,7 +40,9 @@ If you use *nanoflann* in your research, please cite the following paper (accept
 }
 ```
 
-The original software release can also be cited as:
+<details>
+<summary>Citation for the original software release (2014)</summary>
+
 ```bibtex
 @misc{blanco2014nanoflann,
   title        = {nanoflann: a {C}++ header-only fork of {FLANN}, a library for Nearest Neighbor ({NN}) with KD-trees},
@@ -49,6 +51,8 @@ The original software release can also be cited as:
   year         = {2014}
 }
 ```
+
+</details>
 
 See the release [CHANGELOG](CHANGELOG.rst) for a list of project changes.
 
