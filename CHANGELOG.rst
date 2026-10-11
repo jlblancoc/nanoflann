@@ -2,6 +2,22 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#322 <https://github.com/jlblancoc/nanoflann/issues/322>`_ from jlblancoc/fix/planesplit-build-regression
+  Fix single-thread build regression: restore two-pass partition in planeSplit()
+* Restore two-pass Hoare partition in planeSplit()
+  The one-pass three-way partition introduced in 1.9.0 swaps almost every
+  element it visits, while the previous two-pass scheme only swaps misplaced
+  pairs (about 7x fewer swaps on LiDAR data). This made the single-thread
+  KD-tree build 9-12% slower than in 1.8.0.
+  The two-pass version is restored over half-open ranges, so it stays safe
+  for unsigned Offset types, and keeps comparing coordinates in DistanceType.
+  Results are unchanged. A new test exercises heavy ties on the split planes,
+  where all three partition regions are populated.
+* fix test warnings for ignored return values
+* Contributors: Jose Luis Blanco Claraco, Jose Luis Blanco-Claraco
+
 2.0.0 (2026-10-11)
 ------------------
 * Add compile-time product-manifold metrics (SO2, SO3, SE2, SE3, S^N, tori and products) for exact non-Euclidean nearest-neighbor search (C++17, opt out with ``NANOFLANN_NO_MANIFOLDS``). Supported by the static and the incremental KD-trees.
