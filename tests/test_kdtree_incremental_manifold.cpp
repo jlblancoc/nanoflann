@@ -272,7 +272,7 @@ void run_incr_vs_static(const size_t N, const size_t nQueries, const unsigned K)
         const std::vector<T>  query = random_point<Space, T>(rng);
         std::vector<uint32_t> ia(K);
         std::vector<T>        da(K);
-        incr.knnSearch(query.data(), K, ia.data(), da.data());
+        (void)incr.knnSearch(query.data(), K, ia.data(), da.data());
         std::vector<size_t> ib(K);
         std::vector<T>      db(K);
         KNNResultSet<T>     rs(K);
@@ -451,7 +451,7 @@ TEST(incr_manifold, SO2_wraparound_regression)
         const double query[1] = {3.14};
         uint32_t     ri;
         double       rd;
-        index.knnSearch(query, 1, &ri, &rd);
+        (void)index.knnSearch(query, 1, &ri, &rd);
         EXPECT_EQ(ri, 0u) << "order " << order << ": must return the wrap-around neighbor";
         const double expected = wrap_angle<double>(3.14 - (-3.1));
         EXPECT_NEAR(rd, expected * expected, 1e-9);
@@ -475,7 +475,7 @@ TEST(incr_manifold, SO3_double_cover)
     std::vector<double>        negq = {-q[0], -q[1], -q[2], -q[3]};
     uint32_t                   ri;
     double                     rd;
-    index.knnSearch(negq.data(), 1, &ri, &rd);
+    (void)index.knnSearch(negq.data(), 1, &ri, &rd);
     EXPECT_NEAR(rd, 0.0, 1e-9) << "antipodal quaternion is the same rotation (distance 0)";
 
     std::set<uint32_t> live;
@@ -483,7 +483,7 @@ TEST(incr_manifold, SO3_double_cover)
     for (int t = 0; t < 200; ++t)
     {
         const std::vector<double> query = random_point<SO3, double>(rng);
-        index.knnSearch(query.data(), 1, &ri, &rd);
+        (void)index.knnSearch(query.data(), 1, &ri, &rd);
         const std::vector<double> bf = bruteforce_sorted<SO3, double>(cloud, live, query);
         ASSERT_NEAR(rd, bf[0], 1e-9) << "double-cover query #" << t;
     }

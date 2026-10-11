@@ -454,7 +454,7 @@ TEST(manifold, S2_radius_angular)
         std::vector<nanoflann::ResultItem<uint32_t, T>> matches;
         nanoflann::SearchParameters                   sp;
         sp.sorted = false;
-        index.radiusSearch(query.data(), r2, matches, sp);
+        (void)index.radiusSearch(query.data(), r2, matches, sp);
 
         // Brute-force angular filter.
         size_t bf = 0;
