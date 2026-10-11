@@ -2450,42 +2450,58 @@ class KDTreeBaseClass
         const Derived& obj, const Offset ind, const Size count, const Dimension cutfeat,
         const DistanceType& cutval, Offset& lim1, Offset& lim2)
     {
-        // Dutch National Flag algorithm for three-way partitioning, over the
-        // half-open range [0, count). Offset is unsigned, so a closed-range
-        // `[0, count-1]` variant underflows to SIZE_MAX if every element ends
-        // up above cutval.
+        // Two Hoare-style passes: [< cutval | >= cutval], then the upper part
+        // into [== cutval | > cutval]. Only misplaced pairs are swapped, which
+        // is much cheaper than a one-pass three-way partition that moves
+        // almost every element. Half-open ranges keep it safe for an unsigned
+        // Offset. Coordinates are compared in DistanceType, like every other
+        // coordinate-vs-cutval comparison, so that a wide unsigned ElementType
+        // is not converted the other way around.
+        const auto coord = [&](const Offset i)
+        { return static_cast<DistanceType>(dataset_get(obj, vAcc_[ind + i], cutfeat)); };
+
         Offset left  = 0;
-        Offset mid   = 0;
         Offset right = count;
-
-        while (mid < right)
+        for (;;)
         {
-            // Compared in DistanceType, like every other coordinate-vs-cutval
-            // comparison, so that a wide unsigned ElementType is not converted
-            // the other way around.
-            const DistanceType val =
-                static_cast<DistanceType>(dataset_get(obj, vAcc_[ind + mid], cutfeat));
-
-            if (val < cutval)
+            while (left < right && coord(left) < cutval)
             {
-                std::swap(vAcc_[ind + left], vAcc_[ind + mid]);
-                left++;
-                mid++;
+                ++left;
             }
-            else if (val > cutval)
+            while (left < right && coord(right - 1) >= cutval)
             {
-                // right > mid >= 0, so decrementing it cannot underflow
-                right--;
-                std::swap(vAcc_[ind + mid], vAcc_[ind + right]);
+                --right;
             }
-            else
+            if (left >= right)
             {
-                mid++;
+                break;
             }
+            std::swap(vAcc_[ind + left], vAcc_[ind + right - 1]);
+            ++left;
+            --right;
         }
-
         lim1 = left;
-        lim2 = mid;
+
+        right = count;
+        for (;;)
+        {
+            while (left < right && coord(left) <= cutval)
+            {
+                ++left;
+            }
+            while (left < right && coord(right - 1) > cutval)
+            {
+                --right;
+            }
+            if (left >= right)
+            {
+                break;
+            }
+            std::swap(vAcc_[ind + left], vAcc_[ind + right - 1]);
+            ++left;
+            --right;
+        }
+        lim2 = left;
     }
 
     DistanceType computeInitialDistances(

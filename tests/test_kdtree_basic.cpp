@@ -406,6 +406,20 @@ TEST(kdtree, unsigned_radius_search)
     EXPECT_TRUE(found == expected);
 }
 
+TEST(kdtree, heavy_ties_vs_bruteforce)
+{
+    // Coordinates drawn from a handful of integers, so many points lie exactly
+    // on the split planes and planeSplit() fills all three of its regions
+    // (below, equal to and above the cut value).
+    for (uint64_t seed = 0; seed < 20; seed++)
+    {
+        integral_kd_vs_bruteforce_test<uint8_t, int32_t, L2_Simple_Adaptor, false>(
+            2000, 30, 4, seed);
+        integral_kd_vs_bruteforce_test<uint8_t, int32_t, L1_Adaptor, true>(2000, 30, 4, seed);
+        integral_kd_vs_bruteforce_test<int16_t, float, L2_Simple_Adaptor, false>(3000, 50, 2, seed);
+    }
+}
+
 TEST(kdtree, unsigned_same_points)
 {
     // Degenerate case: every value equals the cut value, so the partition
