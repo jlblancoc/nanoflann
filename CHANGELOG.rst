@@ -2,8 +2,8 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.1 (2026-10-12)
+------------------
 * Merge pull request `#322 <https://github.com/jlblancoc/nanoflann/issues/322>`_ from jlblancoc/fix/planesplit-build-regression
   Fix single-thread build regression: restore two-pass partition in planeSplit()
 * Restore two-pass Hoare partition in planeSplit()
