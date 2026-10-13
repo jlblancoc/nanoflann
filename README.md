@@ -77,6 +77,7 @@ See the release [CHANGELOG](CHANGELOG.rst) for a list of project changes.
   $ sudo port install nanoflann
   ```
 * Linux users can also install it with [Linuxbrew](https://docs.brew.sh/Homebrew-on-Linux) with: `brew install homebrew/science/nanoflann`
+* [conda-forge](https://anaconda.org/conda-forge/nanoflann) users (Linux, macOS, Windows): `conda install -c conda-forge nanoflann`
 * List of [**stable releases**](https://github.com/jlblancoc/nanoflann/releases). Check out the [CHANGELOG](https://github.com/jlblancoc/nanoflann/blob/master/CHANGELOG.rst)
 
 Although nanoflann itself doesn't have to be compiled, you can build some examples and tests with:
