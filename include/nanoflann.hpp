@@ -3753,21 +3753,24 @@ class KDTreeSingleIndexIncrementalAdaptor
      *  metadata. Children pointers are nullptr at the leaves. */
     struct INode
     {
-        IndexType   ptIdx         = 0;  //!< index of the stored data point
-        Dimension   divfeat       = 0;  //!< splitting axis at this node
-        bool        deleted       = false;  //!< this node's point is tombstoned
-        bool        treeDeleted   = false;  //!< whole subtree lazily tombstoned
-        INode*      child1        = nullptr;  //!< "< split" child (also free-list link)
-        INode*      child2        = nullptr;  //!< ">= split" child
-        INode*      parent        = nullptr;  //!< parent (nullptr at the root)
-        Size        subtree_size  = 0;  //!< number of nodes in this subtree
-        Size        invalid_count = 0;  //!< number of tombstoned nodes in subtree
-        BoundingBox box;  //!< AABB of all points (live+dead) in this subtree
+        // Fields read at every step of a search come first, so that for small
+        // fixed DIM they share one cache line; the rest go after them.
+
         //! Cache of this node's own point coordinates, kept in-node to avoid the
         //! dataset_get() indirection on the hot query / insert / box paths. Only
         //! populated for a compile-time fixed DIM (`kCacheCoords`); for DIM=-1 it
         //! stays an empty vector and the code falls back to the dataset.
         typename array_or_vector<DIM, ElementType>::type pcoord;
+        INode*      child1        = nullptr;  //!< "< split" child (also free-list link)
+        INode*      child2        = nullptr;  //!< ">= split" child
+        Size        subtree_size  = 0;  //!< number of nodes in this subtree
+        Size        invalid_count = 0;  //!< number of tombstoned nodes in subtree
+        IndexType   ptIdx         = 0;  //!< index of the stored data point
+        Dimension   divfeat       = 0;  //!< splitting axis at this node
+        bool        deleted       = false;  //!< this node's point is tombstoned
+        bool        treeDeleted   = false;  //!< whole subtree lazily tombstoned
+        INode*      parent        = nullptr;  //!< parent (nullptr at the root)
+        BoundingBox box;  //!< AABB of all points (live+dead) in this subtree
     };
 
     /** Whether per-node coordinate caching is active: only for a compile-time
