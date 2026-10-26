@@ -28,7 +28,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *************************************************************************/
 
-
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -392,8 +391,7 @@ TEST(manifold, S2_geodesic_ranking)
 
     manifold_test::ManifoldCloud<T> cloud;
     std::mt19937                    rng(0x5EEDu);
-    for (size_t i = 0; i < N; ++i)
-        cloud.pts.push_back(manifold_test::random_point<Space, T>(rng));
+    for (size_t i = 0; i < N; ++i) cloud.pts.push_back(manifold_test::random_point<Space, T>(rng));
 
     using metric_t = Manifold_Adaptor<Space, T, manifold_test::ManifoldCloud<T>>;
     using index_t  = KDTreeSingleIndexAdaptor<metric_t, manifold_test::ManifoldCloud<T>, 3>;
@@ -438,8 +436,7 @@ TEST(manifold, S2_radius_angular)
 
     manifold_test::ManifoldCloud<T> cloud;
     std::mt19937                    rng(0xA11CEu);
-    for (size_t i = 0; i < N; ++i)
-        cloud.pts.push_back(manifold_test::random_point<Space, T>(rng));
+    for (size_t i = 0; i < N; ++i) cloud.pts.push_back(manifold_test::random_point<Space, T>(rng));
 
     using metric_t = Manifold_Adaptor<Space, T, manifold_test::ManifoldCloud<T>>;
     using index_t  = KDTreeSingleIndexAdaptor<metric_t, manifold_test::ManifoldCloud<T>, 3>;
@@ -449,10 +446,10 @@ TEST(manifold, S2_radius_angular)
     for (const T theta : {T(1) * deg, T(10) * deg, T(90) * deg, T(179) * deg})
     {
         const std::vector<T> query = manifold_test::random_point<Space, T>(rng);
-        const T              r2     = angle_to_chord_sq<T>(theta);
+        const T              r2    = angle_to_chord_sq<T>(theta);
 
         std::vector<nanoflann::ResultItem<uint32_t, T>> matches;
-        nanoflann::SearchParameters                   sp;
+        nanoflann::SearchParameters                     sp;
         sp.sorted = false;
         (void)index.radiusSearch(query.data(), r2, matches, sp);
 
@@ -582,8 +579,8 @@ TEST(manifold, chord_angle_so3_rotation_angle)
         const double an        = std::sqrt(ax * ax + ay * ay + az * az);
         if (an < 1e-9) continue;
 
-        const double h = rot_angle / 2;
-        const double c = std::cos(h);
+        const double h    = rot_angle / 2;
+        const double c    = std::cos(h);
         const double sxyz = std::sin(h) / an;
 
         // q0 = identity, q1 = rotation of rot_angle about the random axis.
