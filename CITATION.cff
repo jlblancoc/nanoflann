@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use nanoflann in your research, please cite the paper below."
+title: "nanoflann"
+type: software
+authors:
+  - family-names: Blanco-Claraco
+    given-names: Jose Luis
+repository-code: "https://github.com/jlblancoc/nanoflann"
+license: BSD-2-Clause
+preferred-citation:
+  type: article
+  title: "nanoflann: A Header-Only KD-Tree Library for Exact Nearest-Neighbor Search on Compile-Time Product Manifolds"
+  authors:
+    - family-names: Blanco-Claraco
+      given-names: Jose Luis
+  journal: "IEEE Robotics and Automation Letters"
+  year: 2026
+  doi: "10.1109/LRA.2026.3747624"
+  url: "https://ieeexplore.ieee.org/document/11753906"

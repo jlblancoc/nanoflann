@@ -26,9 +26,9 @@ This library is a *fork* of the [flann library](https://github.com/flann-lib/fla
 
 ### Citing nanoflann
 
-If you use *nanoflann* in your research, please cite the following paper (accepted for publication in IEEE RA-L, 2026):
+If you use *nanoflann* in your research, please cite the following paper (published in IEEE RA-L, 2026):
 
-> J.L. Blanco-Claraco, "nanoflann: A Header-Only KD-Tree Library for Exact Nearest-Neighbor Search on Compile-Time Product Manifolds," *IEEE Robotics and Automation Letters*, 2026 (accepted). Preprint: [arXiv:2610.15215](https://arxiv.org/abs/2610.15215).
+> J.L. Blanco-Claraco, "nanoflann: A Header-Only KD-Tree Library for Exact Nearest-Neighbor Search on Compile-Time Product Manifolds," *IEEE Robotics and Automation Letters*, 2026, doi: [10.1109/LRA.2026.3747624](https://doi.org/10.1109/LRA.2026.3747624). [IEEE Xplore](https://ieeexplore.ieee.org/document/11753906). Preprint (fallback): [arXiv:2610.15215](https://arxiv.org/abs/2610.15215).
 
 ```bibtex
 @article{blancoclaraco2026nanoflann,
@@ -36,11 +36,9 @@ If you use *nanoflann* in your research, please cite the following paper (accept
   author  = {Blanco-Claraco, Jose Luis},
   journal = {IEEE Robotics and Automation Letters},
   year    = {2026},
-  eprint  = {2610.15215},
-  archivePrefix = {arXiv},
-  primaryClass  = {cs.RO},
-  url     = {https://arxiv.org/abs/2610.15215},
-  note    = {Accepted for publication, DOI pending}
+  doi     = {10.1109/LRA.2026.3747624},
+  url     = {https://ieeexplore.ieee.org/document/11753906},
+  note    = {Preprint: arXiv:2610.15215}
 }
 ```
 
