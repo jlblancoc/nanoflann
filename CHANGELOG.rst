@@ -2,8 +2,8 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.2 (2026-11-14)
+------------------
 * Incremental index: faster searches by putting the fields they read first in INode.
 * CMake: use a target for Eigen.
 * COPYING: standard BSD-2-Clause wording.
