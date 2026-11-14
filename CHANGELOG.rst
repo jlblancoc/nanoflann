@@ -2,6 +2,14 @@
 Changelog for package nanoflann
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Incremental index: faster searches by putting the fields they read first in INode.
+* CMake: use a target for Eigen.
+* COPYING: standard BSD-2-Clause wording.
+* Docs: conda-forge installation, updated citation and arXiv link.
+* Contributors: David Wells, Jose Luis Blanco-Claraco
+
 2.0.1 (2026-10-12)
 ------------------
 * Merge pull request `#322 <https://github.com/jlblancoc/nanoflann/issues/322>`_ from jlblancoc/fix/planesplit-build-regression
